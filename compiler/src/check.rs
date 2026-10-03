@@ -15,6 +15,24 @@ pub struct Diagnostic {
 pub struct Checked {
     pub funcs: Vec<Func>,
     pub globals: Vec<Global>,
+    pub layouts: Vec<Layout>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Layout {
+    pub id: u32,
+    pub parent: u32,
+    pub nrefs: u32,
+    pub payload: u32,
+    pub fields: Vec<LaidField>,
+}
+
+#[derive(Clone, Debug)]
+pub struct LaidField {
+    pub name: String,
+    pub offset: u32,
+    pub is_ref: bool,
+    pub ty: Ty,
 }
 
 #[derive(Clone, Debug)]
@@ -30,6 +48,7 @@ pub struct Func {
     pub params: usize,
     pub body: Vec<TStmt>,
     pub local_count: usize,
+    pub local_is_ref: Vec<bool>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -40,6 +59,17 @@ pub enum Ty {
     Unit,
     Void,
     Null,
+    /// User reference class. The id is `classes` index + 1. Zero is `Object`.
+    Ref(u32),
+    Object,
+    /// `u32::MAX` is an array of `Object`. Any other id is an array of that reference class.
+    Array(u32),
+}
+
+impl Ty {
+    pub fn is_ref(self) -> bool {
+        matches!(self, Ty::Ref(_) | Ty::Object | Ty::Array(_))
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -47,6 +77,17 @@ pub enum TStmt {
     Local(usize, Option<TExpr>),
     Assign(usize, TExpr),
     StoreGlobal(String, TExpr),
+    FieldStore {
+        base: TExpr,
+        offset: u32,
+        is_ref: bool,
+        value: TExpr,
+    },
+    IndexStore {
+        base: TExpr,
+        index: TExpr,
+        value: TExpr,
+    },
     Expr(TExpr),
     If(TExpr, Vec<TStmt>, Vec<TStmt>),
     While(TExpr, Vec<TStmt>),
@@ -63,6 +104,30 @@ pub enum TExpr {
     Binary(BinOp, Box<TExpr>, Box<TExpr>),
     Call(String, Vec<TExpr>, Ty),
     Unit,
+    Alloc {
+        class: u32,
+        nrefs: u32,
+        payload: u32,
+    },
+    AllocArray {
+        len: Box<TExpr>,
+        elem: u32,
+    },
+    Field {
+        base: Box<TExpr>,
+        offset: u32,
+        is_ref: bool,
+    },
+    Index {
+        base: Box<TExpr>,
+        index: Box<TExpr>,
+    },
+    BoxI32(Box<TExpr>),
+    GetClass(Box<TExpr>),
+    IsInstance(Box<TExpr>, Box<TExpr>),
+    Has(Box<TExpr>, Box<TExpr>),
+    RefEq(Box<TExpr>, Box<TExpr>),
+    RefNe(Box<TExpr>, Box<TExpr>),
 }
 
 struct ClassRec {
@@ -266,8 +331,20 @@ pub fn check_project(units: &[Unit]) -> Result<Checked, Vec<Diagnostic>> {
     }
 
     let mut globals = Vec::new();
-    for class in &classes {
+    let mut layouts = Vec::new();
+    for (index, class) in classes.iter().enumerate() {
+        layouts.push(build_layout(
+            (index as u32) + 1,
+            class,
+            &classes,
+            &by_qual,
+            units,
+            &mut errors,
+        ));
         for field in &class.fields {
+            if !field.is_static {
+                continue;
+            }
             match lower_field(class, field) {
                 Ok(global) => globals.push(global),
                 Err(err) => errors.push(err),
@@ -286,7 +363,7 @@ pub fn check_project(units: &[Unit]) -> Result<Checked, Vec<Diagnostic>> {
                 ));
                 continue;
             }
-            match check_method(class, method, &classes, &by_qual, units) {
+            match check_method(class, method, &classes, &by_qual, units, &layouts) {
                 Ok(func) => funcs.push(func),
                 Err(err) => errors.extend(err),
             }
@@ -295,7 +372,74 @@ pub fn check_project(units: &[Unit]) -> Result<Checked, Vec<Diagnostic>> {
     if !errors.is_empty() {
         return Err(errors);
     }
-    Ok(Checked { funcs, globals })
+    Ok(Checked {
+        funcs,
+        globals,
+        layouts,
+    })
+}
+
+fn build_layout(
+    id: u32,
+    class: &ClassRec,
+    classes: &[ClassRec],
+    by_qual: &HashMap<String, usize>,
+    units: &[Unit],
+    errors: &mut Vec<Diagnostic>,
+) -> Layout {
+    let mut parent = 0u32;
+    if let Some(super_name) = &class.extends {
+        if let Some(sup) = resolve_simple(super_name, class, classes, by_qual, units) {
+            if let Some(index) = classes.iter().position(|candidate| std::ptr::eq(candidate, sup)) {
+                parent = (index as u32) + 1;
+            }
+        }
+    }
+    let mut refs = Vec::new();
+    let mut ints = Vec::new();
+    for field in &class.fields {
+        if field.is_static {
+            continue;
+        }
+        match resolve_ty(&field.ty, field.nullable, class, classes, by_qual, units, field.span) {
+            Ok(ty) if ty.is_ref() => refs.push((field.name.clone(), ty)),
+            Ok(Ty::Int32) => ints.push((field.name.clone(), Ty::Int32)),
+            Ok(_) => errors.push(diag_class(
+                class,
+                field.span,
+                "an instance field is Int32 or a reference (section 2.2)",
+            )),
+            Err(err) => errors.extend(err),
+        }
+    }
+    let mut fields = Vec::new();
+    let mut offset = 0u32;
+    for (name, ty) in refs {
+        fields.push(LaidField {
+            name,
+            offset,
+            is_ref: true,
+            ty,
+        });
+        offset += 8;
+    }
+    let nrefs = offset / 8;
+    for (name, ty) in ints {
+        fields.push(LaidField {
+            name,
+            offset,
+            is_ref: false,
+            ty,
+        });
+        offset += 4;
+    }
+    Layout {
+        id,
+        parent,
+        nrefs,
+        payload: offset,
+        fields,
+    }
 }
 
 fn note_only(
@@ -405,6 +549,7 @@ fn check_method(
     classes: &[ClassRec],
     by_qual: &HashMap<String, usize>,
     units: &[Unit],
+    layouts: &[Layout],
 ) -> Result<Func, Vec<Diagnostic>> {
     if method.is_open && method.is_static {
         return Err(vec![diag_class(
@@ -437,6 +582,7 @@ fn check_method(
         .zip(params.iter())
         .map(|(p, ty)| (p.name.clone(), *ty))
         .collect();
+    let mut local_is_ref: Vec<bool> = params.iter().map(|ty| ty.is_ref()).collect();
     let mut errors = Vec::new();
     let body = check_block(
         &method.body,
@@ -444,7 +590,9 @@ fn check_method(
         classes,
         by_qual,
         units,
+        layouts,
         &mut locals,
+        &mut local_is_ref,
         ret,
         &mut errors,
     );
@@ -464,6 +612,7 @@ fn check_method(
         params: params.len(),
         body,
         local_count: locals.len(),
+        local_is_ref,
     })
 }
 
@@ -473,7 +622,9 @@ fn check_block(
     classes: &[ClassRec],
     by_qual: &HashMap<String, usize>,
     units: &[Unit],
+    layouts: &[Layout],
     locals: &mut Vec<(String, Ty)>,
+    local_is_ref: &mut Vec<bool>,
     ret: Ty,
     errors: &mut Vec<Diagnostic>,
 ) -> Vec<TStmt> {
@@ -501,7 +652,7 @@ fn check_block(
                 };
                 let init = match init {
                     Some(expr) => {
-                        match check_expr(expr, Some(ty), class, classes, by_qual, units, locals) {
+                        match check_expr(expr, Some(ty), class, classes, by_qual, units, layouts, locals) {
                             Ok((got, texpr)) => match stored(ty, got, texpr) {
                                 Ok(texpr) => Some(texpr),
                                 Err(message) => {
@@ -527,6 +678,7 @@ fn check_block(
                 }
                 let id = locals.len();
                 locals.push((name.clone(), ty));
+                local_is_ref.push(ty.is_ref());
                 out.push(TStmt::Local(id, init));
             }
             Stmt::Assign {
@@ -551,7 +703,7 @@ fn check_block(
                         *span,
                     ) {
                         Ok((mangle, ty)) => {
-                            match check_expr(expr, Some(ty), class, classes, by_qual, units, locals)
+                            match check_expr(expr, Some(ty), class, classes, by_qual, units, layouts, locals)
                             {
                                 Ok((got, texpr)) => match stored(ty, got, texpr) {
                                     Ok(texpr) => out.push(TStmt::StoreGlobal(mangle, texpr)),
@@ -566,7 +718,7 @@ fn check_block(
                 }
                 let id = local_id.unwrap();
                 let ty = locals[id].1;
-                match check_expr(expr, Some(ty), class, classes, by_qual, units, locals) {
+                match check_expr(expr, Some(ty), class, classes, by_qual, units, layouts, locals) {
                     Ok((got, texpr)) => match stored(ty, got, texpr) {
                         Ok(texpr) => out.push(TStmt::Assign(id, texpr)),
                         Err(message) => errors.push(diag_class(class, *span, message)),
@@ -575,7 +727,7 @@ fn check_block(
                 }
             }
             Stmt::Expr { span, expr } => match check_expr(
-                expr, None, class, classes, by_qual, units, locals,
+                expr, None, class, classes, by_qual, units, layouts, locals,
             ) {
                 Ok((Ty::Void, texpr)) => out.push(TStmt::Expr(texpr)),
                 Ok((Ty::Unit, _)) => errors.push(diag_class(
@@ -603,6 +755,7 @@ fn check_block(
                     classes,
                     by_qual,
                     units,
+                    layouts,
                     locals,
                 ) {
                     Ok((Ty::Bool, texpr)) => texpr,
@@ -616,11 +769,15 @@ fn check_block(
                     }
                 };
                 let then_stmts = check_block(
-                    then_body, class, classes, by_qual, units, locals, ret, errors,
+                    then_body, class, classes, by_qual, units, layouts, locals, local_is_ref, ret, errors,
                 );
                 let else_stmts = else_body
                     .as_ref()
-                    .map(|b| check_block(b, class, classes, by_qual, units, locals, ret, errors))
+                    .map(|b| {
+                        check_block(
+                            b, class, classes, by_qual, units, layouts, locals, local_is_ref, ret, errors,
+                        )
+                    })
                     .unwrap_or_default();
                 out.push(TStmt::If(cond, then_stmts, else_stmts));
             }
@@ -632,6 +789,7 @@ fn check_block(
                     classes,
                     by_qual,
                     units,
+                    layouts,
                     locals,
                 ) {
                     Ok((Ty::Bool, texpr)) => texpr,
@@ -648,7 +806,9 @@ fn check_block(
                         TExpr::Bool(false)
                     }
                 };
-                let body = check_block(body, class, classes, by_qual, units, locals, ret, errors);
+                let body = check_block(
+                    body, class, classes, by_qual, units, layouts, locals, local_is_ref, ret, errors,
+                );
                 out.push(TStmt::While(cond, body));
             }
             Stmt::Return { span, expr } => {
@@ -669,6 +829,7 @@ fn check_block(
                         classes,
                         by_qual,
                         units,
+                        layouts,
                         locals,
                     ) {
                         Ok((got, texpr)) if got == ret || (ret == Ty::Unit && got == Ty::Unit) => {
@@ -681,14 +842,101 @@ fn check_block(
                         )),
                         Err(err) => errors.extend(err),
                     },
-                    (Ty::Int32 | Ty::NullableInt | Ty::Bool | Ty::Null, None) => {
+                    (_, None) => {
                         errors.push(diag_class(class, *span, "this method must return a value"))
                     }
                 }
             }
+            Stmt::SetField { span, object, name, expr } => {
+                if let Some(store) = static_field_store(
+                    class, object, name, expr, classes, by_qual, units, layouts, locals, *span,
+                ) {
+                    match store {
+                        Ok(stmt) => out.push(stmt),
+                        Err(err) => errors.extend(err),
+                    }
+                    continue;
+                }
+                let (oty, base) = match check_expr(
+                    object, None, class, classes, by_qual, units, layouts, locals,
+                ) {
+                    Ok(pair) => pair,
+                    Err(err) => {
+                        errors.extend(err);
+                        continue;
+                    }
+                };
+                let Ty::Ref(id) = oty else {
+                    errors.push(diag_class(
+                        class,
+                        *span,
+                        "a field selection needs a reference receiver (section 2.2)",
+                    ));
+                    continue;
+                };
+                let Some(field) = find_field(layouts, id, name) else {
+                    errors.push(diag_class(class, *span, &format!("no field {name} on this class")));
+                    continue;
+                };
+                let field_ty = field.ty;
+                let offset = field.offset;
+                let is_ref = field.is_ref;
+                match check_expr(expr, Some(field_ty), class, classes, by_qual, units, layouts, locals) {
+                    Ok((got, texpr)) => match coerce(field_ty, got, texpr) {
+                        Ok(value) => out.push(TStmt::FieldStore {
+                            base,
+                            offset,
+                            is_ref,
+                            value,
+                        }),
+                        Err(message) => errors.push(diag_class(class, *span, message)),
+                    },
+                    Err(err) => errors.extend(err),
+                }
+            }
+            Stmt::SetIndex { span, array, index, expr } => {
+                let (aty, base) = match check_expr(
+                    array, None, class, classes, by_qual, units, layouts, locals,
+                ) {
+                    Ok(pair) => pair,
+                    Err(err) => {
+                        errors.extend(err);
+                        continue;
+                    }
+                };
+                let Ty::Array(elem) = aty else {
+                    errors.push(diag_class(class, *span, "indexing requires an array (section 6.9)"));
+                    continue;
+                };
+                let idx = match check_expr(
+                    index, Some(Ty::Int32), class, classes, by_qual, units, layouts, locals,
+                ) {
+                    Ok((Ty::Int32, texpr)) => texpr,
+                    Ok(_) => {
+                        errors.push(diag_class(class, *span, "an array index is Int32 (section 6.9)"));
+                        continue;
+                    }
+                    Err(err) => {
+                        errors.extend(err);
+                        continue;
+                    }
+                };
+                let elem_ty = if elem == u32::MAX { Ty::Object } else { Ty::Ref(elem) };
+                match check_expr(expr, Some(elem_ty), class, classes, by_qual, units, layouts, locals) {
+                    Ok((got, texpr)) => match coerce(elem_ty, got, texpr) {
+                        Ok(value) => out.push(TStmt::IndexStore {
+                            base,
+                            index: idx,
+                            value,
+                        }),
+                        Err(message) => errors.push(diag_class(class, *span, message)),
+                    },
+                    Err(err) => errors.extend(err),
+                }
+            }
             Stmt::Block(inner) => {
                 out.extend(check_block(
-                    inner, class, classes, by_qual, units, locals, ret, errors,
+                    inner, class, classes, by_qual, units, layouts, locals, local_is_ref, ret, errors,
                 ));
             }
         }
@@ -703,10 +951,17 @@ fn check_expr(
     classes: &[ClassRec],
     by_qual: &HashMap<String, usize>,
     units: &[Unit],
+    layouts: &[Layout],
     locals: &[(String, Ty)],
 ) -> Result<(Ty, TExpr), Vec<Diagnostic>> {
     match &expr.kind {
         ExprKind::Int(n) => {
+            if expected == Some(Ty::Object) {
+                let Some(n) = i32::try_from(*n).ok() else {
+                    return err(class, expr.span, "this integer literal does not fit in Int32");
+                };
+                return Ok((Ty::Int32, TExpr::Int(n)));
+            }
             if expected == Some(Ty::Int32) || expected.is_none() {
                 let Some(n) = i32::try_from(*n).ok() else {
                     return err(
@@ -734,6 +989,75 @@ fn check_expr(
         ExprKind::Bool(v) => Ok((Ty::Bool, TExpr::Bool(*v))),
         ExprKind::Null => Ok((Ty::Null, TExpr::Int(0))),
         ExprKind::NewUnit => Ok((Ty::Unit, TExpr::Unit)),
+        ExprKind::NewClass(name) => new_class(name, class, classes, by_qual, units, layouts, expr.span),
+        ExprKind::NewArray { elem, len } => {
+            let (got, len_expr) = check_expr(
+                len,
+                Some(Ty::Int32),
+                class,
+                classes,
+                by_qual,
+                units,
+                layouts,
+                locals,
+            )?;
+            if got != Ty::Int32 {
+                return err(class, expr.span, "an array length is Int32 (section 6.9)");
+            }
+            let elem_ty = resolve_ty(elem, false, class, classes, by_qual, units, expr.span)?;
+            let elem_id = match elem_ty {
+                Ty::Object => u32::MAX,
+                Ty::Ref(id) => id,
+                _ => {
+                    return err(
+                        class,
+                        expr.span,
+                        "an array of references is new Element[length] (section 6.9)",
+                    )
+                }
+            };
+            let ty = Ty::Array(elem_id);
+            Ok((
+                ty,
+                TExpr::AllocArray {
+                    len: Box::new(len_expr),
+                    elem: elem_id,
+                },
+            ))
+        }
+        ExprKind::Index(array, index) => {
+            let (aty, base) = check_expr(
+                array, None, class, classes, by_qual, units, layouts, locals,
+            )?;
+            let Ty::Array(elem) = aty else {
+                return err(class, expr.span, "indexing requires an array (section 6.9)");
+            };
+            let (got, idx) = check_expr(
+                index,
+                Some(Ty::Int32),
+                class,
+                classes,
+                by_qual,
+                units,
+                layouts,
+                locals,
+            )?;
+            if got != Ty::Int32 {
+                return err(class, expr.span, "an array index is Int32 (section 6.9)");
+            }
+            let ty = if elem == u32::MAX {
+                Ty::Object
+            } else {
+                Ty::Ref(elem)
+            };
+            Ok((
+                ty,
+                TExpr::Index {
+                    base: Box::new(base),
+                    index: Box::new(idx),
+                },
+            ))
+        }
         ExprKind::Name(name) => {
             if let Some(id) = locals.iter().rposition(|(n, _)| n == name) {
                 if locals[id].1 == Ty::NullableInt {
@@ -754,24 +1078,60 @@ fn check_expr(
             err(class, expr.span, &format!("unknown name {name}"))
         }
         ExprKind::Select(recv, field_name) => {
-            let ExprKind::Name(type_name) = &recv.kind else {
+            let type_receiver = if let ExprKind::Name(type_name) = &recv.kind {
+                locals.iter().all(|(name, _)| name != type_name)
+                    && (resolve_simple(type_name, class, classes, by_qual, units).is_some()
+                        || hidden_in_package(type_name, class, classes).is_some())
+            } else {
+                false
+            };
+            if type_receiver {
+                let ExprKind::Name(type_name) = &recv.kind else {
+                    unreachable!()
+                };
+                let Some(owner) = resolve_simple(type_name, class, classes, by_qual, units) else {
+                    return err(class, expr.span, &format!("cannot find type {type_name}"));
+                };
+                let Some(field) = owner.fields.iter().find(|field| field.name == *field_name && field.is_static)
+                else {
+                    return err(
+                        class,
+                        expr.span,
+                        &format!("no static field {field_name} on {}", owner.name),
+                    );
+                };
+                return load_field(class, owner, field, expr.span, classes, by_qual, units);
+            }
+            let (oty, base) = check_expr(recv, None, class, classes, by_qual, units, layouts, locals)?;
+            let Ty::Ref(id) = oty else {
                 return err(
                     class,
                     expr.span,
-                    "a static field is named on its class (section 4.2)",
+                    "a field selection needs a reference receiver (section 2.2)",
                 );
             };
-            let Some(owner) = resolve_simple(type_name, class, classes, by_qual, units) else {
-                return err(class, expr.span, &format!("cannot find type {type_name}"));
+            let Some(field) = find_field(layouts, id, field_name) else {
+                return err(class, expr.span, &format!("no field {field_name} on this class"));
             };
-            let Some(field) = owner.fields.iter().find(|field| field.name == *field_name) else {
-                return err(
-                    class,
-                    expr.span,
-                    &format!("no static field {field_name} on {}", owner.name),
-                );
-            };
-            load_field(class, owner, field, expr.span, classes, by_qual, units)
+            if field.is_ref {
+                Ok((
+                    field.ty,
+                    TExpr::Field {
+                        base: Box::new(base),
+                        offset: field.offset,
+                        is_ref: true,
+                    },
+                ))
+            } else {
+                Ok((
+                    field.ty,
+                    TExpr::Field {
+                        base: Box::new(base),
+                        offset: field.offset,
+                        is_ref: false,
+                    },
+                ))
+            }
         }
         ExprKind::UnaryNeg(inner) => {
             if let ExprKind::Int(n) = &inner.kind {
@@ -791,6 +1151,7 @@ fn check_expr(
                 classes,
                 by_qual,
                 units,
+                layouts,
                 locals,
             )?;
             if ty != Ty::Int32 {
@@ -810,10 +1171,10 @@ fn check_expr(
             Ok((Ty::Int32, TExpr::UnaryNeg(Box::new(texpr))))
         }
         ExprKind::Binary(op, left, right) => check_binary(
-            *op, left, right, expected, expr.span, class, classes, by_qual, units, locals,
+            *op, left, right, expected, expr.span, class, classes, by_qual, units, layouts, locals,
         ),
         ExprKind::Call(callee, args) => check_call(
-            callee, args, class, classes, by_qual, units, locals, expr.span,
+            callee, args, class, classes, by_qual, units, layouts, locals, expr.span,
         ),
     }
 }
@@ -828,6 +1189,7 @@ fn check_binary(
     classes: &[ClassRec],
     by_qual: &HashMap<String, usize>,
     units: &[Unit],
+    layouts: &[Layout],
     locals: &[(String, Ty)],
 ) -> Result<(Ty, TExpr), Vec<Diagnostic>> {
     let arith = matches!(
@@ -855,6 +1217,7 @@ fn check_binary(
         classes,
         by_qual,
         units,
+        layouts,
         locals,
     )?;
     let (rt, rexpr) = check_expr(
@@ -864,6 +1227,7 @@ fn check_binary(
         classes,
         by_qual,
         units,
+        layouts,
         locals,
     )?;
     if arith {
@@ -883,6 +1247,14 @@ fn check_binary(
             Ty::Int32,
             TExpr::Binary(op, Box::new(lexpr), Box::new(rexpr)),
         ));
+    }
+    if matches!(op, BinOp::Eq | BinOp::Ne) && lt.is_ref() && rt.is_ref() {
+        let cmp = if op == BinOp::Eq {
+            TExpr::RefEq(Box::new(lexpr), Box::new(rexpr))
+        } else {
+            TExpr::RefNe(Box::new(lexpr), Box::new(rexpr))
+        };
+        return Ok((Ty::Bool, cmp));
     }
     if lt != rt || (lt != Ty::Int32 && lt != Ty::Bool) {
         return err(
@@ -942,9 +1314,24 @@ fn check_call(
     classes: &[ClassRec],
     by_qual: &HashMap<String, usize>,
     units: &[Unit],
+    layouts: &[Layout],
     locals: &[(String, Ty)],
     span: usize,
 ) -> Result<(Ty, TExpr), Vec<Diagnostic>> {
+    if let ExprKind::Select(recv, name) = &callee.kind {
+        let type_receiver = if let ExprKind::Name(type_name) = &recv.kind {
+            locals.iter().all(|(local, _)| local != type_name)
+                && (resolve_simple(type_name, class, classes, by_qual, units).is_some()
+                    || hidden_in_package(type_name, class, classes).is_some())
+        } else {
+            false
+        };
+        if !type_receiver {
+            return instance_call(
+                recv, name, args, class, classes, by_qual, units, layouts, locals, span,
+            );
+        }
+    }
     let (owner, method_name) = match &callee.kind {
         ExprKind::Name(name) => (class, name.clone()),
         ExprKind::Select(recv, name) => {
@@ -1008,7 +1395,7 @@ fn check_call(
             units,
             param_span(method),
         )?;
-        let (got, texpr) = check_expr(arg, Some(pty), class, classes, by_qual, units, locals)?;
+        let (got, texpr) = check_expr(arg, Some(pty), class, classes, by_qual, units, layouts, locals)?;
         if !fits(pty, got) {
             return err(
                 class,
@@ -1028,6 +1415,155 @@ fn check_call(
     Ok((ret, TExpr::Call(mangle, targs, ret)))
 }
 
+fn find_field<'a>(layouts: &'a [Layout], id: u32, name: &str) -> Option<&'a LaidField> {
+    layouts
+        .iter()
+        .find(|layout| layout.id == id)?
+        .fields
+        .iter()
+        .find(|field| field.name == name)
+}
+
+fn new_class(
+    name: &str,
+    class: &ClassRec,
+    classes: &[ClassRec],
+    by_qual: &HashMap<String, usize>,
+    units: &[Unit],
+    layouts: &[Layout],
+    span: usize,
+) -> Result<(Ty, TExpr), Vec<Diagnostic>> {
+    let Some(found) = resolve_simple(name, class, classes, by_qual, units) else {
+        return err(class, span, &format!("cannot find type {name}"));
+    };
+    let Some(index) = classes.iter().position(|candidate| std::ptr::eq(candidate, found)) else {
+        return err(class, span, &format!("cannot find type {name}"));
+    };
+    let id = (index as u32) + 1;
+    let Some(layout) = layouts.iter().find(|layout| layout.id == id) else {
+        return err(class, span, &format!("cannot find type {name}"));
+    };
+    Ok((
+        Ty::Ref(id),
+        TExpr::Alloc {
+            class: id,
+            nrefs: layout.nrefs,
+            payload: layout.payload,
+        },
+    ))
+}
+
+fn static_field_store(
+    class: &ClassRec,
+    object: &Expr,
+    name: &str,
+    value: &Expr,
+    classes: &[ClassRec],
+    by_qual: &HashMap<String, usize>,
+    units: &[Unit],
+    layouts: &[Layout],
+    locals: &[(String, Ty)],
+    span: usize,
+) -> Option<Result<TStmt, Vec<Diagnostic>>> {
+    let ExprKind::Name(owner_name) = &object.kind else {
+        return None;
+    };
+    if locals.iter().any(|(local, _)| local == owner_name) {
+        return None;
+    }
+    let owner = resolve_simple(owner_name, class, classes, by_qual, units)?;
+    if !owner.fields.iter().any(|field| field.name == name && field.is_static) {
+        return None;
+    }
+    Some(match assign_global(class, name, Some(owner_name), classes, by_qual, units, span) {
+        Ok((mangle, ty)) => {
+            match check_expr(value, Some(ty), class, classes, by_qual, units, layouts, locals) {
+                Ok((got, texpr)) => match coerce(ty, got, texpr) {
+                    Ok(stored) => Ok(TStmt::StoreGlobal(mangle, stored)),
+                    Err(message) => Err(vec![diag_class(class, span, message)]),
+                },
+                Err(err) => Err(err),
+            }
+        }
+        Err(err) => Err(vec![err]),
+    })
+}
+
+fn instance_call(
+    recv: &Expr,
+    name: &str,
+    args: &[Expr],
+    class: &ClassRec,
+    classes: &[ClassRec],
+    by_qual: &HashMap<String, usize>,
+    units: &[Unit],
+    layouts: &[Layout],
+    locals: &[(String, Ty)],
+    span: usize,
+) -> Result<(Ty, TExpr), Vec<Diagnostic>> {
+    let (recv_ty, recv_expr) = check_expr(recv, None, class, classes, by_qual, units, layouts, locals)?;
+    match name {
+        "getClass" if args.is_empty() && recv_ty.is_ref() => {
+            Ok((Ty::Object, TExpr::GetClass(Box::new(recv_expr))))
+        }
+        "identical" => {
+            if !recv_ty.is_ref() {
+                return err(
+                    class,
+                    span,
+                    "identical is rejected on a value type (section 2.2)",
+                );
+            }
+            if args.len() != 1 {
+                return err(class, span, "identical takes one argument (section 2.2)");
+            }
+            let (arg_ty, arg_expr) =
+                check_expr(&args[0], None, class, classes, by_qual, units, layouts, locals)?;
+            if !arg_ty.is_ref() {
+                return err(
+                    class,
+                    span,
+                    "identical is rejected on a value type (section 2.2)",
+                );
+            }
+            Ok((
+                Ty::Bool,
+                TExpr::RefEq(Box::new(recv_expr), Box::new(arg_expr)),
+            ))
+        }
+        "isInstance" => {
+            if args.len() != 1 {
+                return err(class, span, "isInstance takes one argument (section 2.3)");
+            }
+            let (arg_ty, arg_expr) =
+                check_expr(&args[0], None, class, classes, by_qual, units, layouts, locals)?;
+            if !arg_ty.is_ref() {
+                return err(class, span, "isInstance tests a reference (section 2.3)");
+            }
+            Ok((
+                Ty::Bool,
+                TExpr::IsInstance(Box::new(recv_expr), Box::new(arg_expr)),
+            ))
+        }
+        "has" => {
+            if args.len() != 1 {
+                return err(class, span, "has takes one class object (section 8)");
+            }
+            let (_arg_ty, arg_expr) =
+                check_expr(&args[0], None, class, classes, by_qual, units, layouts, locals)?;
+            Ok((
+                Ty::Bool,
+                TExpr::Has(Box::new(recv_expr), Box::new(arg_expr)),
+            ))
+        }
+        _ => err(
+            class,
+            span,
+            "instance methods need a receiver object; this milestone lowers static methods (section 4.2)",
+        ),
+    }
+}
+
 fn resolve_ty(
     name: &str,
     nullable: bool,
@@ -1037,23 +1573,41 @@ fn resolve_ty(
     units: &[Unit],
     span: usize,
 ) -> Result<Ty, Vec<Diagnostic>> {
-    match (name, nullable) {
+    let (elem, is_array) = if let Some(inner) = name.strip_suffix("[]") {
+        (inner, true)
+    } else {
+        (name, false)
+    };
+    if is_array {
+        let inner = resolve_ty(elem, false, from, classes, by_qual, units, span)?;
+        return match inner {
+            Ty::Object => Ok(Ty::Array(u32::MAX)),
+            Ty::Ref(id) => Ok(Ty::Array(id)),
+            _ => err(from, span, "an array element is a reference type (section 6.9)"),
+        };
+    }
+    match (elem, nullable) {
         ("Int32", true) => Ok(Ty::NullableInt),
         ("Int32", false) => Ok(Ty::Int32),
         ("Boolean", false) => Ok(Ty::Bool),
         ("Unit", false) => Ok(Ty::Unit),
+        ("Object", false) => Ok(Ty::Object),
         (_, true) => err(
             from,
             span,
             "@Nullable in this milestone is lowered for Int32 (section 5.2)",
         ),
         (other, false) => {
-            if resolve_simple(other, from, classes, by_qual, units).is_some() {
-                err(
-                    from,
-                    span,
-                    &format!("{other} is not an Int32, Boolean, or Unit in this milestone"),
-                )
+            if let Some(found) = resolve_simple(other, from, classes, by_qual, units) {
+                let id = classes
+                    .iter()
+                    .position(|candidate| std::ptr::eq(candidate, found))
+                    .map(|index| (index as u32) + 1);
+                if let Some(id) = id {
+                    Ok(Ty::Ref(id))
+                } else {
+                    err(from, span, &format!("unknown type {other}"))
+                }
             } else {
                 err(from, span, &format!("unknown type {other}"))
             }
@@ -1062,18 +1616,27 @@ fn resolve_ty(
 }
 
 fn fits(dest: Ty, got: Ty) -> bool {
-    dest == got || (dest == Ty::NullableInt && matches!(got, Ty::Int32 | Ty::Null))
+    dest == got
+        || (dest == Ty::NullableInt && matches!(got, Ty::Int32 | Ty::Null))
+        || (dest == Ty::Object && got.is_ref())
 }
 
-fn stored(dest: Ty, got: Ty, texpr: TExpr) -> Result<TExpr, &'static str> {
+fn coerce(dest: Ty, got: Ty, texpr: TExpr) -> Result<TExpr, &'static str> {
     if got == Ty::Null && dest != Ty::NullableInt {
         return Err("a type written without @Nullable does not contain null (section 5.2)");
+    }
+    if got == Ty::Int32 && dest == Ty::Object {
+        return Ok(TExpr::BoxI32(Box::new(texpr)));
     }
     if fits(dest, got) {
         Ok(texpr)
     } else {
         Err("the value is not assignable to this type (section 4.4)")
     }
+}
+
+fn stored(dest: Ty, got: Ty, texpr: TExpr) -> Result<TExpr, &'static str> {
+    coerce(dest, got, texpr)
 }
 
 fn only_allows(from: &ClassRec, owner: &ClassRec, only: &[String]) -> bool {
@@ -1288,6 +1851,8 @@ fn stmt_span(stmt: &Stmt) -> usize {
         Stmt::Local { span, .. }
         | Stmt::Expr { span, .. }
         | Stmt::Assign { span, .. }
+        | Stmt::SetField { span, .. }
+        | Stmt::SetIndex { span, .. }
         | Stmt::If { span, .. }
         | Stmt::While { span, .. }
         | Stmt::Return { span, .. } => *span,

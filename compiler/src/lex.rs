@@ -32,6 +32,8 @@ pub enum TokenKind {
     False,
     LBrace,
     RBrace,
+    LBracket,
+    RBracket,
     LParen,
     RParen,
     Semicolon,
@@ -84,6 +86,14 @@ impl<'a> Lexer<'a> {
             b'}' => {
                 self.bump();
                 TokenKind::RBrace
+            }
+            b'[' => {
+                self.bump();
+                TokenKind::LBracket
+            }
+            b']' => {
+                self.bump();
+                TokenKind::RBracket
             }
             b'(' => {
                 self.bump();

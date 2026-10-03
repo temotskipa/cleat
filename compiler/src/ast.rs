@@ -98,6 +98,18 @@ pub enum Stmt {
         owner: Option<String>,
         expr: Expr,
     },
+    SetField {
+        span: usize,
+        object: Expr,
+        name: String,
+        expr: Expr,
+    },
+    SetIndex {
+        span: usize,
+        array: Expr,
+        index: Expr,
+        expr: Expr,
+    },
     If {
         span: usize,
         cond: Expr,
@@ -133,6 +145,12 @@ pub enum ExprKind {
     UnaryNeg(Box<Expr>),
     Binary(BinOp, Box<Expr>, Box<Expr>),
     NewUnit,
+    NewClass(String),
+    NewArray {
+        elem: String,
+        len: Box<Expr>,
+    },
+    Index(Box<Expr>, Box<Expr>),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

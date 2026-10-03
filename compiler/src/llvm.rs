@@ -14,7 +14,18 @@ pub fn emit(project: &Checked, entry: &str) -> Result<String, Vec<crate::check::
         }]);
     }
     let mut ir = String::from("target triple = \"x86_64-pc-windows-msvc\"\n\n");
-    ir.push_str("declare void @cleat_arith_fail()\n\n");
+    ir.push_str("declare void @cleat_arith_fail()\n");
+    ir.push_str("declare void @cleat_push_root(ptr)\n");
+    ir.push_str("declare void @cleat_pop_root()\n");
+    ir.push_str("declare void @cleat_set_parent(i32, i32)\n");
+    ir.push_str("declare ptr @cleat_alloc(i32, i32, i32)\n");
+    ir.push_str("declare ptr @cleat_alloc_array(i32, i32)\n");
+    ir.push_str("declare ptr @cleat_box_i32(i32)\n");
+    ir.push_str("declare ptr @cleat_get_class(ptr)\n");
+    ir.push_str("declare i32 @cleat_is_instance(ptr, ptr)\n");
+    ir.push_str("declare i32 @cleat_has(ptr, ptr)\n");
+    ir.push_str("declare ptr @cleat_array_load(ptr, i32)\n");
+    ir.push_str("declare void @cleat_array_store(ptr, i32, ptr)\n\n");
     for global in &project.globals {
         ir.push_str(&format!(
             "@{} = global i32 {}\n",
@@ -27,8 +38,15 @@ pub fn emit(project: &Checked, entry: &str) -> Result<String, Vec<crate::check::
     for func in &project.funcs {
         emit_func(&mut ir, func);
     }
+    let mut startup = String::new();
+    for layout in &project.layouts {
+        startup.push_str(&format!(
+            "  call void @cleat_set_parent(i32 {}, i32 {})\n",
+            layout.id, layout.parent
+        ));
+    }
     ir.push_str(&format!(
-        "define i32 @main() {{\n  call void @{mangle}()\n  ret i32 0\n}}\n"
+        "define i32 @main() {{\n{startup}  call void @{mangle}()\n  ret i32 0\n}}\n"
     ));
     Ok(ir)
 }
@@ -39,13 +57,15 @@ fn entry_mangle(entry: &str) -> String {
 }
 
 fn emit_func(ir: &mut String, func: &crate::check::Func) {
-    let ret = match func.ret {
-        Ty::Int32 | Ty::NullableInt | Ty::Bool | Ty::Null => "i32",
-        Ty::Unit | Ty::Void => "void",
-    };
+    let ret = llvm_ty(func.ret);
     let mut sig = Vec::new();
     for i in 0..func.params {
-        sig.push(format!("i32 %p{i}"));
+        let kind = if func.local_is_ref.get(i).copied().unwrap_or(false) {
+            "ptr"
+        } else {
+            "i32"
+        };
+        sig.push(format!("{kind} %p{i}"));
     }
     ir.push_str(&format!(
         "define {ret} @{}({}) {{\n",
@@ -54,16 +74,35 @@ fn emit_func(ir: &mut String, func: &crate::check::Func) {
     ));
     ir.push_str("entry:\n");
     for id in 0..func.local_count {
-        ir.push_str(&format!("  %l{id} = alloca i32\n"));
+        let kind = if func.local_is_ref.get(id).copied().unwrap_or(false) {
+            "ptr"
+        } else {
+            "i32"
+        };
+        ir.push_str(&format!("  %l{id} = alloca {kind}\n"));
+    }
+    let ref_locals: Vec<usize> = (0..func.local_count)
+        .filter(|id| func.local_is_ref.get(*id).copied().unwrap_or(false))
+        .collect();
+    for id in &ref_locals {
+        ir.push_str(&format!("  call void @cleat_push_root(ptr %l{id})\n"));
     }
     for i in 0..func.params {
-        ir.push_str(&format!("  store i32 %p{i}, ptr %l{i}\n"));
+        let kind = if func.local_is_ref.get(i).copied().unwrap_or(false) {
+            "ptr"
+        } else {
+            "i32"
+        };
+        ir.push_str(&format!("  store {kind} %p{i}, ptr %l{i}\n"));
     }
     let mut n = 0u32;
-    let terminated = emit_stmts(ir, &func.body, &mut n);
+    let terminated = emit_stmts(ir, &func.body, &func.local_is_ref, ref_locals.len(), &mut n);
     if !terminated {
+        pop_roots(ir, ref_locals.len());
         if func.ret == Ty::Void || func.ret == Ty::Unit {
             ir.push_str("  ret void\n");
+        } else if func.ret.is_ref() {
+            ir.push_str("  ret ptr null\n");
         } else {
             ir.push_str("  ret i32 0\n");
         }
@@ -71,7 +110,29 @@ fn emit_func(ir: &mut String, func: &crate::check::Func) {
     ir.push_str("}\n\n");
 }
 
-fn emit_stmts(ir: &mut String, stmts: &[TStmt], n: &mut u32) -> bool {
+fn llvm_ty(ty: Ty) -> &'static str {
+    if ty.is_ref() {
+        "ptr"
+    } else if matches!(ty, Ty::Unit | Ty::Void) {
+        "void"
+    } else {
+        "i32"
+    }
+}
+
+fn pop_roots(ir: &mut String, count: usize) {
+    for _ in 0..count {
+        ir.push_str("  call void @cleat_pop_root()\n");
+    }
+}
+
+fn emit_stmts(
+    ir: &mut String,
+    stmts: &[TStmt],
+    local_is_ref: &[bool],
+    roots: usize,
+    n: &mut u32,
+) -> bool {
     let mut terminated = false;
     for stmt in stmts {
         if terminated {
@@ -80,33 +141,58 @@ fn emit_stmts(ir: &mut String, stmts: &[TStmt], n: &mut u32) -> bool {
         match stmt {
             TStmt::Local(id, init) => {
                 if let Some(expr) = init {
-                    let v = emit_expr(ir, expr, n);
-                    ir.push_str(&format!("  store i32 {v}, ptr %l{id}\n"));
+                    let v = emit_expr(ir, expr, local_is_ref, n);
+                    let kind = if local_is_ref.get(*id).copied().unwrap_or(false) {
+                        "ptr"
+                    } else {
+                        "i32"
+                    };
+                    ir.push_str(&format!("  store {kind} {v}, ptr %l{id}\n"));
                 }
             }
             TStmt::Assign(id, expr) => {
-                let v = emit_expr(ir, expr, n);
-                ir.push_str(&format!("  store i32 {v}, ptr %l{id}\n"));
+                let v = emit_expr(ir, expr, local_is_ref, n);
+                let kind = if local_is_ref.get(*id).copied().unwrap_or(false) {
+                    "ptr"
+                } else {
+                    "i32"
+                };
+                ir.push_str(&format!("  store {kind} {v}, ptr %l{id}\n"));
             }
             TStmt::StoreGlobal(name, expr) => {
-                let v = emit_expr(ir, expr, n);
+                let v = emit_expr(ir, expr, local_is_ref, n);
                 ir.push_str(&format!("  store i32 {v}, ptr @{name}\n"));
             }
+            TStmt::FieldStore { base, offset, is_ref, value } => {
+                let obj = emit_expr(ir, base, local_is_ref, n);
+                let stored = emit_expr(ir, value, local_is_ref, n);
+                let slot = fresh(n);
+                let addr = 16 + offset;
+                ir.push_str(&format!("  %t{slot} = getelementptr i8, ptr {obj}, i32 {addr}\n"));
+                let kind = if *is_ref { "ptr" } else { "i32" };
+                ir.push_str(&format!("  store {kind} {stored}, ptr %t{slot}\n"));
+            }
+            TStmt::IndexStore { base, index, value } => {
+                let arr = emit_expr(ir, base, local_is_ref, n);
+                let idx = emit_expr(ir, index, local_is_ref, n);
+                let stored = emit_expr(ir, value, local_is_ref, n);
+                ir.push_str(&format!("  call void @cleat_array_store(ptr {arr}, i32 {idx}, ptr {stored})\n"));
+            }
             TStmt::Expr(expr) => {
-                let _ = emit_expr(ir, expr, n);
+                let _ = emit_expr(ir, expr, local_is_ref, n);
             }
             TStmt::If(cond, then_body, else_body) => {
-                let c = emit_cond(ir, cond, n);
+                let c = emit_cond(ir, cond, local_is_ref, n);
                 let id = fresh(n);
                 ir.push_str(&format!(
                     "  br i1 {c}, label %then{id}, label %else{id}\nthen{id}:\n"
                 ));
-                let then_done = emit_stmts(ir, then_body, n);
+                let then_done = emit_stmts(ir, then_body, local_is_ref, roots, n);
                 if !then_done {
                     ir.push_str(&format!("  br label %end{id}\n"));
                 }
                 ir.push_str(&format!("else{id}:\n"));
-                let else_done = emit_stmts(ir, else_body, n);
+                let else_done = emit_stmts(ir, else_body, local_is_ref, roots, n);
                 if !else_done {
                     ir.push_str(&format!("  br label %end{id}\n"));
                 }
@@ -119,11 +205,11 @@ fn emit_stmts(ir: &mut String, stmts: &[TStmt], n: &mut u32) -> bool {
             TStmt::While(cond, body) => {
                 let id = fresh(n);
                 ir.push_str(&format!("  br label %head{id}\nhead{id}:\n"));
-                let c = emit_cond(ir, cond, n);
+                let c = emit_cond(ir, cond, local_is_ref, n);
                 ir.push_str(&format!(
                     "  br i1 {c}, label %body{id}, label %end{id}\nbody{id}:\n"
                 ));
-                let body_done = emit_stmts(ir, body, n);
+                let body_done = emit_stmts(ir, body, local_is_ref, roots, n);
                 if !body_done {
                     ir.push_str(&format!("  br label %head{id}\n"));
                 }
@@ -132,12 +218,16 @@ fn emit_stmts(ir: &mut String, stmts: &[TStmt], n: &mut u32) -> bool {
             TStmt::Return(expr) => {
                 if let Some(expr) = expr {
                     if matches!(expr, TExpr::Unit) {
+                        pop_roots(ir, roots);
                         ir.push_str("  ret void\n");
                     } else {
-                        let v = emit_expr(ir, expr, n);
-                        ir.push_str(&format!("  ret i32 {v}\n"));
+                        let v = emit_expr(ir, expr, local_is_ref, n);
+                        pop_roots(ir, roots);
+                        let kind = value_kind(expr, local_is_ref);
+                        ir.push_str(&format!("  ret {kind} {v}\n"));
                     }
                 } else {
+                    pop_roots(ir, roots);
                     ir.push_str("  ret void\n");
                 }
                 terminated = true;
@@ -147,14 +237,27 @@ fn emit_stmts(ir: &mut String, stmts: &[TStmt], n: &mut u32) -> bool {
     terminated
 }
 
-fn emit_cond(ir: &mut String, expr: &TExpr, n: &mut u32) -> String {
-    let v = emit_expr(ir, expr, n);
+fn value_kind(expr: &TExpr, local_is_ref: &[bool]) -> &'static str {
+    match expr {
+        TExpr::Local(id) if local_is_ref.get(*id).copied().unwrap_or(false) => "ptr",
+        TExpr::Alloc { .. }
+        | TExpr::AllocArray { .. }
+        | TExpr::BoxI32(_)
+        | TExpr::GetClass(_)
+        | TExpr::Index { .. } => "ptr",
+        TExpr::Field { is_ref: true, .. } => "ptr",
+        _ => "i32",
+    }
+}
+
+fn emit_cond(ir: &mut String, expr: &TExpr, local_is_ref: &[bool], n: &mut u32) -> String {
+    let v = emit_expr(ir, expr, local_is_ref, n);
     let id = fresh(n);
     ir.push_str(&format!("  %t{id} = icmp ne i32 {v}, 0\n"));
     format!("%t{id}")
 }
 
-fn emit_expr(ir: &mut String, expr: &TExpr, n: &mut u32) -> String {
+fn emit_expr(ir: &mut String, expr: &TExpr, local_is_ref: &[bool], n: &mut u32) -> String {
     match expr {
         TExpr::Int(v) => format!("{v}"),
         TExpr::Bool(v) => {
@@ -163,7 +266,12 @@ fn emit_expr(ir: &mut String, expr: &TExpr, n: &mut u32) -> String {
         }
         TExpr::Local(id) => {
             let r = fresh(n);
-            ir.push_str(&format!("  %t{r} = load i32, ptr %l{id}\n"));
+            let kind = if local_is_ref.get(*id).copied().unwrap_or(false) {
+                "ptr"
+            } else {
+                "i32"
+            };
+            ir.push_str(&format!("  %t{r} = load {kind}, ptr %l{id}\n"));
             format!("%t{r}")
         }
         TExpr::Global(name) => {
@@ -173,18 +281,19 @@ fn emit_expr(ir: &mut String, expr: &TExpr, n: &mut u32) -> String {
         }
         TExpr::Unit => "void".into(),
         TExpr::UnaryNeg(inner) => {
-            let v = emit_expr(ir, inner, n);
+            let v = emit_expr(ir, inner, local_is_ref, n);
             let id = fresh(n);
             ir.push_str(&format!(
                 "  %t{id} = call {{i32, i1}} @llvm.ssub.with.overflow.i32(i32 0, i32 {v})\n"
             ));
             overflow(ir, id, n)
         }
-        TExpr::Binary(op, left, right) => emit_bin(ir, *op, left, right, n),
+        TExpr::Binary(op, left, right) => emit_bin(ir, *op, left, right, local_is_ref, n),
         TExpr::Call(name, args, ret) => {
             let mut rendered = Vec::new();
             for arg in args {
-                rendered.push(format!("i32 {}", emit_expr(ir, arg, n)));
+                let value = emit_expr(ir, arg, local_is_ref, n);
+                rendered.push(format!("{} {value}", value_kind(arg, local_is_ref)));
             }
             let args = rendered.join(", ");
             if matches!(*ret, Ty::Void | Ty::Unit) {
@@ -192,16 +301,91 @@ fn emit_expr(ir: &mut String, expr: &TExpr, n: &mut u32) -> String {
                 "0".into()
             } else {
                 let id = fresh(n);
-                ir.push_str(&format!("  %t{id} = call i32 @{name}({args})\n"));
+                let kind = llvm_ty(*ret);
+                ir.push_str(&format!("  %t{id} = call {kind} @{name}({args})\n"));
                 format!("%t{id}")
             }
+        }
+        TExpr::Alloc { class, nrefs, payload } => {
+            let id = fresh(n);
+            ir.push_str(&format!(
+                "  %t{id} = call ptr @cleat_alloc(i32 {payload}, i32 {class}, i32 {nrefs})\n"
+            ));
+            format!("%t{id}")
+        }
+        TExpr::AllocArray { len, elem } => {
+            let length = emit_expr(ir, len, local_is_ref, n);
+            let id = fresh(n);
+            let elem_id = if *elem == u32::MAX { 0 } else { *elem };
+            ir.push_str(&format!(
+                "  %t{id} = call ptr @cleat_alloc_array(i32 {length}, i32 {elem_id})\n"
+            ));
+            format!("%t{id}")
+        }
+        TExpr::Field { base, offset, is_ref } => {
+            let obj = emit_expr(ir, base, local_is_ref, n);
+            let slot = fresh(n);
+            let addr = 16 + offset;
+            ir.push_str(&format!("  %t{slot} = getelementptr i8, ptr {obj}, i32 {addr}\n"));
+            let loaded = fresh(n);
+            let kind = if *is_ref { "ptr" } else { "i32" };
+            ir.push_str(&format!("  %t{loaded} = load {kind}, ptr %t{slot}\n"));
+            format!("%t{loaded}")
+        }
+        TExpr::Index { base, index } => {
+            let arr = emit_expr(ir, base, local_is_ref, n);
+            let idx = emit_expr(ir, index, local_is_ref, n);
+            let id = fresh(n);
+            ir.push_str(&format!("  %t{id} = call ptr @cleat_array_load(ptr {arr}, i32 {idx})\n"));
+            format!("%t{id}")
+        }
+        TExpr::BoxI32(inner) => {
+            let value = emit_expr(ir, inner, local_is_ref, n);
+            let id = fresh(n);
+            ir.push_str(&format!("  %t{id} = call ptr @cleat_box_i32(i32 {value})\n"));
+            format!("%t{id}")
+        }
+        TExpr::GetClass(inner) => {
+            let value = emit_expr(ir, inner, local_is_ref, n);
+            let id = fresh(n);
+            ir.push_str(&format!("  %t{id} = call ptr @cleat_get_class(ptr {value})\n"));
+            format!("%t{id}")
+        }
+        TExpr::IsInstance(class_obj, obj) => {
+            let left = emit_expr(ir, class_obj, local_is_ref, n);
+            let right = emit_expr(ir, obj, local_is_ref, n);
+            let id = fresh(n);
+            ir.push_str(&format!(
+                "  %t{id} = call i32 @cleat_is_instance(ptr {left}, ptr {right})\n"
+            ));
+            format!("%t{id}")
+        }
+        TExpr::Has(class_obj, ann) => {
+            let left = emit_expr(ir, class_obj, local_is_ref, n);
+            let right = emit_expr(ir, ann, local_is_ref, n);
+            let id = fresh(n);
+            ir.push_str(&format!("  %t{id} = call i32 @cleat_has(ptr {left}, ptr {right})\n"));
+            format!("%t{id}")
+        }
+        TExpr::RefEq(left, right) | TExpr::RefNe(left, right) => {
+            let l = emit_expr(ir, left, local_is_ref, n);
+            let r = emit_expr(ir, right, local_is_ref, n);
+            let id = fresh(n);
+            let pred = if matches!(expr, TExpr::RefEq(_, _)) {
+                "eq"
+            } else {
+                "ne"
+            };
+            ir.push_str(&format!("  %c{id} = icmp {pred} ptr {l}, {r}\n"));
+            ir.push_str(&format!("  %t{id} = zext i1 %c{id} to i32\n"));
+            format!("%t{id}")
         }
     }
 }
 
-fn emit_bin(ir: &mut String, op: BinOp, left: &TExpr, right: &TExpr, n: &mut u32) -> String {
-    let l = emit_expr(ir, left, n);
-    let r = emit_expr(ir, right, n);
+fn emit_bin(ir: &mut String, op: BinOp, left: &TExpr, right: &TExpr, local_is_ref: &[bool], n: &mut u32) -> String {
+    let l = emit_expr(ir, left, local_is_ref, n);
+    let r = emit_expr(ir, right, local_is_ref, n);
     let id = fresh(n);
     match op {
         BinOp::Add => {
@@ -302,11 +486,13 @@ pub fn link(ir: &str, output: &Path) -> Result<(), String> {
     let clang = std::env::var("CLEAT_CLANG")
         .unwrap_or_else(|_| r"C:\Program Files\LLVM\bin\clang.exe".to_string());
     let runtime = Path::new(env!("CARGO_MANIFEST_DIR")).join("runtime/arith.c");
+    let heap = Path::new(env!("CARGO_MANIFEST_DIR")).join("runtime/heap.c");
     let status = Command::new(clang)
         .arg("-fuse-ld=lld")
         .arg("-Wno-override-module")
         .arg(&ll)
         .arg(&runtime)
+        .arg(&heap)
         .arg("-o")
         .arg(output)
         .status()

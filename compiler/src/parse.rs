@@ -1,5 +1,6 @@
 use crate::ast::{
-    Audience, BinOp, Block, Expr, ExprKind, Import, Method, Param, ResultType, Stmt, TypeDecl, Unit,
+    Audience, BinOp, Block, Expr, ExprKind, Field, Import, Method, Param, ResultType, Stmt,
+    TypeDecl, Unit,
 };
 use crate::lex::{Lexer, Token, TokenKind};
 use std::path::Path;
@@ -217,7 +218,7 @@ impl<'a> Parser<'a> {
             }));
         }
         let nullable = self.nullable_ann()?;
-        let ty = self.ident()?;
+        let ty = self.type_name()?;
         let name = self.ident()?;
         if self.at(&TokenKind::LParen) {
             let params = self.params()?;
@@ -264,7 +265,7 @@ impl<'a> Parser<'a> {
         if !self.at(&TokenKind::RParen) {
             loop {
                 let nullable = self.nullable_ann()?;
-                let ty = self.ident()?;
+                let ty = self.type_name()?;
                 let name = self.ident()?;
                 params.push(Param { name, ty, nullable });
                 if self.at(&TokenKind::Comma) {
@@ -360,7 +361,7 @@ impl<'a> Parser<'a> {
         if self.at(&TokenKind::At) || self.looks_like_decl() {
             let span = self.peek_span();
             let nullable = self.nullable_ann()?;
-            let ty = self.ident()?;
+            let ty = self.type_name()?;
             let name = self.ident()?;
             let init = if self.at(&TokenKind::Eq) {
                 self.bump();
@@ -382,11 +383,30 @@ impl<'a> Parser<'a> {
         if self.at(&TokenKind::Eq) {
             let (name, owner) = match expr.kind {
                 ExprKind::Name(name) => (name, None),
-                ExprKind::Select(recv, name) => match recv.kind {
-                    ExprKind::Name(owner) => (name, Some(owner)),
-                    _ => return self.err("assignment target must be a local or a static field"),
-                },
-                _ => return self.err("assignment target must be a local or a static field"),
+                ExprKind::Select(recv, name) => {
+                    let object = *recv;
+                    self.bump();
+                    let value = self.expression()?;
+                    self.expect(&TokenKind::Semicolon)?;
+                    return Ok(Stmt::SetField {
+                        span,
+                        object,
+                        name,
+                        expr: value,
+                    });
+                }
+                ExprKind::Index(array, index) => {
+                    self.bump();
+                    let value = self.expression()?;
+                    self.expect(&TokenKind::Semicolon)?;
+                    return Ok(Stmt::SetIndex {
+                        span,
+                        array: *array,
+                        index: *index,
+                        expr: value,
+                    });
+                }
+                _ => return self.err("assignment target must be a local, field, or array element"),
             };
             self.bump();
             let value = self.expression()?;
@@ -415,8 +435,17 @@ impl<'a> Parser<'a> {
         let Some(TokenKind::Ident(_)) = self.tokens.get(self.i).map(|t| &t.kind) else {
             return false;
         };
+        let mut next = self.i + 1;
+        if matches!(self.tokens.get(next).map(|t| &t.kind), Some(TokenKind::LBracket))
+            && matches!(
+                self.tokens.get(next + 1).map(|t| &t.kind),
+                Some(TokenKind::RBracket)
+            )
+        {
+            next += 2;
+        }
         matches!(
-            self.tokens.get(self.i + 1).map(|t| &t.kind),
+            self.tokens.get(next).map(|t| &t.kind),
             Some(TokenKind::Ident(_))
         )
     }
@@ -538,6 +567,14 @@ impl<'a> Parser<'a> {
                     span: expr.span,
                     kind: ExprKind::Select(Box::new(expr), name),
                 };
+            } else if self.at(&TokenKind::LBracket) {
+                self.bump();
+                let index = self.expression()?;
+                self.expect(&TokenKind::RBracket)?;
+                expr = Expr {
+                    span: expr.span,
+                    kind: ExprKind::Index(Box::new(expr), Box::new(index)),
+                };
             } else if self.at(&TokenKind::LParen) {
                 self.bump();
                 let mut args = Vec::new();
@@ -605,15 +642,31 @@ impl<'a> Parser<'a> {
             }
             TokenKind::New => {
                 self.bump();
-                let name = self.ident()?;
+                let name = self.type_name()?;
+                if self.at(&TokenKind::LBracket) {
+                    self.bump();
+                    let len = self.expression()?;
+                    self.expect(&TokenKind::RBracket)?;
+                    let elem = name.trim_end_matches("[]").to_string();
+                    return Ok(Expr {
+                        span,
+                        kind: ExprKind::NewArray {
+                            elem,
+                            len: Box::new(len),
+                        },
+                    });
+                }
                 self.expect(&TokenKind::LParen)?;
                 self.expect(&TokenKind::RParen)?;
-                if name != "Unit" {
-                    return self.err("this milestone only constructs new Unit()");
+                if name == "Unit" {
+                    return Ok(Expr {
+                        span,
+                        kind: ExprKind::NewUnit,
+                    });
                 }
                 Ok(Expr {
                     span,
-                    kind: ExprKind::NewUnit,
+                    kind: ExprKind::NewClass(name),
                 })
             }
             TokenKind::LParen => {
@@ -632,6 +685,18 @@ impl<'a> Parser<'a> {
             self.bump();
             name.push('.');
             name.push_str(&self.ident()?);
+        }
+        Ok(name)
+    }
+
+    fn type_name(&mut self) -> Result<String, ParseError> {
+        let mut name = self.ident()?;
+        while self.at(&TokenKind::LBracket)
+            && matches!(self.lookahead(1), Some(TokenKind::RBracket))
+        {
+            self.bump();
+            self.bump();
+            name.push_str("[]");
         }
         Ok(name)
     }
