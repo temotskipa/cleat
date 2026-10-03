@@ -4,7 +4,9 @@ use std::process::ExitCode;
 fn main() -> ExitCode {
     let mut args = std::env::args().skip(1);
     let Some(command) = args.next() else {
-        eprintln!("usage: cleatc check <project> | cleatc build <project> --entry pkg.Type -o out.exe");
+        eprintln!(
+            "usage: cleatc check <project> | cleatc build <project> --entry pkg.Type -o out.exe"
+        );
         return ExitCode::from(2);
     };
     let result = match command.as_str() {
@@ -45,7 +47,11 @@ fn main() -> ExitCode {
                 eprintln!("usage: cleatc build <project> --entry pkg.Type -o out.exe");
                 return ExitCode::from(2);
             };
-            cleatc::build(PathBuf::from(root).as_path(), &entry, PathBuf::from(output).as_path())
+            cleatc::build(
+                PathBuf::from(root).as_path(),
+                &entry,
+                PathBuf::from(output).as_path(),
+            )
         }
         other => {
             eprintln!("unknown command {other}");

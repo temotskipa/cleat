@@ -25,7 +25,20 @@ pub struct TypeDecl {
     pub name: String,
     pub extends: Option<String>,
     pub permits: Vec<String>,
+    pub fields: Vec<Field>,
     pub methods: Vec<Method>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Field {
+    pub span: usize,
+    pub audience: Audience,
+    pub is_static: bool,
+    pub nullable: bool,
+    pub ty: String,
+    pub name: String,
+    pub init: Option<Expr>,
+    pub only: Vec<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -44,19 +57,21 @@ pub struct Method {
     pub result: ResultType,
     pub name: String,
     pub params: Vec<Param>,
+    pub only: Vec<String>,
     pub body: Block,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ResultType {
     Void,
-    Named(String),
+    Named { name: String, nullable: bool },
 }
 
 #[derive(Clone, Debug)]
 pub struct Param {
     pub name: String,
     pub ty: String,
+    pub nullable: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -70,6 +85,7 @@ pub enum Stmt {
         span: usize,
         ty: String,
         name: String,
+        nullable: bool,
         init: Option<Expr>,
     },
     Expr {
@@ -79,6 +95,7 @@ pub enum Stmt {
     Assign {
         span: usize,
         name: String,
+        owner: Option<String>,
         expr: Expr,
     },
     If {
@@ -109,6 +126,7 @@ pub struct Expr {
 pub enum ExprKind {
     Int(i128),
     Bool(bool),
+    Null,
     Name(String),
     Select(Box<Expr>, String),
     Call(Box<Expr>, Vec<Expr>),

@@ -1,5 +1,5 @@
 use crate::ast::BinOp;
-use crate::check::{Checked, Ty, TExpr, TStmt};
+use crate::check::{Checked, TExpr, TStmt, Ty};
 use std::path::Path;
 use std::process::Command;
 
@@ -15,6 +15,15 @@ pub fn emit(project: &Checked, entry: &str) -> Result<String, Vec<crate::check::
     }
     let mut ir = String::from("target triple = \"x86_64-pc-windows-msvc\"\n\n");
     ir.push_str("declare void @cleat_arith_fail()\n\n");
+    for global in &project.globals {
+        ir.push_str(&format!(
+            "@{} = global i32 {}\n",
+            global.mangle, global.init
+        ));
+    }
+    if !project.globals.is_empty() {
+        ir.push('\n');
+    }
     for func in &project.funcs {
         emit_func(&mut ir, func);
     }
@@ -31,14 +40,18 @@ fn entry_mangle(entry: &str) -> String {
 
 fn emit_func(ir: &mut String, func: &crate::check::Func) {
     let ret = match func.ret {
-        Ty::Int32 | Ty::Bool => "i32",
+        Ty::Int32 | Ty::NullableInt | Ty::Bool | Ty::Null => "i32",
         Ty::Unit | Ty::Void => "void",
     };
     let mut sig = Vec::new();
     for i in 0..func.params {
         sig.push(format!("i32 %p{i}"));
     }
-    ir.push_str(&format!("define {ret} @{}({}) {{\n", func.mangle, sig.join(", ")));
+    ir.push_str(&format!(
+        "define {ret} @{}({}) {{\n",
+        func.mangle,
+        sig.join(", ")
+    ));
     ir.push_str("entry:\n");
     for id in 0..func.local_count {
         ir.push_str(&format!("  %l{id} = alloca i32\n"));
@@ -75,6 +88,10 @@ fn emit_stmts(ir: &mut String, stmts: &[TStmt], n: &mut u32) -> bool {
                 let v = emit_expr(ir, expr, n);
                 ir.push_str(&format!("  store i32 {v}, ptr %l{id}\n"));
             }
+            TStmt::StoreGlobal(name, expr) => {
+                let v = emit_expr(ir, expr, n);
+                ir.push_str(&format!("  store i32 {v}, ptr @{name}\n"));
+            }
             TStmt::Expr(expr) => {
                 let _ = emit_expr(ir, expr, n);
             }
@@ -103,7 +120,9 @@ fn emit_stmts(ir: &mut String, stmts: &[TStmt], n: &mut u32) -> bool {
                 let id = fresh(n);
                 ir.push_str(&format!("  br label %head{id}\nhead{id}:\n"));
                 let c = emit_cond(ir, cond, n);
-                ir.push_str(&format!("  br i1 {c}, label %body{id}, label %end{id}\nbody{id}:\n"));
+                ir.push_str(&format!(
+                    "  br i1 {c}, label %body{id}, label %end{id}\nbody{id}:\n"
+                ));
                 let body_done = emit_stmts(ir, body, n);
                 if !body_done {
                     ir.push_str(&format!("  br label %head{id}\n"));
@@ -147,6 +166,11 @@ fn emit_expr(ir: &mut String, expr: &TExpr, n: &mut u32) -> String {
             ir.push_str(&format!("  %t{r} = load i32, ptr %l{id}\n"));
             format!("%t{r}")
         }
+        TExpr::Global(name) => {
+            let r = fresh(n);
+            ir.push_str(&format!("  %t{r} = load i32, ptr @{name}\n"));
+            format!("%t{r}")
+        }
         TExpr::Unit => "void".into(),
         TExpr::UnaryNeg(inner) => {
             let v = emit_expr(ir, inner, n);
@@ -163,7 +187,7 @@ fn emit_expr(ir: &mut String, expr: &TExpr, n: &mut u32) -> String {
                 rendered.push(format!("i32 {}", emit_expr(ir, arg, n)));
             }
             let args = rendered.join(", ");
-            if *ret == Ty::Void || *ret == Ty::Unit {
+            if matches!(*ret, Ty::Void | Ty::Unit) {
                 ir.push_str(&format!("  call void @{name}({args})\n"));
                 "0".into()
             } else {
@@ -198,9 +222,7 @@ fn emit_bin(ir: &mut String, op: BinOp, left: &TExpr, right: &TExpr, n: &mut u32
             ));
             overflow(ir, id, n)
         }
-        BinOp::Div => {
-            check_div(ir, &l, &r, true, n)
-        }
+        BinOp::Div => check_div(ir, &l, &r, true, n),
         BinOp::Rem => check_div(ir, &l, &r, false, n),
         BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge => {
             let pred = match op {
@@ -223,7 +245,9 @@ fn overflow(ir: &mut String, id: u32, n: &mut u32) -> String {
     let flag = fresh(n);
     let val = fresh(n);
     ir.push_str(&format!("  %t{val} = extractvalue {{i32, i1}} %t{id}, 0\n"));
-    ir.push_str(&format!("  %t{flag} = extractvalue {{i32, i1}} %t{id}, 1\n"));
+    ir.push_str(&format!(
+        "  %t{flag} = extractvalue {{i32, i1}} %t{id}, 1\n"
+    ));
     let cont = fresh(n);
     ir.push_str(&format!(
         "  br i1 %t{flag}, label %ov{cont}, label %ok{cont}\nov{cont}:\n  call void @cleat_arith_fail()\n  unreachable\nok{cont}:\n"

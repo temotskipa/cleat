@@ -1,4 +1,6 @@
-use crate::ast::*;
+use crate::ast::{
+    Audience, BinOp, Block, Expr, ExprKind, Import, Method, Param, ResultType, Stmt, TypeDecl, Unit,
+};
 use crate::lex::{Lexer, Token, TokenKind};
 use std::path::Path;
 
@@ -78,6 +80,11 @@ struct Parser<'a> {
     i: usize,
 }
 
+enum Member {
+    Method(Method),
+    Field(Field),
+}
+
 impl<'a> Parser<'a> {
     fn unit(&mut self) -> Result<Unit, ParseError> {
         self.expect(&TokenKind::Package)?;
@@ -153,8 +160,12 @@ impl<'a> Parser<'a> {
         }
         self.expect(&TokenKind::LBrace)?;
         let mut methods = Vec::new();
+        let mut fields = Vec::new();
         while !self.at(&TokenKind::RBrace) && !self.at(&TokenKind::Eof) {
-            methods.push(self.method()?);
+            match self.member()? {
+                Member::Method(method) => methods.push(method),
+                Member::Field(field) => fields.push(field),
+            }
         }
         self.expect(&TokenKind::RBrace)?;
         Ok(TypeDecl {
@@ -165,11 +176,12 @@ impl<'a> Parser<'a> {
             name,
             extends,
             permits,
+            fields,
             methods,
         })
     }
 
-    fn method(&mut self) -> Result<Method, ParseError> {
+    fn member(&mut self) -> Result<Member, ParseError> {
         let span = self.peek_span();
         let mut audience = Audience::Private;
         let mut is_static = false;
@@ -186,20 +198,75 @@ impl<'a> Parser<'a> {
             }
             self.bump();
         }
-        let result = if self.at(&TokenKind::Void) {
+        if self.at(&TokenKind::Void) {
             self.bump();
-            ResultType::Void
-        } else {
-            ResultType::Named(self.ident()?)
-        };
+            let name = self.ident()?;
+            let params = self.params()?;
+            let only = self.only_clause()?;
+            let body = self.block()?;
+            return Ok(Member::Method(Method {
+                span,
+                audience,
+                is_static,
+                is_open,
+                result: ResultType::Void,
+                name,
+                params,
+                only,
+                body,
+            }));
+        }
+        let nullable = self.nullable_ann()?;
+        let ty = self.ident()?;
         let name = self.ident()?;
+        if self.at(&TokenKind::LParen) {
+            let params = self.params()?;
+            let only = self.only_clause()?;
+            let body = self.block()?;
+            return Ok(Member::Method(Method {
+                span,
+                audience,
+                is_static,
+                is_open,
+                result: ResultType::Named { name: ty, nullable },
+                name,
+                params,
+                only,
+                body,
+            }));
+        }
+        if is_open {
+            return self.err("open is a method modifier (section 4.1)");
+        }
+        let only = self.only_clause()?;
+        let init = if self.at(&TokenKind::Eq) {
+            self.bump();
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        self.expect(&TokenKind::Semicolon)?;
+        Ok(Member::Field(Field {
+            span,
+            audience,
+            is_static,
+            nullable,
+            ty,
+            name,
+            init,
+            only,
+        }))
+    }
+
+    fn params(&mut self) -> Result<Vec<Param>, ParseError> {
         self.expect(&TokenKind::LParen)?;
         let mut params = Vec::new();
         if !self.at(&TokenKind::RParen) {
             loop {
+                let nullable = self.nullable_ann()?;
                 let ty = self.ident()?;
-                let pname = self.ident()?;
-                params.push(Param { name: pname, ty });
+                let name = self.ident()?;
+                params.push(Param { name, ty, nullable });
                 if self.at(&TokenKind::Comma) {
                     self.bump();
                 } else {
@@ -208,17 +275,32 @@ impl<'a> Parser<'a> {
             }
         }
         self.expect(&TokenKind::RParen)?;
-        let body = self.block()?;
-        Ok(Method {
-            span,
-            audience,
-            is_static,
-            is_open,
-            result,
-            name,
-            params,
-            body,
-        })
+        Ok(params)
+    }
+
+    fn only_clause(&mut self) -> Result<Vec<String>, ParseError> {
+        let mut names = Vec::new();
+        if self.at(&TokenKind::Only) {
+            self.bump();
+            names.push(self.ident()?);
+            while self.at(&TokenKind::Comma) {
+                self.bump();
+                names.push(self.ident()?);
+            }
+        }
+        Ok(names)
+    }
+
+    fn nullable_ann(&mut self) -> Result<bool, ParseError> {
+        if !self.at(&TokenKind::At) {
+            return Ok(false);
+        }
+        self.bump();
+        let name = self.ident()?;
+        if name != "Nullable" {
+            return self.err("the type-use annotation is @Nullable (section 5.2)");
+        }
+        Ok(true)
     }
 
     fn block(&mut self) -> Result<Block, ParseError> {
@@ -275,9 +357,9 @@ impl<'a> Parser<'a> {
         if self.at(&TokenKind::LBrace) {
             return Ok(Stmt::Block(self.block()?));
         }
-        // local declaration: Type name = expr; or Type name;
-        if self.looks_like_decl() {
+        if self.at(&TokenKind::At) || self.looks_like_decl() {
             let span = self.peek_span();
+            let nullable = self.nullable_ann()?;
             let ty = self.ident()?;
             let name = self.ident()?;
             let init = if self.at(&TokenKind::Eq) {
@@ -287,13 +369,24 @@ impl<'a> Parser<'a> {
                 None
             };
             self.expect(&TokenKind::Semicolon)?;
-            return Ok(Stmt::Local { span, ty, name, init });
+            return Ok(Stmt::Local {
+                span,
+                ty,
+                name,
+                nullable,
+                init,
+            });
         }
         let span = self.peek_span();
         let expr = self.expression()?;
         if self.at(&TokenKind::Eq) {
-            let ExprKind::Name(name) = expr.kind else {
-                return self.err("assignment target must be a local name");
+            let (name, owner) = match expr.kind {
+                ExprKind::Name(name) => (name, None),
+                ExprKind::Select(recv, name) => match recv.kind {
+                    ExprKind::Name(owner) => (name, Some(owner)),
+                    _ => return self.err("assignment target must be a local or a static field"),
+                },
+                _ => return self.err("assignment target must be a local or a static field"),
             };
             self.bump();
             let value = self.expression()?;
@@ -301,6 +394,7 @@ impl<'a> Parser<'a> {
             return Ok(Stmt::Assign {
                 span,
                 name,
+                owner,
                 expr: value,
             });
         }
@@ -492,6 +586,13 @@ impl<'a> Parser<'a> {
                 Ok(Expr {
                     span,
                     kind: ExprKind::Bool(false),
+                })
+            }
+            TokenKind::Null => {
+                self.bump();
+                Ok(Expr {
+                    span,
+                    kind: ExprKind::Null,
                 })
             }
             TokenKind::Ident(name) => {

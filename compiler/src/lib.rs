@@ -1,12 +1,11 @@
+use crate::check::Diagnostic;
+use std::path::{Path, PathBuf};
+
 mod ast;
 mod check;
 mod lex;
 mod llvm;
 mod parse;
-
-use std::path::{Path, PathBuf};
-
-pub use check::Diagnostic;
 
 /// Typecheck every `.cleat` file under `root` as one project.
 pub fn check(root: &Path) -> Result<(), Vec<Diagnostic>> {
@@ -55,14 +54,16 @@ fn collect(root: &Path) -> Result<Vec<(PathBuf, String)>, Vec<Diagnostic>> {
 }
 
 fn walk(dir: &Path, out: &mut Vec<(PathBuf, String)>) -> Result<(), String> {
-    let entries = std::fs::read_dir(dir).map_err(|err| format!("cannot read {}: {err}", dir.display()))?;
+    let entries =
+        std::fs::read_dir(dir).map_err(|err| format!("cannot read {}: {err}", dir.display()))?;
     for entry in entries {
         let entry = entry.map_err(|err| err.to_string())?;
         let path = entry.path();
         if path.is_dir() {
             walk(&path, out)?;
         } else if path.extension().and_then(|ext| ext.to_str()) == Some("cleat") {
-            let text = std::fs::read_to_string(&path).map_err(|err| format!("cannot read {}: {err}", path.display()))?;
+            let text = std::fs::read_to_string(&path)
+                .map_err(|err| format!("cannot read {}: {err}", path.display()))?;
             if text.as_bytes().iter().any(|b| *b > 127) {
                 // UTF-8 was already validated by read_to_string. Non-ASCII is legal.
             }

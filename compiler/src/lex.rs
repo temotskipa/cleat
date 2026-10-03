@@ -19,6 +19,9 @@ pub enum TokenKind {
     Sealed,
     Extends,
     Permits,
+    Only,
+    Null,
+    At,
     Void,
     Return,
     If,
@@ -121,6 +124,10 @@ impl<'a> Lexer<'a> {
             b'%' => {
                 self.bump();
                 TokenKind::Percent
+            }
+            b'@' => {
+                self.bump();
+                TokenKind::At
             }
             b'=' => {
                 self.bump();
@@ -240,6 +247,8 @@ impl<'a> Lexer<'a> {
             "sealed" => TokenKind::Sealed,
             "extends" => TokenKind::Extends,
             "permits" => TokenKind::Permits,
+            "only" => TokenKind::Only,
+            "null" => TokenKind::Null,
             "void" => TokenKind::Void,
             "return" => TokenKind::Return,
             "if" => TokenKind::If,
@@ -304,5 +313,7 @@ impl<'a> Lexer<'a> {
 fn parse_int(digits: &str, radix: u32) -> Result<TokenKind, String> {
     i128::from_str_radix(digits, radix)
         .map(TokenKind::Int)
-        .map_err(|_| format!("integer literal {digits} does not fit in the compiler's literal range"))
+        .map_err(|_| {
+            format!("integer literal {digits} does not fit in the compiler's literal range")
+        })
 }
