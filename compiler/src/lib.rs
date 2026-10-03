@@ -7,6 +7,11 @@ mod lex;
 mod llvm;
 mod parse;
 
+/// The moving collector is MMTk. The crates.io package does not build on
+/// `x86_64-pc-windows-msvc`, so `vendor/mmtk` is that crate plus the Windows
+/// virtual-memory and malloc layer.
+pub use mmtk::MMTKBuilder;
+
 /// Typecheck every `.cleat` file under `root` as one project.
 pub fn check(root: &Path) -> Result<(), Vec<Diagnostic>> {
     let files = collect(root)?;
