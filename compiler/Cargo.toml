@@ -1,0 +1,12 @@
+[package]
+name = "cleatc"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "cleatc"
+path = "src/main.rs"
+
+[lib]
+name = "cleatc"
+path = "src/lib.rs"
