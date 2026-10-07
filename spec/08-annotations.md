@@ -120,7 +120,9 @@ public class Counts {
 static Rational share(Rational total, @Positive Int people) {
     return total / people;                     // no zero check: the type rules zero out
 }
+```
 
+```java
 if (Counts.isPositive(n)) {
     Console.println("each pays " + share(total, n));   // n is a @Positive Int here
 }
@@ -183,7 +185,9 @@ public value class Meters {
         return new Meters(whole);
     }
 }
+```
 
+```java
 Meters height = 3;      // Meters.from(3)
 ```
 

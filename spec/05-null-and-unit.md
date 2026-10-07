@@ -109,7 +109,9 @@ A call whose result is `Unit` may stand alone as an expression statement, becaus
 
 ```java
 public void log(String message) { /* returns the Unit instance */ }
+```
 
+```java
 log("ok");                              // legal: nothing to use
 Function0<Unit> later = () -> log("ok"); // legal: the result is Unit
 ```

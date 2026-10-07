@@ -7,6 +7,9 @@ A class, an interface and a method may declare type parameters. An enum and an a
 ```java
 public class Box<T> { }
 public interface Ordered<in T> { }
+```
+
+```java
 public static <T> T[] build(Int length, Function1<Int, T> element)
 ```
 
@@ -159,17 +162,17 @@ An implicit conversion plays no part in determining `P`. Once `P` is determined,
 static <T> T first(List<T> items)
 static <T> List<T> pair(T a, T b)
 static <A, B> List<B> map(List<A> items, Function1<A, B> f)
-
-first(names)                       // T is String: List<T> fixes it
-pair("a", "b")                     // T is String
-pair("a", 'b')                     // rejected: neither String nor Char is a supertype of the other
-List<Object> xs = pair("a", 'b');  // T is Object: the expected type fixes it
-map(names, (s) -> s.length())      // A is String, then B is Int from the lambda's result
-
 static <T> void addAll(List<? super T> sink, Iterable<T> items)
+```
 
-addAll(shapes, circles)            // T is Circle: Iterable<T> gives the lower bound Circle,
-                                   // and List<Shape> against List<? super T> the upper bound Shape
+```java
+var name = first(names);                  // T is String: List<T> fixes it
+var both = pair("a", "b");                // T is String
+var mixed = pair("a", 'b');               // rejected: neither String nor Char is a supertype of the other
+List<Object> xs = pair("a", 'b');         // T is Object: the expected type fixes it
+var lengths = map(names, (s) -> s.length());   // A is String, then B is Int from the lambda's result
+addAll(shapes, circles);                  // T is Circle: Iterable<T> gives the lower bound Circle,
+                                          // and List<Shape> against List<? super T> the upper bound Shape
 ```
 
 A type is inferred with its qualifiers. Inference never produces a type that the program could not have written, apart from the unknown type of a wildcard argument.

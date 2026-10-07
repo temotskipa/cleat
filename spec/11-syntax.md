@@ -103,7 +103,7 @@ result          = "void" | type
 receiver        = type "this"
 params          = param {"," param}
 param           = modifiers type ["..."] identifier
-constructor     = modifiers identifier "(" [params] ")" block
+constructor     = modifiers identifier "(" [params] ")" (block | ";")
 compact-constructor = modifiers identifier block
 static-init     = "static" block
 
@@ -121,7 +121,7 @@ annotation-decl = modifiers "annotation" identifier
 element         = type identifier ["=" annotation-value]
 ```
 
-Each chapter says which modifiers a declaration accepts, and a modifier is written at most once. A method ends in `;` in place of a block when it is abstract, `foreign` or `@Intrinsic`, or when it is an interface method with no body. A constructor's identifier is the name of its class.
+Each chapter says which modifiers a declaration accepts, and a modifier is written at most once. A method ends in `;` in place of a block when it is abstract, `foreign` or `@Intrinsic`, or when it is an interface method with no body. A constructor ends in `;` only when it is `@Intrinsic`. A constructor's identifier is the name of its class.
 
 An annotation at the end of `modifiers` could also be read as the first annotation of the `type` that follows. For a qualifier the two readings mean the same, as [chapter 8](08-annotations.md#82-declaring-and-writing-an-annotation) says. A declaration annotation belongs to the declaration.
 

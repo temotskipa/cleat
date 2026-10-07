@@ -62,7 +62,9 @@ static Int sign(Int n) {
     }
     return 0;           // without this line the method is rejected
 }
+```
 
+```java
 while (true) {
     step();
 }

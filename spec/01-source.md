@@ -4,7 +4,7 @@
 
 "Must" and "is rejected" are requirements on every implementation. "May" is permission. A program that this specification rejects must be diagnosed. A program whose behavior this specification does not define may be rejected, and an implementation must not give it a behavior that contradicts a defined rule.
 
-An example is normative when it says that a program is legal or rejected. Other examples illustrate a rule.
+An example is normative when it says that a program is legal or rejected. Other examples illustrate a rule. Where an example lists the members of a prelude class, it shows their signatures and leaves out their bodies.
 
 [Chapter 11](11-syntax.md) gives the grammar. The other chapters describe syntax in prose and by example.
 
