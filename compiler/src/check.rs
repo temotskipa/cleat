@@ -128,6 +128,9 @@ pub enum TExpr {
     Has(Box<TExpr>, Box<TExpr>),
     RefEq(Box<TExpr>, Box<TExpr>),
     RefNe(Box<TExpr>, Box<TExpr>),
+    Pin(Box<TExpr>),
+    Note(Box<TExpr>),
+    Moved(Box<TExpr>),
 }
 
 struct ClassRec {
@@ -1319,6 +1322,11 @@ fn check_call(
     span: usize,
 ) -> Result<(Ty, TExpr), Vec<Diagnostic>> {
     if let ExprKind::Select(recv, name) = &callee.kind {
+        if let Some(builtin) = builtin_call(
+            recv, name, args, class, classes, by_qual, units, layouts, locals, span,
+        ) {
+            return builtin;
+        }
         let type_receiver = if let ExprKind::Name(type_name) = &recv.kind {
             locals.iter().all(|(local, _)| local != type_name)
                 && (resolve_simple(type_name, class, classes, by_qual, units).is_some()
@@ -1487,6 +1495,58 @@ fn static_field_store(
         }
         Err(err) => Err(vec![err]),
     })
+}
+
+fn builtin_call(
+    recv: &Expr,
+    name: &str,
+    args: &[Expr],
+    class: &ClassRec,
+    classes: &[ClassRec],
+    by_qual: &HashMap<String, usize>,
+    units: &[Unit],
+    layouts: &[Layout],
+    locals: &[(String, Ty)],
+    span: usize,
+) -> Option<Result<(Ty, TExpr), Vec<Diagnostic>>> {
+    let ExprKind::Name(type_name) = &recv.kind else {
+        return None;
+    };
+    if resolve_simple(type_name, class, classes, by_qual, units).is_some() {
+        return None;
+    }
+    let kind = match (type_name.as_str(), name) {
+        ("Gc", "note") => Some((Ty::Void, true)),
+        ("Gc", "moved") => Some((Ty::Bool, false)),
+        ("Pin", "of") => Some((Ty::Void, true)),
+        _ => None,
+    }?;
+    Some((|| {
+        if args.len() != 1 {
+            return err(class, span, &format!("{type_name}.{name} takes one reference (section 4.14)"));
+        }
+        let (arg_ty, arg_expr) =
+            check_expr(&args[0], None, class, classes, by_qual, units, layouts, locals)?;
+        if !arg_ty.is_ref() {
+            return err(
+                class,
+                span,
+                &format!("{type_name}.{name} takes a reference (section 4.14)"),
+            );
+        }
+        let expr = match (type_name.as_str(), name) {
+            ("Gc", "note") => TExpr::Note(Box::new(arg_expr)),
+            ("Gc", "moved") => TExpr::Moved(Box::new(arg_expr)),
+            ("Pin", "of") => TExpr::Pin(Box::new(arg_expr)),
+            _ => unreachable!(),
+        };
+        let _ = kind;
+        let ty = match name {
+            "moved" => Ty::Bool,
+            _ => Ty::Void,
+        };
+        Ok((ty, expr))
+    })())
 }
 
 fn instance_call(

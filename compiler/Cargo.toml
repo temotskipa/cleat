@@ -1,3 +1,6 @@
+[workspace]
+members = [".", "rt"]
+
 [package]
 name = "cleatc"
 version = "0.1.0"
@@ -12,4 +15,4 @@ name = "cleatc"
 path = "src/lib.rs"
 
 [dependencies]
-mmtk = { path = "vendor/mmtk", features = ["object_pinning"] }
+cleatrt = { path = "rt" }

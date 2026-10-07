@@ -175,19 +175,6 @@ static Obj *alloc_obj(size_t payload, uint32_t class_id, uint32_t nrefs) {
     return obj;
 }
 
-void cleat_push_root(void **slot) {
-    if (nroots >= MAX_ROOTS) {
-        exit(1);
-    }
-    roots[nroots++] = slot;
-}
-
-void cleat_pop_root(void) {
-    if (nroots > 0) {
-        nroots--;
-    }
-}
-
 void cleat_set_parent(int id, int parent) {
     if (id > 0 && id < MAX_CLASS) {
         parents[id] = parent;
@@ -196,32 +183,6 @@ void cleat_set_parent(int id, int parent) {
         user_meta[id].represented = (uint32_t)id;
         user_meta[id].ann_count = 0;
     }
-}
-
-void *cleat_alloc(uint32_t payload, uint32_t class_id, uint32_t nrefs) {
-    return alloc_obj(payload, class_id, nrefs);
-}
-
-void *cleat_alloc_array(int32_t len, int32_t elem_class) {
-    if (len < 0) {
-        exit(1);
-    }
-    size_t bytes = 8u + (size_t)len * sizeof(void *);
-    if (len != 0 && bytes / sizeof(void *) != (size_t)len + 1) {
-        exit(1);
-    }
-    uint32_t id = ARRAY_BIT | ((uint32_t)elem_class & 0xffffu);
-    Obj *obj = alloc_obj(bytes, id, 0);
-    uint32_t *head = (uint32_t *)(obj + 1);
-    head[0] = (uint32_t)len;
-    head[1] = (uint32_t)elem_class;
-    return obj;
-}
-
-void *cleat_box_i32(int32_t value) {
-    Obj *obj = alloc_obj(4, BOX_ID, 0);
-    *(int32_t *)(obj + 1) = value;
-    return obj;
 }
 
 static int represented(void *class_obj) {
@@ -258,7 +219,7 @@ void *cleat_get_class(void *obj) {
 }
 
 int cleat_is_instance(void *class_obj, void *obj) {
-    if (!class_obj || !obj || !in_heap(obj)) {
+    if (!class_obj || !obj) {
         return 0;
     }
     int want = represented(class_obj);

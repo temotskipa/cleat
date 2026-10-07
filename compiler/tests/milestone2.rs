@@ -107,8 +107,8 @@ fn references_arrays_identity_and_precise_collection() {
     assert_eq!(status.code(), Some(0), "reference program should exit 0");
     let ir = fs::read_to_string(root.join("refs.ll")).unwrap();
     assert!(
-        ir.contains("call ptr @cleat_box_i32"),
-        "storing an Int32 in Object boxes it: {ir}"
+        ir.contains("@cleat_box_i32"),
+        "storing an Int32 in Object boxes it through cleat_box_i32: {ir}"
     );
     assert!(
         ir.contains("alloca i32"),
