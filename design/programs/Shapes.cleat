@@ -1,0 +1,105 @@
+// Totals areas across lists of different element types. `shapes` prints:
+//   circles: 2, area 15.71
+//   shapes: 3, area 21.71
+//   reversed: 12.57 6.00 3.14
+//   a list of shapes, area 15.71
+//   some other list
+//   not a list
+// Exercises: List<? extends T>, List<? super T>, List<?>, a generic method that
+// names a wildcard's unknown type, instanceof with a wildcard.
+package demo;
+
+interface Shape {
+    Float64 area();
+}
+
+value class Circle implements Shape {
+    public Float64 radius;
+
+    @Override
+    public Float64 area() {
+        return 3.141592653589793 * radius * radius;
+    }
+}
+
+value class Rect implements Shape {
+    public Float64 width;
+    public Float64 height;
+
+    @Override
+    public Float64 area() {
+        return width * height;
+    }
+}
+
+public class Shapes {
+    // Reads from any list whose elements are shapes.
+    static Float64 totalArea(List<? extends Shape> shapes) {
+        Float64 total = 0.0;
+        for (Shape shape : shapes) {
+            total += shape.area();
+        }
+        return total;
+    }
+
+    // Writes into any list that can hold a circle.
+    static void addUnitCircles(List<? super Circle> sink, Int count) {
+        for (var i = 0; i < count; i++) {
+            sink.add(new Circle(1.0));
+        }
+    }
+
+    // T names the element type, so the three statements agree on it.
+    static <T> void swap(List<T> items, Int i, Int j) {
+        T held = items[i];
+        items[i] = items[j];
+        items[j] = held;
+    }
+
+    // Works on a list of anything. Each call of swap names the unknown element type.
+    static void reverse(List<?> items) {
+        var i = 0;
+        var j = items.size() - 1;
+        while (i < j) {
+            swap(items, i, j);
+            i++;
+            j--;
+        }
+    }
+
+    static String describe(Object o) {
+        if (o instanceof List<? extends Shape>) {
+            // o is a List<? extends Shape> here.
+            return "a list of shapes, area " + totalArea(o).toFixed(2);
+        }
+        if (o instanceof List<?>) {
+            return "some other list";
+        }
+        return "not a list";
+    }
+
+    public static void main(String[] args) {
+        var circles = new List<Circle>();
+        addUnitCircles(circles, 1);
+        circles.add(new Circle(2.0));
+        Console.println("circles: " + circles.size() + ", area " + totalArea(circles).toFixed(2));
+
+        var shapes = new List<Shape>();
+        addUnitCircles(shapes, 1);
+        shapes.add(new Rect(2.0, 3.0));
+        shapes.add(new Circle(2.0));
+        Console.println("shapes: " + shapes.size() + ", area " + totalArea(shapes).toFixed(2));
+
+        reverse(shapes);
+        var line = new StringBuilder();
+        line.append("reversed:");
+        for (Shape shape : shapes) {
+            line.append(" ").append(shape.area().toFixed(2));
+        }
+        Console.println(line.toString());
+
+        Console.println(describe(circles));
+        Console.println(describe(new List<String>()));
+        Console.println(describe("circles"));
+    }
+}

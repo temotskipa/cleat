@@ -1,92 +1,223 @@
 # 13. Concurrency
 
-Field accesses, array-element accesses, lock operations, atomic-cell operations, and scope publication execute in one sequentially consistent order. That order respects program order inside each thread. A read sees the latest write to that location in the order, or the location's initial value if no write precedes the read.
+## 13.1 Threads
 
-An initial value is `null` for a `@Nullable` reference, `zero()` for a numeric field, the scalar 0 for `Char`, and `false` for `Boolean`. A non-null reference field has no initial value. It is assigned before the object becomes visible, by the definite-assignment rule. Sequential consistency then makes that assignment precede a read by a thread that observed the reference.
-
-Every field access and every array-element access is atomic. A read sees a value that was written, of the location's type. It does not see a torn representation, and it does not see a reference the collector does not know.
-
-There is no per-object monitor and no `synchronized` method. Locking a value is rejected because a value has no identity to lock. Mutual exclusion uses `Lock`.
+A program starts with one thread, which runs `main`. A thread runs a body to completion. Threads share every object they can reach.
 
 ```java
 public final class Thread {
-    public static Thread start(Block<Unit> body)
+    @Discardable
+    public static Thread start(Function0<Unit> body)
     public static Thread current()
+    public static void sleep(Int milliseconds)
+    public static void checkCancelled()
     public void join()
     public Boolean isAlive()
     public @Nullable Throwable uncaught()
 }
+```
+
+`Thread.start` creates a thread that runs `body.invoke()`, and returns once the thread exists. Its result may be ignored, and so may the result of `fork`. The body is a lambda, and it captures locals as [chapter 4](04-methods.md#48-lambdas-and-method-references) describes. `Thread.current` returns the thread that is running. `sleep` waits for at least that many milliseconds. A negative argument raises `IllegalArgumentException`.
+
+`join` waits until the thread's body has completed. Joining the running thread raises `IllegalStateException`. `isAlive` is `true` from `start` until the body has completed.
+
+An exception that leaves the body ends that thread and no other. Its `toString` is written to the host's error stream, and `uncaught` returns it from then on. `uncaught` returns `null` for a thread that is running or that completed normally.
+
+The program ends when `main` returns, as [chapter 9](09-execution.md#910-startup-and-termination) defines. A thread that is still running does not keep it alive. A program that needs its threads to finish joins them, or starts them in a scope ([section 13.5](#135-scopes)).
+
+```java
+var worker = Thread.start(() -> {
+    Console.println("working");
+});
+worker.join();
+```
+
+## 13.2 Shared memory
+
+Two threads may read and assign the same field, static field or array element. The language guarantees four things about what they see.
+
+1. **A read returns a value that was assigned.** It returns a value that some assignment stored in that location, or the location's initial value. It never returns part of one value and part of another, even for a value class with several fields, and it never returns a value that no thread stored.
+2. **An object is complete before another thread can see it.** No constructor and no method ever sees a field that has not been assigned, as [chapter 9](09-execution.md#95-constructing-an-object) establishes. That holds across threads: a thread that obtains a reference to an object sees, for each field, the value the constructor gave it or a later one.
+3. **Synchronization orders what it joins.** Each row of the table below orders everything the first thread did before the first action ahead of everything the second thread does after the second action. A read that is ordered after an assignment, with no other assignment to the location between or unordered with them, returns the value of that assignment.
+4. **Otherwise a read may be stale.** When two threads use a location with nothing ordering them, a read returns the value of some assignment that is not ordered after it. It may be an older value than the latest one. Nothing else goes wrong: the program's types hold, and no other location is affected.
+
+| First action | Second action |
+| --- | --- |
+| A thread releases a `Lock` | A thread next acquires that lock |
+| An operation on an atomic cell | A later operation on the same cell |
+| `Thread.start` or `Scope.fork` | The first action of the new thread's body |
+| The last action of a thread's body | The return of `join`, or of `result` on its task |
+| The end of a class's initialization | Any thread's use of that class |
+
+Within one thread, actions are ordered as [chapter 9](09-execution.md#91-order-of-evaluation) evaluates them.
+
+A field update such as `count = count + 1` is a read and a later assignment. Two threads that run it with nothing ordering them may lose an update. A value that must change in one step is held in an atomic cell, or is guarded by a lock.
+
+There is no `volatile` modifier and no per-object monitor.
+
+## 13.3 Locks
+
+```java
 public final class Lock {
     public Lock()
     public void lock()
     public void unlock()
-    public void exclusive(inline Block<Unit> body)
-    public void close()
+    public <T> T exclusive(Function0<T> body)
+    public Condition newCondition()
+}
+
+public final class Condition {
+    public void await()
+    public void signal()
+    public void signalAll()
 }
 ```
 
-`Thread.current` returns the thread that is running. `Thread.start` creates a thread and arranges for `body.invoke()` to run on it. The body is a non-inline block. `return` inside it leaves the body. Captured locals are the effectively final locals of [chapter 4](04-methods.md), read when `start` is called. `start` returns once the thread exists. The body may interleave with the caller after that return. The caller of `start` is not joined automatically. A thread started this way is not a child of a `Scope`.
+A `Lock` is held by at most one thread at a time. `lock` waits until the running thread can hold it. A thread that holds it may call `lock` again, and it then releases the lock by calling `unlock` as many times. `unlock` by a thread that does not hold the lock raises `IllegalStateException`.
 
-`join` waits until the thread's body has completed. `join` on the thread that is running is rejected and raises `IllegalStateException`. After completion, `isAlive` is `false`. An exception that leaves the body is stored and returned by `uncaught`. It does not complete any other thread. A normal completion stores no exception, and `uncaught` returns `null`.
-
-`Lock` is a reference class. `lock` acquires it for the running thread. The same thread may acquire it again. Each `lock` is paired with an `unlock` on that thread. `unlock` by a thread that does not hold it raises `IllegalStateException`. `exclusive` acquires the lock, runs the block, and releases that acquisition if the block completes normally or abruptly, using the `ensuring` rule. `close` releases one acquisition held by the running thread and raises `IllegalStateException` if it holds none. `using` on a `Lock` is legal because `close` has that shape.
-
-A field update `x = x.plus(1)` is a read and a later write. It is not one atomic update. A cell that must change in one step is an atomic cell.
+`exclusive` calls `lock`, runs the body, and calls `unlock` however the body completed. It returns the body's result.
 
 ```java
-public final class AtomicInt32 {
-    public AtomicInt32(Int32 initial)
-    public Int32 get()
-    public void set(Int32 value)
-    public Int32 compareAndSet(Int32 expected, Int32 update)
-    public Int32 fetchAndPlus(Int32 delta)
+class Longest {
+    final Lock lock = new Lock();
+    String word = "";
+
+    public void offer(String candidate) {
+        lock.exclusive(() -> {
+            if (candidate.length() > word.length()) {
+                word = candidate;
+            }
+        });
+    }
 }
-public final class AtomicInt64 {
-    public AtomicInt64(Int64 initial)
-    public Int64 get()
-    public void set(Int64 value)
-    public Int64 compareAndSet(Int64 expected, Int64 update)
-    public Int64 fetchAndPlus(Int64 delta)
+```
+
+**Waiting for a condition.** A `Condition` belongs to the lock whose `newCondition` created it. Each of its three methods raises `IllegalStateException` unless the running thread holds that lock.
+
+- `await` releases the lock completely, waits, and holds the lock again as before when it returns. It may return without a signal, so a caller tests what it waits for in a loop.
+- `signal` lets one waiting thread return from `await`, if there is one. `signalAll` lets every waiting thread return.
+
+```java
+class Mailbox<T extends Object> {
+    final Lock lock = new Lock();
+    final Condition filled = lock.newCondition();
+    @Nullable T item;
+
+    public void put(T value) {
+        lock.exclusive(() -> {
+            item = value;
+            filled.signalAll();
+        });
+    }
+
+    public T take() {
+        return lock.exclusive(() -> {
+            while (item == null) {
+                filled.await();
+            }
+            T taken = (T) item;
+            item = null;
+            return taken;
+        });
+    }
 }
+```
+
+## 13.4 Atomic cells
+
+```java
+public final class AtomicInt {
+    public AtomicInt(Int initial)
+    public Int get()
+    public void set(Int value)
+    public Boolean compareAndSet(Int expected, Int update)
+    @Discardable
+    public Int addAndGet(Int delta)
+    @Discardable
+    public Int incrementAndGet()
+}
+
 public final class Atomic<T> {
     public Atomic(T initial)
     public T get()
     public void set(T value)
-    public T compareAndSet(T expected, T update)
+    public Boolean compareAndSet(T expected, T update)
 }
 ```
 
-`AtomicInt32` and `AtomicInt64` are reference classes. Each cell holds one machine word. `get` and `set` read and write that word. `compareAndSet` stores `update` only when the word is `expected`, and returns the word that was present. `fetchAndPlus` adds with `wrappingPlus` and returns the word that was present. It does not raise on overflow. `Int32.plus` remains the throwing operation. These methods lower to one hardware load, store, compare-and-swap, or fetch-and-add when the platform has that instruction. A lowering is correct when the observable result matches the method.
+An atomic cell holds one value. Each method is one step: no other operation on the cell happens between its read and its assignment.
 
-`Atomic<T>` holds one reference. `T` is a reference type. An instantiation at a value type, at `Int32`, or at `Int64` is rejected. Those words have their own classes. `compareAndSet` uses `identical`, not `equals`. A null initial value is legal only when `T` is `@Nullable`. A null argument to a non-null cell is rejected.
+`compareAndSet` stores `update` when the cell holds `expected`, and returns whether it did. `AtomicInt` compares with `equals`. `Atomic<T>` compares with `identical`, so a cell of a reference class compares references.
 
-## 13.1 Structured concurrency
+`addAndGet` adds `delta` to the cell and returns the sum. `incrementAndGet` is `addAndGet(1)`. When the sum is not an `Int`, the method raises `ArithmeticException` and the cell is unchanged.
 
-A scope joins the tasks forked inside it. A task does not outlive the call that created the scope.
+## 13.5 Scopes
+
+A scope starts tasks and waits for all of them. No task outlives the call that created its scope.
 
 ```java
 public final class Scope {
-    public static <T> T call(inline Block<Scope, T> body)
-    public <T> Task<T> fork(Block<T> body)
-    public Boolean isCancelled()
+    public static <T> T call(Function1<Scope, T> body)
+    @Discardable
+    public <T> Task<T> fork(Function0<T> body)
     public void cancel()
+    public Boolean isCancelled()
 }
-public final class Task<T> {
+
+public final class Task<out T> {
     public T result()
     public Boolean isDone()
 }
 ```
 
-`call` evaluates the block on the running thread and passes the scope. The block is inline, so `return`, `break`, and `continue` target the caller, as [chapter 4](04-methods.md) defines. `fork` evaluates its block on a new thread. The block is non-inline. Captured locals are read when `fork` is called. `fork` returns a `Task` once the thread exists, and the body may then interleave. `fork` from a thread other than the thread that entered `call` raises `IllegalStateException`. `fork` after the scope has started closing raises `IllegalStateException`. An empty scope forks nothing.
+`Scope.call` creates a scope, runs `body` on the running thread with that scope, and returns the body's result. Before it returns, it cancels the scope if the body raised an exception, and it waits for every task of the scope to complete.
 
-`fork` happens-before the child body. The child's completion happens-before `result` returns and before `call` finishes joining. `result` waits for that task. `result` on the task's own thread raises `IllegalStateException`. `isDone` is `true` after the body has completed.
+`fork` starts a task: a new thread that runs `body.invoke()`. It returns once the thread exists. Only the thread that is running the scope's `call` may fork, and only while the body of that `call` is running. Any other `fork` raises `IllegalStateException`.
 
-When the block ends for any reason, `call` cancels every task that is still running and joins every task. A task whose body raises any exception other than `CancellationException` is a failure. After the joins, an exception from the block other than `CancellationException` propagates, and task failures are suppressed on it in fork order. Otherwise the first task failure propagates and later task failures are suppressed on it. Suppression is `Throwable.suppressed()`. `CancellationException` alone does not fail the call. If nothing failed, the block's normal result, `return`, `break`, or `continue` completes as the block did. The joins run before that completion, by the `ensuring` rule.
+`result` waits until the task has completed, and returns what its body returned. If the body raised an exception, `result` raises that exception. `isDone` is `true` once the body has completed in either way.
 
-`cancel` marks the scope cancelled. A running task raises `CancellationException` at its next safepoint. A task inside a foreign call finishes that call first. A pin is not closed by cancellation. `isCancelled` reports the mark. The mark happens-before the `CancellationException` the task observes. A failure recorded by `call` cancels the scope.
+```java
+Int total = Scope.call((scope) -> {
+    Task<Int> left = scope.fork(() -> count(firstHalf));
+    Task<Int> right = scope.fork(() -> count(secondHalf));
+    return left.result() + right.result();
+});
+```
 
-`Thread.start` remains the unstructured start. `Scope` is how a set of tasks has one join and one failure.
+**Failure.** A task fails when its body raises an exception other than `CancellationException`. A task that fails cancels its scope. When `call` has waited for every task, it completes in the first of these ways that applies:
 
-A data race is still a race on the program's invariants. It is not a torn read, and it is not undefined behavior of the abstract machine. Two threads that share a location without a `Lock`, an atomic cell, or the publishing thread's program order can observe an older write. They cannot observe a value that was never written.
+1. If the body of `call` raised an exception, that exception propagates. The exceptions of failed tasks are recorded as suppressed on it, in the order the tasks were forked, except one that is the same exception.
+2. If a task failed, the exception of the first failed task in fork order propagates, with those of the others suppressed on it.
+3. Otherwise `call` returns the body's result.
 
-Sequential consistency is the requirement. An implementation may use a weaker schedule only when the observable reads match some sequentially consistent order.
+A `CancellationException` from a task is never reported by `call`.
+
+## 13.6 Cancellation
+
+Cancellation is a request. A cancelled task goes on running until it reaches a point that checks for the request.
+
+`cancel` marks the scope as cancelled, and `isCancelled` reports the mark. A scope is also cancelled by a task that fails and by an exception from the body of its `call`. A scope that is cancelled stays cancelled.
+
+A task is cancelled when its scope is. A thread started by `Thread.start` is never cancelled, and neither is the thread that runs `main`.
+
+A cancelled task raises `CancellationException` at these points, and at no others:
+
+- a call of `Thread.checkCancelled`;
+- a call of `Thread.sleep`, `Thread.join`, `Task.result` or `Condition.await`, when it is called and while it waits.
+
+`Lock.lock` is not such a point, so code that cleans up may take a lock. A task inside a foreign call finishes the call. No exception arrives between two statements that do not ask for it, so a task's own data is never left half updated by a cancellation.
+
+A long computation in a task calls `Thread.checkCancelled` now and then. On a thread that is not a cancelled task, it does nothing.
+
+```java
+Scope.call((scope) -> {
+    for (String path : paths) {
+        scope.fork(() -> {
+            for (String line : File.readLines(path)) {
+                Thread.checkCancelled();        // stops here once another task has failed
+                index(line);
+            }
+        });
+    }
+});
+```

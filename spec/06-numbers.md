@@ -1,154 +1,234 @@
-# 6. Numbers and aggregates
+# 6. Numbers and text
 
-## 6.1 `Number`
+## 6.1 The numeric classes
 
-`Number` is a concrete sealed value class. It is not generic. User classes cannot extend it. The permitted subclasses are the fixed classes of [section 6.3](#63-fixed-widths), and they are declared by the prelude. An integer that does not fit in a machine width remains a `Number` with heap digits. There is no `BigInt` class.
+The prelude declares these numeric classes:
 
-An instance whose class is `Number` stores one exact quantity. The quantity is an integer or a rational. The representation of an integer is chosen after every operation that produces one. A non-negative integer uses the smallest of u8, u16, u32, and u64 that holds it. A negative integer uses the smallest of i8, i16, i32, and i64 that holds it. When a signed width and the unsigned width of the same size both hold the value, the unsigned width is used. One and 200 are u8. 2^63 is u64. Negative one is i8. -2^63 is i64. A value outside those ranges uses heap digits. The class stays `Number` when the representation changes. A rational that is not an integer is an exact rational. A program may observe that mathematical value, including that `1 / 2` is one half and that the literal `0.1` is one tenth. It may not observe the stored form of a non-integer. Every exact representation that preserves those values is correct, and the integer representation in this paragraph is not part of that choice. [Chapter 10](10-deferred.md) records the bound. `Number[]` has one element layout. A narrow integer is a tag inside that layout, not a smaller slot.
+| Classes | Values |
+| --- | --- |
+| `Int8`, `Int16`, `Int32`, `Int` | Signed integers of 8, 16, 32 and 64 bits |
+| `UInt8`, `UInt16`, `UInt32`, `UInt64` | Unsigned integers of those widths |
+| `Float32`, `Float64` | IEEE 754 binary32 and binary64 |
+| `Rational` | Every rational number, exactly |
 
-`Number` never wraps and never traps. An operation whose integer result no longer fits the current width is stored by the rule above. Negation of a non-negative value stores a signed width when the result is negative. Negation of a signed width's minimum stores the next signed width that holds it. Division is exact: `1 / 2` is one half, and the literal `0.1` is one tenth, not a binary approximation. Division by zero raises `ArithmeticException`.
+The first two rows are the integer classes. The third row is the float classes.
 
-`var n = 1` has type `Number`. `var x = 1 + 2` has type `Number`. In an expected-type context of a fixed numeric type, a bare literal or an operator fold of bare literals uses that fixed type when the value fits: `Int32 i = 1` and `Int32 i = 1 + 2` resolve on `Int32`. If the value does not fit, the program is rejected.
+Each numeric class is a final value class. No numeric class extends another, and their only common superclass is `Object`. A value of one numeric class is never an instance of a different one. `Char` and `Boolean` are not numeric.
 
-## 6.2 Methods of `Number`
+`Int` is the everyday integer. An array length, an index, a `String` position, a shift count and a hash code are `Int`. There is no class named `Int64`.
 
-`Number` defines `plus`, `minus`, `times`, `div`, `negate`, `unaryPlus`, `lessThan`, `greaterThan`, `atMost`, and `atLeast` against `Number`. `%` is rejected on `Number`, because exact division leaves a zero remainder and `rem` is not defined for it.
+## 6.2 The numeric interfaces
 
-Comparisons and `equals` use the mathematical value. `hashCode` agrees with `equals` across representations: a u8 one, an i8 one, and an i64 one are equal and hash the same.
-
-`pow(Int32 exponent)` returns `Number`. A negative exponent returns the exact reciprocal when the base is not zero, and raises `ArithmeticException` when the base is zero. `sqrt()`, `sin()`, and `pow(Float64 exponent)` return `Float64`. Bitwise methods and shifts are not defined on `Number`.
-
-`static Number zero()` returns the additive identity. `static Number from(Number n)` returns `n`. `Int32.from(Number n)` and the same method on each fixed class are specified in [section 6.3](#63-fixed-widths). A fixed `from` changes the class only when the value fits.
-
-## 6.3 Fixed widths
-
-The prelude declares these sealed subclasses of `Number`:
-
-```
-Int8 Int16 Int32 Int64
-UInt8 UInt16 UInt32 UInt64
-Float32 Float64
-```
-
-Each is a value class. A fixed integer or float instance does not widen. Its representation is exactly those bits. On the signed integers and the unsigned integers, an operation whose mathematical result is not representable in the type raises `ArithmeticException`. That includes negation of the minimum signed value, negation of a nonzero unsigned value, and division by zero. Float operations are specified later in this section and follow IEEE 754 instead of this paragraph.
-
-`div` on a fixed integer type requires exact divisibility and returns the quotient in that type. `5.div(2)` on `Int32` raises `ArithmeticException`. `rem` returns the remainder in that type, with the sign of the dividend, and raises `ArithmeticException` when the divisor is zero. The remainder of a representable pair is representable.
-
-`truncatingDiv` divides toward zero. It raises `ArithmeticException` when the divisor is zero, and when the truncated quotient is not representable in the type, which is the case for the signed minimum divided by negative one. `truncatingRem` satisfies `a.equals(a.truncatingDiv(b).times(b).plus(a.truncatingRem(b)))` for every pair that completes normally, and the remainder has the sign of the dividend.
-
-Each numeric class defines `static` `zero()` returning the additive identity of that class.
-
-`wrappingPlus`, `wrappingMinus`, and `wrappingTimes` compute in the bit width and do not raise. The result is the low bits of the mathematical value, interpreted in the type. `wrappingMinus` of the signed minimum and negative one, and `wrappingTimes` of that minimum and negative one, wrap. They do not raise. No other wrapping operations are declared.
-
-`Float32` and `Float64` follow IEEE 754, including NaN, infinities, and rounding. Their `div` by zero does not raise. Overflow is the IEEE infinity of the appropriate sign. `rem` is the IEEE remainder.
-
-An arithmetic method of a fixed numeric class takes and returns that class. `Int32.plus(Int32)` returns `Int32`. `Float64.plus(Float64)` returns `Float64`. The same pattern holds for `minus`, `times`, `div`, `rem`, and the comparisons. When the static type of the receiver is a fixed class, the method is applicable only when the argument's static type is that same class, or the argument is a bare literal that adopts that class because the value fits exactly. A `Number`, a `Float64`, or a different fixed width is not applicable to `Int32.plus`. The call is rejected. There is no promotion and no narrowing. `Int32 i; Float64 f; i + f` is rejected. `f + i` is rejected. The program writes `Float64.from(i)` when every `Int32` value of that use is exactly a `Float64`, which is true of every `Int32`. It writes `Float64.round` when the conversion may round, which is the case for a `Number` that is not a dyadic rational of that width, and for an `Int64` above the exact integer range of `Float64`. `Int32.from(f)` is the exact narrowing and raises `ArithmeticException` when `f` is not an integer in range. `f + 1` adopts the literal as `Float64`, because one is exact. `f + 0.1` is rejected, because the literal `0.1` is not an exact `Float64`. `i + 1.5` is rejected, because `1.5` is not an `Int32`.
-
-`Number.plus(Number)` and the other `Number` methods apply when the static receiver is `Number`. A fixed class is a `Number`, so `Number n; n + f` is exact rational arithmetic. A finite float contributes the exact rational its IEEE value denotes. A non-finite float raises `ArithmeticException`. The result is `Number`, not `Float64`. A composite uses the same applicability rule on its element type. `Vector<Int32>` does not accept a `Float64` lane or a `Float64` broadcast. `Vector<Float64> v; v * 2` adopts the literal as `Float64`.
-
-`from` on each fixed class accepts `Number` and the other numeric classes. It returns an instance of the target class when the mathematical value is exactly representable in that class, and raises `ArithmeticException` otherwise. `Float64.from` of a value with no exact IEEE representation raises rather than rounding. `Number.from(Number n)` returns `n`. An `Int32` argument is returned as that same value with static type `Number`. That return is the upcast.
-
-`Float32.round(Number n)` and `Float64.round(Number n)` are the rounding conversions. They round to nearest, ties to even, and overflow to the IEEE infinity of the appropriate sign. A value that is already a float of that width is returned unchanged, including NaN and infinities. `from` remains the exact conversion.
-
-`instanceof Int32` is true only for an instance of class `Int32`. A `Number` that fits in 32 bits is not an `Int32`. A cast is that same class test. `(Int32) n` raises `ClassCastException` when `n` is a `Number`. `(Char) n` raises `ClassCastException`. Neither cast changes the width or the scalar. `Int32.from(n)` and `Char.from(n)` are the conversions, and each raises `ArithmeticException` when the value does not fit. An expected-type bare literal such as `Int32 i = 1` adopts `Int32` when the value fits and is not a cast. Foreign code receives a fixed class or a fixed machine shape, never an un-narrowed `Number`.
-
-## 6.4 Equality across numeric classes
-
-`equals` is mathematical. An `Int8` one equals an `Int32` one, and their hash codes match. A finite `Float32` or `Float64` equals an exact number only when it represents that number exactly. `Float64.from` is not how a lossy decimal is spelled, because `from` refuses an inexact value. A `Float64` produced by an IEEE operation equals an exact `Number` only when the IEEE value is exactly that quantity. `1.0` equals `1`. A `Float64` that is the IEEE rounding of one tenth does not equal the literal `0.1`.
-
-`equals` is an equivalence. `NaN.equals(NaN)` is `true`. Positive zero and negative zero are equal. `hashCode` agrees. `equals` is the meaning of `==`. `totalOrder` is not `==`. Each of `Float32` and `Float64` defines `Int32 totalOrder` against its own type, implementing IEEE 754 totalOrder. Negative zero precedes positive zero. A NaN is ordered by its sign bit and then by its payload, and every NaN lies outside the finite numbers and the infinities in the direction IEEE 754 specifies. The result is negative, zero, or positive.
-
-A non-finite float compares `lessThan`, `greaterThan`, `atMost`, and `atLeast` as `false` against every value, including itself.
-
-`Char` and `Boolean` are not numeric. They do not extend `Number`. A `Char` has comparison methods ordered by Unicode scalar value. It has no `plus`. `'a' + 1` is rejected. There is no implicit conversion from any numeric type to `String`. `1 + "count: "` is rejected, because `Number.plus` has no `String` parameter.
-
-## 6.5 Bitwise methods
-
-`and`, `or`, `xor`, `complement`, `shiftLeft`, and `shiftRight` are defined on the fixed integer classes, signed and unsigned. They are not defined on `Number`, `Float32`, or `Float64`. A shift count is `Int32`. The shift methods on a fixed width use the width's bit count; a count outside `0` inclusive through `width - 1` inclusive raises `ArithmeticException`. `>>>` is not a spelling. An unsigned type shifts with `shiftRight` as a logical shift. A signed type's `shiftRight` is an arithmetic shift.
-
-## 6.6 Composites delegate
-
-A composite of numbers uses the component type's operations. It does not define a second arithmetic. `Vector`, `Complex`, and `Matrix` follow that rule. `+`, `-`, `*`, `/`, and `%` lower to the same method names as everywhere else.
+What the numeric classes share is declared by interfaces:
 
 ```java
-value class Vector<T extends Number> {
-    public Vector<T> plus(Vector<T> other)
-    public Vector<T> minus(Vector<T> other)
-    public Vector<T> times(Vector<T> other)
-    public Vector<T> times(T scalar)
-    public Vector<T> div(Vector<T> other)
-    public Vector<T> div(T scalar)
-    public Vector<T> rem(Vector<T> other)
-    public T dot(Vector<T> other)
+public interface Numeric<T> {
+    T plus(T other);
+    T minus(T other);
+    T times(T other);
+    T negate();
+    static T zero();
+    static T one();
+}
+public interface Divisible<T> extends Numeric<T> {
+    T div(T other);
+}
+public interface Ordered<in T> {
+    Boolean lessThan(T other);
+    Boolean atMost(T other);
+    Boolean greaterThan(T other);
+    Boolean atLeast(T other);
+    Int compare(T other);
 }
 ```
 
-Each lane uses `T`'s method. `Vector<Number>` widens a lane that no longer fits its current representation. `Vector<Int32>` raises `ArithmeticException` when a lane's result does not fit. Unequal lengths raise `ArithmeticException`. A one-element vector is not a scalar. `v * 2` selects `times(T)` and broadcasts. `v * new Vector(2)` selects `times(Vector<T>)` and does not broadcast.
+Every numeric class `C` implements `Numeric<C>` and `Ordered<C>`. `Float32`, `Float64` and `Rational` also implement `Divisible`. The integer classes do not.
 
-`new Vector(1, 2, 3)` has type `Vector<Number>`. The element type of a vector literal is the common type of the arguments under assignability. Mixing `Int32` and `Number` yields `Vector<Number>` only when every argument is assignable to `Number`, which it is, and the constructor is `Vector<Number>`. There is no implicit lift of an existing `Vector<Int32>` to `Vector<Number>`. `as` on a vector is `Object.as`, the class test, and it is final. `lanes.as(Number.class)` and `(Vector<Number>) lanes` both fail when `lanes` is a `Vector<Int32>`, because that class is not `Vector<Number>` and not `Number`. Scalar `Int32` still lifts to `Number` by subtyping.
+`zero` and `one` are static interface methods. Each implementing class declares them, and generic code calls them through a type parameter, as [chapter 7](07-generics.md) defines.
 
-The copying lift is a different method:
+The operator spellings of [chapter 4](04-methods.md) reach these methods: `a + b` is `a.plus(b)`, and `a < b` is `a.lessThan(b)`. An arithmetic method takes and returns its own class. When the two operands of an operator have different numeric classes, one is first converted to the other if [section 6.7](#67-conversion) lists an implicit conversion between them: with an `Int32 i` and an `Int n`, `i + n` is an `Int` addition. With an `Int32 i` and a `Float64 f`, `i + f` is rejected, because neither class converts implicitly to the other, and the program converts one operand itself.
+
+A class a program declares may implement these interfaces, and its instances then take the same operators. Nothing in this chapter depends on a class being declared by the prelude, except the literal rule of [section 6.3](#63-numeric-literals).
+
+## 6.3 Numeric literals
+
+An integer literal and a decimal literal are the lexical forms of [chapter 1](01-source.md). Each denotes its exact mathematical value. A `-` written directly before a numeric literal is part of that literal, so `-128` is one literal.
+
+A literal expression is a numeric literal, a parenthesized literal expression, or an arithmetic operator applied to literal expressions.
+
+A numeric literal has no class of its own. The literals of a literal expression take their class from the first of these rules that applies:
+
+1. **Expected type.** The expression stands where a value of a numeric class `C` is expected: the initializer of a declaration whose written type is `C`, the right side of an assignment to a `C` location, an argument for a parameter of type `C`, the operand of `return` in a method whose result is `C`, or an element of an array creation whose element type is `C`. Every literal in it has class `C`. `@Nullable C` gives the same expected type as `C`.
+2. **Other operand.** The expression is one operand of a binary operator, of a compound assignment or of `??`, or one arm of `?:`, and the other operand or arm is not a literal expression and has a numeric static type `C`. Every literal in it has class `C`. For `??`, a left operand of type `@Nullable C` counts as `C`.
+3. **Default.** Every literal in the expression has class `Rational` if any of them is a decimal literal, and class `Int` otherwise.
+
+An expected type passes through parentheses, through both arms of `?:`, and through the arms of a switch expression.
+
+A literal of class `C` must denote a value of `C`:
+
+- When `C` is an integer class, the literal is an integer literal in the range of `C`. A decimal literal is rejected there, including one such as `1.0`.
+- When `C` is a float class, the literal denotes the value of `C` nearest to it, ties to even. A literal whose nearest value is an infinity is rejected.
+- When `C` is `Rational`, the literal denotes its exact value.
 
 ```java
-public <U extends Number> Vector<U> map(Class<U> elementType)
+Float64 dt = 0.001;      // Float64, by rule 1
+total += 0.5 * mass;     // Float64 when mass is Float64, by rule 2
+var price = 19.99;       // Rational, exactly 1999/100, by rule 3
+var i = 0;               // Int, by rule 3
+UInt8 mask = 0xFF;       // UInt8; 0x100 is rejected
+var third = 1.0 / 3;     // Rational, exactly one third
+var half = 1 / 2;        // rejected: both literals are Int, and Int has no div
 ```
 
-`map` evaluates the receiver once, then each lane from left to right. Every lane conversion is the send `U.from`, for a fixed class and for `Number`. There is no second conversion. `Number.from` returns its argument, which is the upcast. A fixed `from` raises `ArithmeticException` when the lane is not exactly representable. A raised `from` converts no later lane. An empty vector evaluates the receiver and the class argument and returns an empty `Vector<U>`. It calls `from` on no lane, so `from` cannot raise. The argument is a non-null `Class<U>`. A null argument is rejected because the parameter is not `@Nullable`. A receiver whose static type is `@Nullable Vector<T>` is rejected until it is narrowed, like any other send. A receiver whose type contains a wildcard is captured first, as [chapter 7](07-generics.md) defines. `Class` is `out`, so `Class<Int32>` is a subtype of `Class<Number>`. With no expected type, `lanes.map(Int32.class)` solves `U` as both `Int32` and `Number`. That is not one solution, and the call is rejected. The program writes `lanes.<Int32>map(Int32.class)`. `lanes.map(Number.class)` has one solution, `U=Number`, because `Number` is the only type in the bound that is a supertype of `Number`. An expected type `Vector<Int32>` determines `U` as `Int32`, and `Int32.class` is applicable. An expected type `Vector<Number>` determines `U` as `Number`, and `Int32.class` is applicable by the `out` subtyping. The conversion is still `Number.from`. A `Class<?>` argument does not determine `U`. The result is monomorphized when `U` is a concrete fixed class. `Vector<Number>` keeps the one `Number` lane layout. `map` is final. A lowering is correct when it matches this send, including a final `U.from` lowered to the conversion [chapter 9](09-execution.md) allows. Overload resolution does not prefer `map` over `as`: the names differ. `lanes.<Int32>map(Int32.class)` is the lift to `Vector<Int32>`. `lanes.map(Number.class)` is the lift to `Vector<Number>`. A `Vector<Int32>` stored in an `Object` slot does not gain a converting `as`. The send is still the class test.
+Rounding a decimal literal to a float is the only implicit rounding in the language. It happens only where the program wrote a float type. Rule 1 applies to literals, not to variables: after `var x = 0.1;`, the declaration `Float64 y = x;` is rejected, because `x` is a `Rational`.
 
-`equals` on a composite is component `equals`. Two `Vector<Number>` values are equal when each lane is the same quantity, regardless of stored width.
+For a parameter whose type is a type parameter, [chapter 7](07-generics.md) determines the type from the rest of the call when it can, and the literal then has that expected type. When nothing else determines it, the literal takes its default class.
+
+When a method name is overloaded, a literal expression is applicable to a parameter of numeric class `C` when the rules above accept it at `C`. If more than one method remains after [chapter 4](04-methods.md) resolution, the method whose parameter class is the literal's default class is chosen. If there is none, the call is rejected.
+
+## 6.4 Integer arithmetic
+
+`plus`, `minus`, `times` and `negate` on an integer class raise `ArithmeticException` when the mathematical result is not a value of the class. That includes negating the minimum of a signed class and negating a nonzero unsigned value.
+
+An integer class has no `div`, so `a / b` on two integers is rejected. Integer division is written by name:
+
+| Method | Result |
+| --- | --- |
+| `floorDiv` | The quotient rounded toward negative infinity |
+| `mod` | `a - a.floorDiv(b) * b`. It is zero or has the sign of the divisor. `a % b` is `a.mod(b)` |
+| `truncatingDiv` | The quotient rounded toward zero |
+| `truncatingRem` | `a - a.truncatingDiv(b) * b`. It is zero or has the sign of the dividend |
+
+Each takes and returns the receiver's class. All four raise `ArithmeticException` when the divisor is zero. `floorDiv` and `truncatingDiv` also raise when the quotient is not a value of the class, which is the case for a signed minimum divided by negative one.
+
+`-7 % 3` is `2`. `(-7).truncatingRem(3)` is `-1`, the value that `%` gives in Java and C.
+
+`wrappingPlus`, `wrappingMinus` and `wrappingTimes` return the low bits of the mathematical result, interpreted in the class. They do not raise.
+
+`and`, `or`, `xor`, `complement`, `shiftLeft` and `shiftRight` are declared on the integer classes and on no other numeric class. A shift count is an `Int`. A count below zero, or not below the width of the class, raises `ArithmeticException`. `shiftLeft` discards the bits it shifts out. `shiftRight` copies the sign bit on a signed class and fills with zero on an unsigned class. `>>>` is not a spelling.
+
+## 6.5 Float arithmetic
+
+`plus`, `minus`, `times`, `div` and `negate` on a float class follow IEEE 754, rounding to nearest with ties to even. They do not raise. Overflow gives an infinity. Division by zero gives an infinity or NaN.
+
+`floor`, `ceil`, `truncate` and `round` take no argument and return a value of the same class with no fractional part. `round` rounds to nearest, ties to even. A NaN or an infinity is returned unchanged. `sqrt` returns the correctly rounded square root.
+
+A float class does not declare `mod`.
+
+## 6.6 `Rational`
+
+A `Rational` is one exact rational number. `plus`, `minus`, `times`, `div` and `negate` return the exact result. `div` raises `ArithmeticException` when the divisor is zero. No operation rounds, wraps, or overflows. An operation whose result cannot be stored raises `OutOfMemoryException`.
+
+| Method | Result |
+| --- | --- |
+| `isInteger()` | Whether the value is an integer |
+| `numerator()`, `denominator()` | The value in lowest terms, as two integer-valued `Rational`s. The denominator is positive |
+| `floor()`, `ceil()`, `truncate()` | The nearest integer in that direction |
+| `round()` | The nearest integer, ties to even |
+| `round(Int places)` | The nearest multiple of ten to the power `-places`, ties to even |
+| `floorDiv`, `mod` | As [section 6.4](#64-integer-arithmetic) defines them, for any two rationals with a nonzero divisor |
+| `toDecimal(Int places)` | The digits of `round(places)`, with exactly `places` digits after the point |
+
+`toString` returns decimal digits for an integer and `numerator/denominator` otherwise, so one half is `1/2`.
+
+A program may observe the mathematical value of a `Rational`. How the value is stored is not observable, and every representation that preserves the value is correct.
+
+## 6.7 Conversion
+
+**Implicit conversion.** The numeric classes declare implicit conversions in three cases, with the `@Implicit` annotation of [chapter 8](08-annotations.md). None of them can lose information.
+
+- An integer class converts to an integer class that holds every value of the first.
+- `Float32` converts to `Float64`.
+- An integer class converts to `Rational`.
+
+| From | Converts implicitly to |
+| --- | --- |
+| `Int8` | `Int16`, `Int32`, `Int`, `Rational` |
+| `Int16` | `Int32`, `Int`, `Rational` |
+| `Int32` | `Int`, `Rational` |
+| `Int` | `Rational` |
+| `UInt8` | `UInt16`, `UInt32`, `UInt64`, `Int16`, `Int32`, `Int`, `Rational` |
+| `UInt16` | `UInt32`, `UInt64`, `Int32`, `Int`, `Rational` |
+| `UInt32` | `UInt64`, `Int`, `Rational` |
+| `UInt64` | `Rational` |
+| `Float32` | `Float64` |
+
+No integer class converts implicitly to a float class.
+
+Each of these conversions is the method `T.from`, which cannot fail for these pairs. [Chapter 4](04-methods.md#45-assignability) says where an implicit conversion is applied: where a value is assigned to a location of the other class, as in an initializer, an argument or the operand of `return`, and between the two operands of a binary operator.
 
 ```java
-value class Complex<T extends Number> {
-    public T real
-    public T imag
-    public Complex<T> plus(Complex<T> other)
-    public Complex<T> minus(Complex<T> other)
-    public Complex<T> times(Complex<T> other)
-    public Complex<T> times(T scalar)
-    public Complex<T> div(T scalar)
-}
+Int32 small = 7;
+Int count = small;                 // converted
+Rational price = 4.35;
+Rational total = price * count;    // count is converted to Rational
+Float64 ratio = small;             // rejected: an integer does not convert implicitly to a float
 ```
 
-`times(Complex<T>)` uses `T.plus` and `T.times` only.
+**Explicit conversion.** A conversion that could lose information is never implicit. The program calls it by name, and its plain form raises an exception when the value does not fit. A conversion that rounds, truncates or wraps has a name that says so.
 
-```java
-value class Matrix<T extends Number> {
-    public Matrix<T> plus(Matrix<T> other)
-    public Matrix<T> times(Matrix<T> other)
-    public Matrix<T> times(T scalar)
-}
-```
+Each numeric class `C` declares a static `from` for every numeric class. `C.from(x)` returns the value of `C` equal to `x`, and raises `ArithmeticException` when `C` has no such value. `Int.from(i32)` always succeeds. `Int32.from(n)` raises when `n` is outside 32 bits. `Float64.from(r)` raises when the rational `r` is not exactly a `Float64`, which is the case for one tenth. A NaN or an infinity has no value in an integer class or in `Rational`.
 
-`times(Matrix<T>)` is the matrix product and uses `T.plus` and `T.times` only. A shape mismatch raises `ArithmeticException`.
+`Float32.nearest(x)` and `Float64.nearest(x)` are the rounding conversions. They accept every numeric class and return the nearest value of the float class, ties to even. A magnitude too large for the class gives an infinity.
 
-A reduction folds with the element operation. `dot` multiplies lanes with `times` and folds with `plus`, starting from `T.zero()` when the length is zero. Further named reductions are not required.
+A float becomes an integer in two steps, so the rounding direction is written: `Int.from(f.floor())`.
 
-`Matrix<T>` is constructed from a rectangular `Vector<T>[]` of rows, or from `T[][]`. Unequal row lengths raise `ArithmeticException`.
+A cast is a class test and never converts. `(Int) x` is rejected when the static type of `x` is a different numeric class, because the test could not succeed.
 
-## 6.7 Machine shapes
+## 6.8 Equality and order
 
-The only machine shapes are `Int32x4` and `Float64x4`. Both are final value classes. They do not extend `Vector`, they do not widen, and they are not subclasses of `Number`. A lane operation that does not fit raises `ArithmeticException` on `Int32x4` and follows IEEE on `Float64x4`. No other machine shape is declared. A missing shape name is rejected as a missing type. An ordinary class a program declares is not a machine shape, and foreign code and a SIMD register do not receive it as one. A program does not invent a shape by syntax.
+`==` is `equals`, as [chapter 4](04-methods.md) defines. `equals` on a numeric class is `true` exactly when the argument is a value of the same class with the same numeric value. On a float class, NaN equals NaN, and positive zero equals negative zero. `hashCode` agrees with `equals`.
 
-Each defines `toVector()` returning `Vector<Int32>` or `Vector<Float64>`. The reverse construction from a vector raises `ArithmeticException` when the length is not 4. Foreign code and a SIMD register receive the machine shape, not `Vector<Number>`.
+When the operands of `==` have two different numeric classes, one is converted to the other if [section 6.7](#67-conversion) lists an implicit conversion between them, and the two values are then compared. Otherwise `a == b` is rejected, and the program converts one operand first. A direct call of `equals` converts nothing, so it is `false` for values of two different classes.
 
-`Vector<Int32>` and `Vector<Float64>` are monomorphized to flat lanes. A constant length that matches a machine register may be lowered to a machine vector instruction. `Vector<Number>` evaluates lane-wise on `Number` and does not pack mixed widths into one register.
+`lessThan`, `atMost`, `greaterThan` and `atLeast` compare numeric values. On a float class they follow IEEE 754: each is `false` when either operand is NaN.
 
-## 6.8 `String` and `Char`
+`compare` returns a negative `Int`, zero, or a positive `Int`. It returns zero exactly when `equals` is `true`. On a float class NaN compares greater than every other value, so `compare` is a total order and is the order a sort uses.
 
-`Char` is a final value class. A value is one Unicode scalar, in 0..10FFFF excluding surrogates. `Char.from(Int32)` and `Char.from(Number)` return that scalar or raise `ArithmeticException`. `Char` is not a subtype of `Number`.
+Each float class also declares `Int totalOrder(C other)`, the IEEE 754 totalOrder. It distinguishes negative zero from positive zero and one NaN from another. It is not `==`.
 
-`String` is a final value class. It is a sequence of `Char`. `length()` returns `Int32` and raises `ArithmeticException` on construction of a string longer than `Int32` can count. `get(Int32 index)` returns the scalar at that zero-based index and raises `IndexOutOfBoundsException` when the index is out of range. `plus(Object other)` returns a new string that is the receiver followed by `other.toString()`. `equals` and `hashCode` use the sequence of scalars. `toString` returns the receiver.
+## 6.9 `Char` and `String`
 
-`isEmpty()` is `length().equals(0)`. `substring(Int32 begin, Int32 end)` returns the scalars from `begin` inclusive to `end` exclusive, and raises `IndexOutOfBoundsException` when the range is outside the string or `begin` is greater than `end`. `compare(String other)` returns a negative `Int32`, zero, or a positive `Int32` by the first scalar that differs, and by length when one string is a prefix of the other. `indexOf(Char c)` and `indexOf(String s)` return the first index of that argument, or `-1` when it does not occur. `indexOf` of the empty string returns `0`. `startsWith(String prefix)` and `endsWith(String suffix)` report those positions. These are the `String` methods. A further operation is a method a program declares, not an implicit conversion.
+`Char` is a final value class. A value is one Unicode scalar: 0 through 10FFFF, excluding the surrogates. `Char.from(Int)` returns the scalar with that number, or raises `ArithmeticException`. `code()` returns the number as an `Int`. `Char` implements `Ordered<Char>` by scalar number. It is not numeric: `'a' + 1` is rejected.
 
-## 6.9 Arrays
+`String` is a final value class. A value is a sequence of `Char`.
 
-An array type is written `T[]` for any type `T`, including an array type. An array is a reference object. Its length is fixed at creation. `length()` returns `Int32`. `get` and `set` use an `Int32` index and raise `IndexOutOfBoundsException` when the index is out of range. An array implements `Iterable<T>`.
+| Method | Result |
+| --- | --- |
+| `length()` | The number of scalars, as an `Int` |
+| `get(Int index)` | The scalar at that zero-based index. `s[i]` is `s.get(i)` |
+| `substring(Int begin, Int end)` | The scalars from `begin` inclusive to `end` exclusive |
+| `plus(@Nullable Object other)` | The receiver followed by `other.toString()` |
+| `indexOf(Char c)`, `indexOf(String s)` | The first index of the argument, or `-1`. The empty string is found at `0` |
+| `startsWith(String s)`, `endsWith(String s)` | Whether the receiver begins or ends with `s` |
+| `isEmpty()` | Whether the length is zero |
+| `toUtf8()` | The UTF-8 encoding, as a new `UInt8[]` |
+| `static fromUtf8(UInt8[] bytes)` | The string those bytes encode |
 
-Arrays are invariant. `String[]` is not a subtype of `Object[]`. A store is typechecked on `T`, so there is no separate array-store failure. An array of a value type stores flat values. `Number[]` uses the one element layout of [section 6.1](#61-number). An array of a reference type stores references. `T[]` does not contain `null` unless `T` is `@Nullable`.
+`get` and `substring` raise `IndexOutOfBoundsException` when an index is outside the string or `begin` is greater than `end`. `fromUtf8` raises `IllegalArgumentException` when the bytes are not well-formed UTF-8.
 
-`new T[n]` evaluates `n`, requires a non-negative `Int32`, and produces an array of that length. A negative length raises `ArithmeticException`. It is accepted when `T` is `@Nullable U`, in which case every element starts as `null`; when `T` is a numeric class, in which case every element is that class's `zero()`; when `T` is `Char`, in which case every element is the scalar 0; and when `T` is a composite value type whose fields are all of those kinds, in which case every element is built from those zeros. Every other `new T[n]` is rejected. An array of a type without that default is written `new T[] { e1, e2 }`, which evaluates the elements left to right. The element type of that literal is the written `T`. `new int[n]` is rejected because `int` is reserved.
+`equals` and `hashCode` use the sequence of scalars. `String` implements `Ordered<String>`: `compare` orders by the first scalar that differs, and by length when one string is a prefix of the other. `String` implements `Iterable<Char>`, so a `for` statement visits its scalars in order.
 
-## 6.10 `Boolean`
+No value is converted to a `String` implicitly. `"count: " + n` is `String.plus`, which calls `n.toString()`. `n + " items"` is rejected when `n` is an `Int`, because `Int.plus` has no `String` parameter.
 
-`Boolean` is a final value class with exactly two instances, the literals `true` and `false`. It is not numeric. Its methods are the control and Boolean methods of [chapter 4](04-methods.md). `equals` returns `true` only when both instances are `true` or both are `false`. That is equality of the two values. It is not `identical`. `identical` is rejected on a `Boolean` receiver and on a `Boolean` argument, because `Boolean` is a value type, by [chapter 2](02-objects.md). `==` is this `equals`. `hashCode` agrees: `true` and `false` have different hash codes, and each is stable.
+These are the `String` methods the language defines. The prelude may declare more in ordinary source.
+
+## 6.10 Arrays
+
+An array type is written `T[]` for any type `T`, including an array type. `T[]` is the prelude class `Array<T>`, and a program may write either. An array is a reference object. Its length is fixed at creation. `length()` returns an `Int`. `get` and `set` take an `Int` index and raise `IndexOutOfBoundsException` when it is out of range. `a[i]` is `a.get(i)`, and `a[i] = e` is `a.set(i, e)`. An array implements `Iterable<T>`.
+
+Arrays are invariant. `String[]` is not a subtype of `Object[]`. A store is typechecked on `T`, so no store fails at run time for its type. `T[]` does not contain `null` unless `T` is `@Nullable`.
+
+There are three ways to create an array:
+
+- `new T[n]` creates `n` elements, each the default of `T`. `n` is an `Int`, and a negative `n` raises `ArithmeticException`. The default is `null` when `T` is `@Nullable`, `zero()` when `T` is a numeric class, the scalar 0 when `T` is `Char`, `false` when `T` is `Boolean`, and the value built from those defaults when `T` is a value class whose fields all have one. Every other `new T[n]` is rejected, because `T` has no default. When `T` is a type parameter, `new T[n]` is rejected and `new @Nullable T[n]` is accepted.
+- `new T[] { e1, e2 }` evaluates the elements from left to right. It is legal for every `T`.
+- `Array.build(n, element)` creates `n` elements by calling `element` with each index from zero upward. It is declared `public static <T> T[] build(Int length, Function1<Int, T> element)` and is legal for every `T`.
+
+How an array stores its elements is not observable.
+
+## 6.11 `Boolean`
+
+`Boolean` is a final value class with exactly two instances, the literals `true` and `false`. It is not numeric. It declares `and`, `or`, `xor` and `not`, which `&`, `|`, `^` and `!` spell. `equals` is `true` when both values are `true` or both are `false`.
+
+The conditions of `if`, `while`, `for`, `?:`, `&&`, `||` and `assert` have static type `Boolean`. Those forms are syntax, defined in [chapter 4](04-methods.md).

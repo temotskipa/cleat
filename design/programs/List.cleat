@@ -1,0 +1,105 @@
+// The prelude's growable list, written in ordinary Cleat with no intrinsic bodies.
+// This is the "no privileged library" test: if this file needs a rule that user
+// code cannot use, the design has a special case.
+// Exercises: reified generics, @Nullable storage, a cast on a type parameter,
+// interfaces, the [] and []= operator methods, a file-private helper class.
+package cleat;
+
+public class List<T> implements Iterable<T> {
+    @Nullable T[] slots;
+    Int count;
+
+    public List() {
+        this.slots = new @Nullable T[8];
+        this.count = 0;
+    }
+
+    public Int size() {
+        return count;
+    }
+
+    public Boolean isEmpty() {
+        return count == 0;
+    }
+
+    public void add(T item) {
+        if (count == slots.length()) {
+            @Nullable T[] larger = new @Nullable T[count * 2];
+            for (var i = 0; i < count; i++) {
+                larger[i] = slots[i];
+            }
+            slots = larger;
+        }
+        slots[count] = item;
+        count++;
+    }
+
+    // list[index]
+    public T get(Int index) {
+        check(index);
+        // A slot below `count` always holds a T. The cast is the checked step from
+        // @Nullable T to T. It also does the right thing when T is itself nullable,
+        // because the type argument is known at run time.
+        return (T) slots[index];
+    }
+
+    // list[index] = item
+    public void set(Int index, T item) {
+        check(index);
+        slots[index] = item;
+    }
+
+    public T removeLast() {
+        check(count - 1);
+        count--;
+        T item = (T) slots[count];
+        slots[count] = null;
+        return item;
+    }
+
+    // Insertion sort: enough to show the shape.
+    public void sort(Comparator<T> order) {
+        for (var i = 1; i < count; i++) {
+            T item = (T) slots[i];
+            var j = i;
+            while (j > 0 && order.compare((T) slots[j - 1], item) > 0) {
+                slots[j] = slots[j - 1];
+                j--;
+            }
+            slots[j] = item;
+        }
+    }
+
+    @Override
+    public Iterator<T> iterator() {
+        return new ListIterator<T>(this);
+    }
+
+    void check(Int index) {
+        if (index < 0 || index >= count) {
+            throw new IndexOutOfBoundsException("index " + index + ", size " + count);
+        }
+    }
+}
+
+class ListIterator<T> implements Iterator<T> {
+    final List<T> list;
+    Int index;
+
+    public ListIterator(List<T> list) {
+        this.list = list;
+        this.index = 0;
+    }
+
+    @Override
+    public Boolean hasNext() {
+        return index < list.size();
+    }
+
+    @Override
+    public T next() {
+        T item = list[index];
+        index++;
+        return item;
+    }
+}

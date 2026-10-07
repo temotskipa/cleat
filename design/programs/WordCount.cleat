@@ -1,0 +1,51 @@
+// Counts word frequencies in a text file and prints the ten most common.
+// Exercises: file input, strings and characters, Map and List, nullable results,
+// a lambda used as a comparator, console output, a process exit status.
+package demo;
+
+public class WordCount {
+    public static void main(String[] args) {
+        if (args.length() != 1) {
+            Console.error("usage: wordcount <file>");
+            Process.exit(2);
+        }
+        Map<String, Int> counts = count(File.readText(args[0]));
+
+        var entries = new List<Entry<String, Int>>();
+        for (Entry<String, Int> entry : counts.entries()) {
+            entries.add(entry);
+        }
+        entries.sort((a, b) -> b.value.compare(a.value));
+
+        var shown = 0;
+        for (Entry<String, Int> entry : entries) {
+            if (shown == 10) {
+                break;
+            }
+            Console.println(entry.key + " " + entry.value);
+            shown++;
+        }
+    }
+
+    public static Map<String, Int> count(String text) {
+        var counts = new Map<String, Int>();
+        var word = new StringBuilder();
+        for (Char c : text) {
+            if (c.isLetter()) {
+                word.append(c.toLowerCase());
+            } else if (!word.isEmpty()) {
+                bump(counts, word.toString());
+                word.clear();
+            }
+        }
+        if (!word.isEmpty()) {
+            bump(counts, word.toString());
+        }
+        return counts;
+    }
+
+    static void bump(Map<String, Int> counts, String word) {
+        // Map.get returns @Nullable Int; ?? supplies the count for a word not yet seen.
+        counts[word] = (counts[word] ?? 0) + 1;
+    }
+}

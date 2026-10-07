@@ -1,0 +1,90 @@
+// Runs the checks of a suite, then validates the fields of some objects. `checks` prints:
+//   pass: a new list is empty
+//   FAIL: add grows the list
+//   passed 1 of 2
+//   quantity is 12, above the limit 10
+// Exercises: annotations the program declares, with elements and @Target; reading
+// them through Class and mirrors; Method.invoke and Field.get; List<?>.
+package demo;
+
+@Target(Site.METHOD)
+annotation Check(String name);
+
+@Target(Site.FIELD)
+annotation Max(Int limit);
+
+class ListChecks {
+    @Check("a new list is empty")
+    public void startsEmpty() {
+        assert new List<Int>().isEmpty();
+    }
+
+    // Wrong on purpose, to show a failing check.
+    @Check("add grows the list")
+    public void addGrows() {
+        var list = new List<Int>();
+        list.add(7);
+        assert list.size() == 2;
+    }
+
+    // No annotation, so no mirror: the runner never sees this method.
+    public void helper() {
+    }
+}
+
+value class OrderLine {
+    @Max(10)
+    public Int quantity;
+
+    @Max(1000)
+    public Int unitPriceCents;
+}
+
+public class Checks {
+    // Calls each @Check method of the suite and returns how many passed.
+    static Int run(Object suite) {
+        var passed = 0;
+        for (Method method : suite.getClass().<Check>getAnnotatedMethods()) {
+            // The method was found through Check, so the annotation is there.
+            Check check = (Check) method.<Check>getAnnotation();
+            try {
+                method.invoke(suite);
+                passed++;
+                Console.println("pass: " + check.name);
+            } catch (AssertionException e) {
+                Console.println("FAIL: " + check.name);
+            }
+        }
+        return passed;
+    }
+
+    // Reports each @Max field that is above its limit. The items may be of any class.
+    static void validate(List<?> items) {
+        for (@Nullable Object item : items) {
+            if (item == null) {
+                continue;
+            }
+            for (Field field : item.getClass().<Max>getAnnotatedFields()) {
+                Max max = (Max) field.<Max>getAnnotation();
+                @Nullable Object value = field.get(item);
+                if (value instanceof Int) {
+                    if (value > max.limit) {
+                        Console.println(field.getName() + " is " + value + ", above the limit " + max.limit);
+                    }
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        var suite = new ListChecks();
+        var total = suite.getClass().<Check>getAnnotatedMethods().length();
+        var passed = run(suite);
+        Console.println("passed " + passed + " of " + total);
+
+        var lines = new List<OrderLine>();
+        lines.add(new OrderLine(12, 250));
+        lines.add(new OrderLine(3, 999));
+        validate(lines);
+    }
+}

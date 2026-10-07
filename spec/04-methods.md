@@ -1,272 +1,254 @@
 # 4. Methods
 
-## 4.1 Declaration
+This chapter defines methods, the expressions that call them, and the statements of a method body. [Chapter 11](11-syntax.md) gives the syntax, including operator precedence.
 
+## 4.1 Declaring a method
+
+A method declaration has modifiers, optional type parameters, a result, a name, a parameter list, and a body.
+
+- The result is a type, or `void`, which is how the result `Unit` is written, as [chapter 5](05-null-and-unit.md) defines.
+- Parameter types and the result type are written. `var` is rejected in those positions. A parameter is a local of the method, and is assignable unless it is declared `final`.
+- The modifiers are an audience from [chapter 3](03-visibility.md), `static`, `final`, `open`, `abstract` and `foreign`.
+- A generic method writes its type parameters before the result, as [chapter 7](07-generics.md) defines.
+
+A method of a class is final unless it is declared `open`: no subclass overrides it. `final` may be written to state that default. An `abstract` method has no body and appears only in an abstract class. `open final`, `abstract final` and `abstract static` are rejected. The methods of an interface are described in [chapter 2](02-objects.md).
+
+A static method has no receiver. `this` and `super` are rejected in it. A static method and an instance method may share a name. A call is static when its receiver is a type name, and is an instance call when its receiver is a value.
+
+**The receiver parameter.** An instance method may declare its receiver as a first parameter named `this`. Its type is the declaring class or interface, with qualifiers:
+
+```java
+public open Boolean equals(@Nullable Object this, @Nullable Object other)
 ```
-method     = {method-mod} [type-params] result identifier "(" [params] ")" (block | ";")
-method-mod = audience | "only" ... | "static" | "final" | "open"
-           | "abstract" | "inline" | "foreign"
-result     = "void" | type
-params     = param {"," param}
-param      = {param-mod} type identifier
-           | {param-mod} type "..." identifier
-```
 
-Parameter types and the result type are written. `var` is rejected in those positions. A parameter is a local of the method. It is reassignable unless declared `final`.
+The receiver parameter is not an argument position, and a call supplies no argument for it. [Chapter 8](08-annotations.md) says what its qualifiers mean. Without the declaration, the receiver's type is the declaring class with no qualifier. A static method and a constructor do not declare a receiver.
 
-A concrete method is final unless declared `open`. `final` may be written to state the default. `open final` is rejected. An `abstract` method has no body, is overridable, and is not `final` and not `inline`. An abstract method appears only in an abstract class or an interface.
+## 4.2 Overriding
 
-An override matches the overridden signature exactly, including the result type, type parameters, and whether the result is written `void` or `Unit`. A covariant result is rejected. The overriding method is itself final unless declared `open`.
+A method of a class overrides a method of its superclass, or implements a method of an interface, when the two have the same name and the same signature: the same type parameters and the same parameter types, with the same qualifiers. Its result type is the result type of the method it overrides, or a subtype of it, so `Circle copy()` may override `Shape copy()`.
 
-A static method has no receiver instance. Using `this` or `super` in a static method is rejected. A static method may overload an instance method. The call is static when the receiver expression is a type name, and instance when the receiver expression is a value.
+- Only an `open` method, an `abstract` method, or an interface method not declared `final` can be overridden. Declaring a method with the name and signature of a visible final method of a superclass is rejected.
+- The overriding method carries `@Override`, as [chapter 8](08-annotations.md) requires.
+- The overriding method is itself final unless it is declared `open`.
+- Its audience follows [chapter 3](03-visibility.md).
+- Its receiver has the same qualifiers as the receiver it overrides. The exception is an override of `equals`, `hashCode` or `toString`, whose receiver has none.
+- It carries `@Discardable` exactly when the method it overrides does.
 
-## 4.2 Calls
+A static method overrides nothing. A static method of a class meets a static requirement of an interface, as chapter 2 describes, when it has that name and signature, and it then carries `@Override` too.
 
-A call evaluates the receiver, then the arguments from left to right, then enters the method. Arguments are values. A parameter receives the argument object. Assignment to the parameter does not assign to the caller's variable. Laziness is a block argument, not a calling convention.
+Inside an instance method, `super.name(args)` calls the superclass's method without dispatch.
 
-The receiver of a static call is the compile-time class. The receiver of an instance call is the value of the receiver expression. An instance call whose compile-time method is final may be lowered to a direct call. That lowering is available to every final method. It is not a privilege of a prelude type.
+## 4.3 Calls
 
-`foreign` marks a method with no source body. The body is supplied by foreign code. The signature is the platform C ABI for the mapping in [section 4.11](#411-foreign-signatures). `Number`, an unspecialized generic value type, a wildcard, and a Cleat reference are rejected on a `foreign` method. A `Block` is not a machine type and is rejected as a foreign parameter, so a foreign method has no Cleat callback.
+A call is written `receiver.name(args)`, `Type.name(args)`, `super.name(args)` or `name(args)`. In the last form the method belongs to the enclosing class or to a class it inherits from. The receiver is `this` for an instance method and the class for a static method. Calling an instance method that way from a static method is rejected.
 
-## 4.3 Overloading
+A call evaluates the receiver, then the arguments from left to right, and then runs the method with each parameter bound to the value of its argument. Assigning a parameter does not change a variable of the caller.
 
-Two methods of one class may share a name when their parameter lists differ in number or in a parameter type. The signature includes the parameter types after substitution of any explicit type arguments. Return type and `void` versus `Unit` do not distinguish overloads.
+[Section 4.4](#44-overloading) chooses the method at compile time from static types. When the chosen method is `open`, `abstract` or an interface method, the receiver's class at run time selects the body, as [chapter 2](02-objects.md) describes.
 
-Resolution discards every method that is not applicable. A method is applicable when the argument count matches and each argument is assignable to the corresponding parameter under [section 4.4](#44-assignability), using the inference of [chapter 7](07-generics.md). A numeric literal or an operator expression whose operands are numeric literals prefers an applicable fixed numeric parameter type in which the value fits over a parameter type of `Number`. Among the methods that remain, a method is more specific when each of its parameter types is a subtype of the other method's corresponding parameter type. If exactly one most specific method remains, it is chosen. Otherwise the call is rejected and the program writes explicit type arguments, as in `Box.<Int32>of(1)`.
+The static type of the receiver must be a subtype of the method's receiver type. A receiver whose type is `@Nullable` therefore accepts only the methods that declare a `@Nullable` receiver, until it is narrowed.
 
-There is no boxing conversion in overload resolution. There are no raw types. A value whose static type is a value type is already that type; storing it in `Object` is an upcast, not a conversion invented by resolution.
+A call is an expression, and its type is the method's result type. A call whose result is `Unit` may stand alone as a statement. So may a call of a method marked `@Discardable`, such as an `append` that returns its receiver for chaining. A call of any other method must be used: as an operand, an argument, an initializer, or the right side of an assignment. A statement that would discard its result is rejected.
 
-## 4.4 Assignability
+## 4.4 Overloading
 
-A value of type `S` is assignable to a variable of type `T` when `S` is a subtype of `T`, or when the value is a bare numeric literal or a fold of bare numeric literals and the operators of [chapter 6](06-numbers.md) and `T` is a fixed numeric type in which that value fits.
+Two methods of one class may share a name when their parameter lists differ in length or in the type of a parameter. Types that differ only in qualifiers do not count as different, and neither do result types.
 
-Subtyping is the reflexive transitive closure of `extends` and `implements`, plus the generic rules of [chapter 7](07-generics.md), plus the nullability rule that a type `T` is assignable to `@Nullable T`. The reverse is rejected. The literal `null` is assignable to every `@Nullable` type and to no other type.
+A call chooses among the visible methods of that name that the receiver's static type declares or inherits.
 
-No method is inserted to convert `S` to `String`, to a different numeric width, or to a superclass by copying. An implicit conversion from `Int32` to `Number` is subtyping: `Int32` extends `Number`. An implicit conversion from `Vector<Int32>` to `Vector<Number>` does not exist.
+1. A method is applicable when the call has as many arguments as the method has parameters and each argument is assignable to its parameter under [section 4.5](#45-assignability), after the inference of [chapter 7](07-generics.md) for a generic method. [Chapter 6](06-numbers.md) says when a numeric literal is applicable, and [section 4.8](#48-lambdas-and-method-references) says when a lambda is.
+2. One applicable method is more specific than another when each of its parameter types is a subtype of the other's corresponding parameter type.
+3. If one applicable method is more specific than every other, it is chosen. Otherwise the call is rejected, and the program writes a cast or explicit type arguments to choose.
 
-## 4.5 Operator spellings
+A method with a fixed number of parameters is more specific than a varargs method.
 
-An operator spelling is a method of the left operand, or of the single operand. The right operand is the argument. The spelling exists on an expression when the resolved method exists. No prelude type is rewritten by a second rule.
+Resolution first considers only the methods that are applicable without an implicit conversion. If there is none, it considers the methods that are applicable when an argument may be converted, as [section 4.5](#45-assignability) allows. In that second round, a class counts as more specific than a class it converts to.
 
-| Spelling | Method |
+## 4.5 Assignability
+
+A value of static type `S` is assignable to a location of type `T` when `S` is a subtype of `T`. Subtyping is the reflexive, transitive closure of `extends` and `implements`, together with the rules for generic types in [chapter 7](07-generics.md) and for qualifiers in [chapter 8](08-annotations.md), of which `@Nullable` in [chapter 5](05-null-and-unit.md) is one.
+
+**Implicit conversion.** A value of class `S` is also assignable to a location of type `T` or `@Nullable T` when `T` declares an implicit conversion from `S`. That is a static method marked `@Implicit`, as [chapter 8](08-annotations.md) defines, and the compiler inserts a call of it. The numeric classes declare the implicit conversions that [chapter 6](06-numbers.md#67-conversion) lists, and a program's value classes may declare their own.
+
+At most one conversion is applied to a value. Nothing else is converted: not the receiver of a call, not a `@Nullable` value, and not a type argument, so an `Int32[]` is never an `Int[]`.
+
+No other method is ever inserted to make a value fit: not to produce a `String`, not to narrow or round a number, not to copy into a superclass. A numeric literal takes its class from where it stands, as chapter 6 defines.
+
+**Expected type.** An expression has an expected type when it is the initializer of a declaration with a written type, the right side of an assignment, an argument for a parameter of a chosen method, the operand of `return`, the expression body of a lambda, or an element of an array creation. The expected type passes through parentheses, through both arms of `?:`, and through the arms of a switch expression. Numeric literals, lambdas, and the inference of chapter 7 use it.
+
+**Disjoint types.** Two types are disjoint when no value can belong to both. Leaving aside every qualifier but `@Nullable`:
+
+- two class types are disjoint unless one is a subtype of the other;
+- a class type and an interface type are disjoint when the class is final and is not a subtype of the interface;
+- two `@Nullable` types are never disjoint, because both contain `null`;
+- two interface types are never disjoint, and a type parameter is disjoint from nothing.
+
+`==`, casts and `instanceof` are rejected between disjoint types, as the following sections say.
+
+## 4.6 Operators
+
+An operator is a call of a method on its left operand, or on its only operand. The expression is legal exactly when that call is legal, and it has the call's result type. Any class may declare these methods.
+
+| Spelling | Call |
 | --- | --- |
 | `a + b` | `a.plus(b)` |
 | `a - b` | `a.minus(b)` |
 | `a * b` | `a.times(b)` |
 | `a / b` | `a.div(b)` |
-| `a % b` | `a.rem(b)` |
+| `a % b` | `a.mod(b)` |
 | `-a` | `a.negate()` |
-| `+a` | `a.unaryPlus()` |
 | `a < b` | `a.lessThan(b)` |
-| `a > b` | `a.greaterThan(b)` |
 | `a <= b` | `a.atMost(b)` |
+| `a > b` | `a.greaterThan(b)` |
 | `a >= b` | `a.atLeast(b)` |
 | `a == b` | `a.equals(b)` |
-| `a != b` | the negation of `a.equals(b)` |
 | `a & b` | `a.and(b)` |
 | `a \| b` | `a.or(b)` |
 | `a ^ b` | `a.xor(b)` |
 | `~a` | `a.complement()` |
 | `a << b` | `a.shiftLeft(b)` |
 | `a >> b` | `a.shiftRight(b)` |
+| `!a` | `a.not()` |
 | `a[i]` | `a.get(i)` |
 | `a[i] = e` | `a.set(i, e)` |
-| `!a` | `a.not()` |
 
-`!=` is not a method. It is the Boolean negation of `equals`. `==` is `equals` for every type, reference or value.
+There is no unary `+`, no `>>>`, and no power operator.
 
-Precedence, tightest first, is the expression layers of [chapter 11](11-syntax.md):
+When the two operands of a binary operator other than a shift have different classes, and exactly one of them converts implicitly to the class of the other, it is converted first. With an `Int32 i` and an `Int n`, `i + n` is an `Int` addition.
 
-| Operators | Association |
+**Equality.** `a == b` is `a.equals(b)`, for a reference class and a value class alike. `a != b` is `!(a == b)`. Two cases differ:
+
+- When one operand is the literal `null`, the expression is the null test of [chapter 5](05-null-and-unit.md), not a call.
+- When the static types of the operands are disjoint, the expression is rejected, because it would be `false` for every pair of values. Two classes are not rejected when one converts implicitly to the other.
+
+Reference identity is `identical`, a method of `Object`.
+
+**Compound assignment.** `a += b` is `a = a + b`, except that the location `a` is evaluated once. The same holds for `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `<<=` and `>>=`.
+
+**Increment.** `a++` and `++a` are `a = a + 1`, and `a--` and `--a` are `a = a - 1`, with the location evaluated once. The literal takes its class from `a` by the rule of chapter 6. The prefix form yields the updated value, and the postfix form yields the value from before the update. If the method raises, the location is unchanged.
+
+## 4.7 Other expressions
+
+**`&&` and `||`.** Both operands have type `Boolean`. `a && b` evaluates `a`. If it is `false`, the result is `false` and `b` is not evaluated. Otherwise the result is the value of `b`. `a || b` evaluates `a`. If it is `true`, the result is `true` and `b` is not evaluated. Otherwise the result is the value of `b`. These two are not methods. `&` and `|` on `Boolean` are the methods `and` and `or`, and they evaluate both operands.
+
+**`?:`.** In `c ? a : b`, `c` has type `Boolean` and is evaluated once. Then exactly one of `a` and `b` is evaluated, and its value is the result. When the expression has an expected type, both arms are checked against it and it is the type of the expression. Otherwise the type is the type of one arm, and the other arm must be assignable to it.
+
+**`??`.** `a ?? b` is the value of `a` unless that is `null`, and the value of `b` otherwise. [Chapter 5](05-null-and-unit.md#54-null-tests-and-narrowing) defines it.
+
+**Casts.** `(T) e` evaluates `e` and tests the class of its value. The test succeeds when that class is a subtype of `T`, including the type arguments of a generic class. A successful cast yields the same value with static type `T`. A failed cast raises `ClassCastException`. [Chapter 5](05-null-and-unit.md) says what a cast does with `null`, and [chapter 8](08-annotations.md) says which qualifiers `T` may carry.
+
+A cast never converts a value. It does not change the class of a number. A cast is rejected when `T` and the static type of `e` are disjoint, because the test could not succeed.
+
+**`instanceof`.** `e instanceof T` is `true` when the value of `e` is not `null` and its class is a subtype of `T`. It is rejected when `T` and the static type of `e` are disjoint. Where it is known `true`, it narrows a local, as chapter 5 describes.
+
+**`new`.** `new C(args)` creates an instance of the class `C`, by the construction rules of [chapter 9](09-execution.md). The constructor is chosen as [section 4.4](#44-overloading) chooses a method. A generic class is written with its type arguments: `new List<String>()`. Array creation is in [chapter 6](06-numbers.md).
+
+**Assignment.** `x = e` evaluates `e` and stores its value in the local or parameter `x`. `r.f = e` evaluates `r`, then `e`, and stores into the field. `a[i] = e` evaluates `a`, `i` and `e` in that order and calls `a.set(i, e)`. The value of `e` must be assignable to the location. An assignment is an expression: its value is the value stored, and its type is the type of the location. It may stand alone as a statement.
+
+## 4.8 Lambdas and method references
+
+A functional interface is an interface with exactly one abstract method and no static requirement. The prelude declares the general ones:
+
+```java
+public interface Function0<out R> { R invoke(); }
+public interface Function1<in A, out R> { R invoke(A a); }
+public interface Function2<in A, in B, out R> { R invoke(A a, B b); }
+```
+
+A lambda is written `(parameters) -> expression` or `(parameters) -> block`. It has no type of its own. It stands where the expected type is a functional interface, and it becomes an instance of that interface whose one method is the lambda. `var f = () -> 1;` is rejected, because nothing says which interface is meant.
+
+- The lambda has as many parameters as the interface's method. A parameter's type may be omitted, and is then the method's parameter type. A written type must be that type.
+- The value of an expression body is the result, and must be assignable to the method's result type. When that result type is `Unit`, an expression body may instead be any expression that could stand as a statement, and its value is discarded. A block body returns with `return`, under the rules for a method with that result. `return` inside a lambda returns from the lambda. `break` and `continue` in a lambda do not reach a statement outside it.
+- Inside a lambda, `this` is the `this` of the enclosing method.
+
+**Capture.** A lambda may use a local or a parameter of an enclosing method or lambda only if that variable is never assigned after it is initialized. Using any other local in a lambda is rejected. The lambda holds the values those variables had when the lambda expression was evaluated. A lambda may read and assign fields through `this`.
+
+**The instance.** The instance belongs to a final value class that the lambda expression declares implicitly. Its fields are the captured values and `this`. A lambda therefore has no identity, and two evaluations of one lambda expression that capture equal values are equal. Its `toString` is chosen by the implementation.
+
+**In overload resolution.** A lambda argument is applicable to a parameter whose type is a functional interface whose method has that many parameters, with the same types wherever the lambda writes them. The body of the lambda plays no part in choosing the method. Chapter 7 says how a lambda takes part in inference.
+
+**Method references.** A method reference is a short form of a lambda, and stands in the same places.
+
+| Reference | Lambda |
 | --- | --- |
-| postfix `[]` `.` `()` `++` `--` | left |
-| unary `+` `-` `~` `!` prefix `++` `--` cast `new` | right |
-| `*` `/` `%` | left |
-| `+` `-` | left |
-| `<<` `>>` | left |
-| `<` `>` `<=` `>=` `instanceof` | left |
-| `==` `!=` | left |
-| `&` | left |
-| `^` | left |
-| `\|` | left |
-| `&&` | left |
-| `\|\|` | left |
-| `?:` | right |
-| `=` and the compound assignments | right |
+| `Type::name`, for a static method | `(args) -> Type.name(args)` |
+| `Type::name`, for an instance method | `(receiver, args) -> receiver.name(args)` |
+| `expr::name` | `(args) -> v.name(args)`, where `v` is the value of `expr` when the reference is evaluated |
+| `Type::new` | `(args) -> new Type(args)` |
 
-`&&` has lower precedence than `&`. A compound assignment `a += b` evaluates the location of `a` once and is `a = a.plus(b)` on that location. The same pattern applies to `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `<<=`, and `>>=`.
+The parameter types of the interface's method choose among overloads.
 
-`&&`, `||`, `if`, `?:`, `throw`, `new`, casts, and `instanceof` are also spellings of methods. They are specified with control flow in [section 4.8](#48-control-spellings) because their arguments are blocks or class literals.
+## 4.9 Statements
 
-## 4.6 Blocks
+**Local declarations.** `T name = e;` declares a local of type `T` and initializes it. `T name;` declares a local with no value, and [chapter 12](12-flow.md) requires an assignment before any use. `var name = e;` gives the local the static type of `e`, with its qualifiers. `var` needs an initializer, and `var name = null;` is rejected, because the type would be `Null`. A local is assignable unless it is declared `final`. [Chapter 1](01-source.md) gives its scope.
 
-A block is an object. The prelude defines three classes, and the last type parameter is the result:
+**Expression statements.** An assignment, an increment, a decrement, a call whose result is `Unit`, and a call of a `@Discardable` method may each stand as a statement. Every other expression is rejected as a statement, because its value would be discarded.
+
+**`if` and `while`.** `if (c) s else t` evaluates `c`, which has type `Boolean`, and runs `s` when it is `true` and `t` otherwise. Without `else`, nothing runs when `c` is `false`. `while (c) s` evaluates `c` before each iteration, runs `s` while it is `true`, and completes when it is `false`.
+
+**`for`.** `for (init; c; update) s` runs `init` once. Before each iteration it evaluates `c`, and completes when `c` is `false`. A missing `c` is `true`. Then it runs `s`, and then `update`. `update` also runs after a `continue` of this loop. It does not run after `break`, `return` or a raised exception. A local declared in `init` is in scope in `c`, `s` and `update`.
+
+**`for` over a collection.** `for (T x : e) s` requires the static type of `e` to be a subtype of `Iterable<U>`, where `U` is assignable to `T`. It evaluates `e` and calls `iterator()` once. Then, while `hasNext()` is `true`, it binds `x` to `next()` and runs `s`. `x` is not assignable. `var` may be written for `T`.
 
 ```java
-public final value class Block<T> {
-    public T invoke();
-}
-public final value class Block<A, T> {
-    public T invoke(A a);
-}
-public final value class Block<A, B, T> {
-    public T invoke(A a, B b);
+public interface Iterator<out T> { Boolean hasNext(); T next(); }
+public interface Iterable<out T> { Iterator<T> iterator(); }
+```
+
+**`switch`.** `switch (selector) { arms }` evaluates the selector once and runs the first arm that matches. No arm continues into the next. An arm is one of three kinds:
+
+- `case c1, c2 -> body` matches when the selector equals one of the constants under `equals`. The constants are constant expressions of the selector's type. The selector's type is an integer class, `Char`, `Boolean`, `String` or an enum. Writing one constant twice in a switch is rejected.
+- `case T name -> body` matches when the selector is an instance of `T`, as `instanceof` tests. In the body, `name` is a local of type `T` that holds the selector and is not assignable. `T` must not be disjoint from the selector's type. An arm that cannot match because an earlier arm names `T` or a supertype of `T` is rejected.
+- `default -> body` matches when no other arm does. A switch has at most one, written last.
+
+One switch uses constant arms or type arms, not both. The selector's type is not `@Nullable`.
+
+In a switch statement, each body is a statement. If no arm matches, the switch completes normally. In a switch expression, each body is an expression or a `throw` statement, and the switch must be exhaustive. Its type follows the rule for `?:`, applied across all arms.
+
+A switch is exhaustive when it has a `default` arm, when its constants are both `true` and `false`, when its constants are every constant of an enum, or when its type arms cover the selector's type. Type arms cover a type `S` when one of them names `S` or a supertype of `S`. They also cover `S` when `S` is a sealed interface or a sealed abstract class and they cover every type in its `permits` clause.
+
+```java
+static Rational eval(Expr expr) {
+    return switch (expr) {
+        case Num n -> n.value;
+        case Neg n -> -eval(n.operand);
+        case Binary b -> apply(b.op, eval(b.left), eval(b.right));
+    };
 }
 ```
 
-`Block` is one prelude family, selected by the number of type arguments. A user package declares at most one type of a given simple name. The natural type of a lambda is one of these classes. A lambda expression is `( [params] ) -> expr` or `( [params] ) -> block`. Parameter types may be omitted when an expected type provides them. A lambda with no expected type and an untyped parameter is rejected. `() -> 1` has type `Block<Number>`.
+**Labels, `break` and `continue`.** `break` leaves the innermost enclosing `while`, `for` or switch statement. `continue` starts the next iteration of the innermost enclosing loop. A labeled statement is `label: statement`. `break label` completes that statement, and `continue label` continues it, which requires it to be a loop. A label that does not enclose the `break` or `continue` is rejected.
 
-A functional interface is an interface with exactly one abstract method. Where the expected type is a functional interface and the lambda's parameter and result types match that method, the lambda is converted to the interface. An exact `Block` type beats that conversion. If two functional interfaces are applicable and no exact `Block` is expected, the conversion is rejected.
+**`return` and `throw`.** `return e;` returns the value of `e`, which must be assignable to the method's result type. `return;` returns from a method whose result is `Unit`. `throw e;` raises the value of `e`, whose static type is `Throwable` or a subclass of it. [Chapter 9](09-execution.md) defines exceptions, `try` and `using`.
 
-A lambda is not a class. A non-inline lambda captures `this` and each local it uses. A captured local is not assigned after its initializer. An assignment to such a local anywhere in its scope is rejected. An inline lambda is not an escaping value; the effectively-final rule does not apply to it, and it may assign locals of the enclosing method.
+**`assert`.** `assert c;` evaluates `c`, which has type `Boolean`, and raises `AssertionException` when it is `false`. `assert c : detail;` also evaluates `detail` in that case and gives `detail.toString()` to the exception as its message. Assertions are always checked. No mode removes them.
 
-A `Block` of three or more type parameters is rejected. A lambda of three or more parameters is rejected unless a functional interface is the expected type and the conversion applies. That conversion still does not make the lambda a class.
+## 4.10 Varargs
 
-## 4.7 `inline`
+A parameter `T... name` is a parameter of type `T[]` and is the last parameter. When a call chooses a varargs method, a single trailing argument that is assignable to `T[]` is passed as that array. Otherwise the trailing arguments are evaluated from left to right and stored in a new `T[]`. No trailing arguments give a zero-length array.
 
-`inline` may be written on a final method, including a final static method. `inline` on an `open`, `abstract`, or non-final method is rejected.
+## 4.11 Foreign methods
 
-A parameter whose type is a `Block` may be declared `inline`. An inline block parameter is not stored, is not returned, and is not passed to a parameter that is not itself inline. The method is typechecked under that restriction. The compiler substitutes the caller's block at the call. The substitution is part of the language rule for `return`, `break`, and `continue`, not an optional optimization.
-
-In an inline block, `return` propagates to the enclosing method through inline callers that do not handle it. `break` and `continue` propagate to the enclosing `while` or `for` written in the source. `ensuring` handles those three effects as [chapter 9](09-execution.md) defines, runs its cleanup, and then propagates them. No other method handles them. In a non-inline lambda, `return` leaves the lambda, and `break` or `continue` is rejected.
-
-`Boolean.then`, `Boolean.andAlso`, `Boolean.orElse`, `Block.whileTrue`, `catching`, and `ensuring` are inline methods. Their block parameters are inline. A user method with the same discipline writes `inline` and receives the same control rule. The types are not privileged.
-
-## 4.8 Control spellings
-
-Condition and loop spellings:
-
-```java
-public final value class Boolean {
-    public inline <T> T then(inline Block<T> ifTrue, inline Block<T> ifFalse)
-    public inline Boolean andAlso(inline Block<Boolean> other)
-    public inline Boolean orElse(inline Block<Boolean> other)
-    public Boolean and(Boolean other)
-    public Boolean or(Boolean other)
-    public Boolean xor(Boolean other)
-    public Boolean not()
-}
-
-public static inline Unit whileTrue(
-    inline Block<Boolean> condition,
-    inline Block<Unit> body)
-```
-
-`whileTrue` is a static method of `Block`.
-
-| Source | Send |
-| --- | --- |
-| `if (c) a else b`, as an expression | `c.then(() -> a, () -> b)` |
-| `c ? a : b` | `c.then(() -> a, () -> b)` |
-| `c && d` | `c.andAlso(() -> d)` |
-| `c \|\| d` | `c.orElse(() -> d)` |
-| `while (c) body` | `Block.whileTrue(() -> c, () -> body)` |
-
-A statement `if (c) stmtA else stmtB` is `c.then(() -> { stmtA }, () -> { stmtB })`. A missing `else` is an empty second block. Each statement block's result is `Unit`. `return` inside either block propagates as an inline `return`.
-
-`c` in `if`, `?:`, `&&`, and `||` is evaluated once. The chosen branch is evaluated. The other branch is not. `while` evaluates the condition block on every iteration, then the body block when the condition is `true`, and stops when the condition is `false`. The body block's result is `Unit`.
-
-The result type of an `if` expression or of `?:` is the result type of `then` after inference. The two branches must agree under that inference or the expression is rejected. An `if` statement, a `while` statement, and a `for` statement discard the `Unit` result of the send. That discard belongs to the statement form. It is not a discard of a direct call, and [chapter 5](05-null-and-unit.md) defines the difference. An `if` expression does not discard its result.
-
-`for (T x : e) body` evaluates `e`, sends `iterator()`, and then behaves as `while` on `hasNext` and a body that binds `x` to `next()` and then runs `body`. `x` is not reassignable. The static type of `e` must have a method `iterator()` returning a type with `hasNext()` and `next()`. The prelude interfaces are:
-
-```java
-interface Iterator<out T> {
-    Boolean hasNext();
-    T next();
-}
-interface Iterable<out T> {
-    Iterator<T> iterator();
-}
-```
-
-`for (init; condition; update) body` runs `init` once. A missing condition is the constant `true`. Before each iteration the condition runs. When it is `false`, the loop completes normally. Otherwise the body runs. The update runs after the body completes normally and after a `continue` that targets this loop. The update does not run after `break`, `return`, or `throw`. A local declared in `init` is in scope in the condition, the body, and the update. `break` and `continue` of this loop follow [section 4.12](#412-labels-switch-assert-and-increment).
-
-`throw e` is `e.raise()`. The static type of `e` must be `Throwable` or a subclass. `raise` does not complete normally.
-
-`new C(args)` is `C.new(args)`, a static call on the class object.
-
-`(T) e` is `e.as(T.class)` when `T` contains no wildcard. It is the class test of [chapter 2](02-objects.md). It is not a numeric conversion and it does not convert `Char`. `(Int32) n` on a `Number` raises `ClassCastException` even when the quantity fits in 32 bits. `(Char) 65` raises `ClassCastException`. The width change is `Int32.from`, or an expected-type bare literal. The scalar conversion is `Char.from`. When `T` contains a wildcard, the cast is the test in [chapter 7](07-generics.md) and is not a class-literal send. A cast inside a constant expression uses this same test at compile time. A constant cast that would raise is rejected, as [chapter 12](12-flow.md) defines. The receiver is evaluated once. `==` is `equals` for the result, as for every other value.
-
-`e instanceof T` is `T.class.isInstance(e)` when `T` contains no wildcard. When `T` contains a wildcard, the test is the same wildcard test. The result is `Boolean`.
-
-## 4.9 Locals and statements
-
-A local declaration is `type name = expr ;` or `var name = expr ;` or the same with `final`. `var` infers the type of `expr`, including type annotations that are part of that type, and excluding annotations that attach to a declaration rather than a type. `var` with a written type is rejected. `var` on a field, parameter, or result is rejected. `var name = null` is rejected, because the literal has no class to infer beyond the separate nullability rule, and a local of type `Null` is written `Null name = null`.
-
-A local is reassignable unless declared `final`. A `final` local is assigned exactly once, by its initializer.
-
-Statements are local declarations, expression statements, `if`, `while`, `for`, `return`, `break`, `continue`, `throw`, `try`, `using`, and blocks. An expression statement is an assignment or a method call. A call used as an expression statement is under the `void` rule of [chapter 5](05-null-and-unit.md). Any other unused result is rejected, including a discarded `Int32` and a discarded `Unit` from a method declared to return `Unit`.
-
-`break` and `continue` with no label name the innermost enclosing `while` or `for`. `break` with no label may also name the innermost enclosing `switch`. A label is the form in [section 4.12](#412-labels-switch-assert-and-increment).
-
-## 4.10 Assignment
-
-`name = e` evaluates `e` and binds the object to the local or parameter. `field = e` and `receiver.field = e` are setter calls, or slot writes where [chapter 2](02-objects.md) gives slot access. `a[i] = e` is `set`. The left side is evaluated before the right side. A location is evaluated once.
-
-## 4.11 Foreign signatures
-
-A foreign parameter or result is a machine type: `Boolean`, `Char`, a fixed integer, `Float32`, `Float64`, a machine shape such as `Int32x4`, or `Pointer`. `Pointer` is a final value class holding an address. The collector does not trace it. `equals` compares addresses. Cleat does not dereference a `Pointer`. The program passes it to foreign methods.
+A method declared `foreign` is also declared `static` and has no body. Its body is a C function. Each parameter type and the result type is a machine type:
 
 | Cleat type | C type |
 | --- | --- |
 | `Boolean` | `_Bool` |
-| `Char` | `uint32_t`, one scalar |
-| `Int8`, `Int16`, `Int32`, `Int64` | the matching signed integer |
-| `UInt8`, `UInt16`, `UInt32`, `UInt64` | the matching unsigned integer |
+| `Char` | `uint32_t` |
+| `Int8`, `Int16`, `Int32`, `Int` | `int8_t`, `int16_t`, `int32_t`, `int64_t` |
+| `UInt8`, `UInt16`, `UInt32`, `UInt64` | `uint8_t`, `uint16_t`, `uint32_t`, `uint64_t` |
 | `Float32`, `Float64` | `float`, `double` |
-| `Int32x4`, `Float64x4` | the platform vector of that lane type, passed by value |
 | `Pointer` | `void *` |
+| A value class whose fields are all machine types | A struct of those fields in source order, with the platform's C layout, passed by value |
 
-A foreign method may also take or return a value class whose fields are all machine types. The layout is source order, natural alignment of each field, no header, and trailing padding to the alignment of the strictest field. A value class that does not meet that restriction is rejected on a foreign signature. The call uses the platform C ABI for those C types and that struct layout. Which registers the platform uses is the platform ABI. The mapping in the table is not platform-defined.
+A result written `void` is the C result `void`.
 
-Memory allocated by foreign code is not collected. A returned `Pointer` is an address the collector ignores. The program releases it by a foreign method if the foreign code requires release. `Pointer` is unchecked: it has no length, no element type, and no pin. The checked forms are [section 4.14](#414-checked-foreign-memory).
+A parameter, but not a result, may also be `T[]` where `T` is a machine type. The C function receives a pointer to the first element, with the elements laid out consecutively as C lays out `T`. It may read and write the array's elements through that pointer until the call returns, and not afterwards. Its writes are in the array when the call returns. The length is not passed. A program that needs it passes `a.length()` as another argument. For an empty array the pointer must not be used.
 
-## 4.14 Checked foreign memory
+Every other type is rejected on a foreign method. That includes `String`, `Rational`, a reference class, an interface, a type parameter, and a `@Nullable` type. A lambda cannot be passed, so a C function cannot call back into Cleat.
 
-A machine type for this section is a type legal as a foreign parameter, other than `Pointer`. A value class whose fields are all machine types is a machine type. `Pointer`, a Cleat reference, `Number`, a wildcard, and a `Block` are not.
+`Pointer` is a final value class that holds an address. `equals` compares addresses, and `Pointer.zero()` is the null address. Cleat does not read or write through a `Pointer`. A program passes it back to foreign methods. Memory that C code allocates is not collected.
 
-```java
-public final value class Span<T> {
-    public Int32 length()
-}
-public final class Pin<T> {
-    public static <T> Pin<T> of(T[] elements)
-    public Span<T> span()
-    public void close()
-}
-public final class ForeignBuffer<T> {
-    public static <T> ForeignBuffer<T> adopt(
-        Pointer address, Int32 length, Block<Pointer, Unit> release)
-    public Span<T> span()
-    public void close()
-}
-```
+The call uses the platform's C calling convention for those types. The C symbol is the method's name, unless the method carries `@Symbol("name")`, which names another. The implementation is told which libraries supply the symbols when the program is linked.
 
-`Span<T>`, `Pin<T>`, and `ForeignBuffer<T>` are rejected when `T` is not a machine type. `Span` is a value. It holds an address and a length and is not traced. `equals` compares that address and that length. Two empty spans are equal. `Pin` and `ForeignBuffer` are reference classes. Their `close` methods are declared `void`, so `using` applies.
-
-`Pin.of` evaluates the array once. The array is non-null. A null array is rejected because the parameter is not `@Nullable`. The length is the array's length. An empty array is legal: the address is the null address and the length is zero. The array object is pinned. A moving collection must not relocate that object or its elements until `close`. The pin is visible to every thread. `close` removes the pin. A second `close` raises `IllegalStateException`. `span` after `close` raises `IllegalStateException`. `close` on a pin that is still inside a foreign call on any thread raises `IllegalStateException`.
-
-`ForeignBuffer.adopt` evaluates the address, the length, and the release block from left to right. A negative length raises `IllegalArgumentException` and does not call `release`. A null address is legal only when the length is zero. Otherwise it raises `IllegalArgumentException`. The release block is non-null. `close` marks the buffer closed and then invokes `release` once with the address. The `Unit` result of that invoke is used. If `release` raises, the buffer stays closed and the exception propagates. A second `close` raises `IllegalStateException` and does not invoke `release` again. `span` after `close` raises `IllegalStateException`. The collector does not call `close` and does not free the address. Forgetting `close` leaks the foreign memory. There is no `finalize`.
-
-A `Span` from `span()` is confined to the lifetime of that pin or buffer. Storing it in a field, returning it, or passing it to a parameter that is not a foreign parameter and not an `inline` parameter is rejected. An `inline` method that receives it is checked by the same rule. Passing it to a foreign parameter is legal. The foreign parameter `Span<T>` is two C parameters, in order: a pointer to `T`, then an `int32_t` length. It is not one `Pointer`. An empty span passes the null address and the length zero. A foreign result of type `Span<T>` is rejected. Foreign code returns a `Pointer` and an `Int32`, and Cleat code passes them to `adopt`.
-
-The address of a pin is valid only while the pin is open and only for the foreign calls reached from that lifetime. The address of a buffer is valid only while the buffer is open. Cleat does not dereference either address. A foreign function that stores the address and uses it after `close` is outside the lifetime. Cleat does not make that later use defined.
-
-A foreign call does not lock the pinned array. A race between Cleat and foreign code on those elements remains a race under [chapter 13](13-concurrency.md). The pin keeps the address stable. It does not make the elements atomic beyond the rule that chapter already gives them. A `Vector` or other value stored in an `Object` slot is not an array and is not a `Pin`. `Pin.of` is not a conversion from `Object`.
-
-## 4.12 Labels, switch, assert, and increment
-
-A labeled statement is `identifier : statement`. `break identifier` completes that statement normally. `continue identifier` continues the labeled statement, which must be a `while` or a `for`. A label that does not enclose the `break` or `continue` is rejected. A `continue` of a statement that is not a loop is rejected.
-
-`switch (selector) { arms }` evaluates the selector once. Each arm is `case constant -> statement` or `default -> statement`. An arm does not fall through. The end of an arm completes the switch unless the arm itself completes abruptly. Constants are constant expressions of the selector's type, compared with `equals`. The selector's static type is a fixed integer, `Char`, `Boolean`, `String`, or an enum. `Number` and the floating types are rejected as selectors. Duplicate constants are rejected. A statement switch with no matching arm completes normally. An expression switch is exhaustive or it is rejected. Exhaustive means a `default` arm, both Boolean constants, or every constant of an enum. An expression switch is an expression. Its type is the common type of the arm expressions under [chapter 7](07-generics.md) inference. A statement switch is a statement.
-
-`assert condition` evaluates `condition`, which has type `Boolean`. When the value is `false`, it raises `AssertionException`. `assert condition : detail` also evaluates `detail` in that case and attaches `detail.toString()` to the exception. Assertions are always checked. There is no mode that removes them.
-
-`++ location` and `location ++` evaluate the location once. The update is `location = location.plus(one)`. `one` is the literal `1` adopted to the static type of the location when that type is numeric and `1` fits, and is rejected otherwise. Prefix yields the updated value. Postfix yields the value from before the update. `--` is the same with `minus`. If `plus` or `minus` raises, the location is unchanged.
-
-## 4.13 Varargs and method references
-
-A parameter `T... name` is a parameter of type `T[]` and is the last parameter. At a call, a fixed-arity applicable method is more specific than a varargs method. When the varargs method is chosen, a single trailing argument assignable to `T[]` is passed as that array. Otherwise the trailing arguments are evaluated left to right and stored in a new array of type `T`. Zero trailing arguments produce a zero-length array. `new T[] { }` is legal for every `T`, including a `T` that [chapter 6](06-numbers.md) rejects for `new T[n]`.
-
-A method reference is `Type::name`, `expr::name`, or `Type::new`. It has an expected type, which is a `Block` or a functional interface. Without an expected type it is rejected. `Type::name` for a static method is the lambda `(args) -> Type.name(args)`. `Type::name` for an instance method is the lambda `(receiver, args) -> receiver.name(args)`. `expr::name` evaluates `expr` once, when the reference is evaluated, and is the lambda `(args) -> captured.name(args)`. `Type::new` is `(args) -> new Type(args)`. Overload resolution uses the expected function type. A method reference is not a class. Capture of locals follows the lambda rule.
+C code is outside this specification. A C function that writes outside the memory it was given, keeps a pointer after the call, or unwinds through the call has no defined behavior.

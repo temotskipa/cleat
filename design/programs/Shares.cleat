@@ -1,0 +1,70 @@
+// Splits a bill: `shares 120.50 4` prints what each person pays.
+// Exercises: a qualifier the program declares, its narrowing test, a qualified
+// field and parameter, a tag required by a type parameter, @Override.
+package demo;
+
+// A refinement: an Int known to be greater than zero.
+@Refines
+annotation Positive;
+
+// A tag: a type whose instances never change.
+annotation Frozen;
+
+class Counts {
+    @Narrows(Positive.class)
+    public static Boolean isPositive(Int n) {
+        return n > 0;
+    }
+}
+
+@Frozen
+value class Bill {
+    public Rational total;
+    public @Positive Int people;
+
+    public Rational share() {
+        // No zero check: the type of `people` rules zero out.
+        return (total / people).round(2);
+    }
+
+    @Override
+    public String toString() {
+        return total.toDecimal(2) + " among " + people;
+    }
+}
+
+// Holds one value to compare against later. Only a frozen type may be held.
+class Snapshot<@Frozen T> {
+    final T held;
+
+    public Snapshot(T held) {
+        this.held = held;
+    }
+
+    public Boolean matches(T current) {
+        return held == current;
+    }
+}
+
+public class Shares {
+    public static void main(String[] args) {
+        if (args.length() != 2) {
+            Console.error("usage: shares <total> <people>");
+            Process.exit(2);
+        }
+        @Nullable Rational total = Rational.parse(args[0]);
+        @Nullable Int people = Int.parse(args[1]);
+        if (total == null || people == null || !Counts.isPositive(people)) {
+            Console.error("shares: the total must be a number and the people a positive integer");
+            Process.exit(2);
+            return;
+        }
+
+        // Past the test, `total` is a Rational and `people` is a @Positive Int.
+        var bill = new Bill(total, people);
+        var before = new Snapshot<Bill>(bill);
+        Console.println("splitting " + bill);
+        Console.println("each pays " + bill.share().toDecimal(2));
+        assert before.matches(bill);
+    }
+}

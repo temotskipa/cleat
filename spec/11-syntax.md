@@ -1,213 +1,223 @@
 # 11. Syntax
 
-This chapter is the syntax. A program the grammar rejects is rejected. Precedence is the order of the expression layers below. It is the same order [chapter 4](04-methods.md) states in prose. Where a chapter gives a semantic restriction the grammar accepts, the restriction stands.
+This chapter is the grammar. A program that the grammar does not derive is rejected. The other chapters add restrictions to what the grammar derives, and those restrictions stand.
 
-## 11.1 Lexical grammar
+The notation uses `=` for a definition, `|` for an alternative, `[ ]` for an optional part, `{ }` for a part repeated zero or more times, `( )` for grouping, and quotes for the characters of a token. Words outside quotes name other rules.
 
-```
-input        = {input-element}
-input-element = whitespace | comment | token
-whitespace   = "\t" | "\n" | "\u000B" | "\f" | "\r" | " "
-comment      = "//" {no-line-break} | "/*" {not-end-of-comment} "*/"
-token        = identifier | keyword | literal | separator | operator
-```
+## 11.1 Tokens
 
-A comment does not nest. An unclosed comment is rejected. Whitespace and comments separate tokens and do not occur inside a token, except inside a literal.
-
-The longest token at each point is chosen. `++` and `--` are operators. `>>>` is one token and is rejected. `>>` is one token. Two `>` characters that close nested type arguments are two tokens.
+[Chapter 1](01-source.md) describes the tokens in prose. This is their grammar.
 
 ```
-identifier   = ident-start {ident-part}
-ident-start  = unicode-L | "_" | "$"
-ident-part   = unicode-L | unicode-N | "_" | "$"
-keyword      = one of the words in [chapter 1](01-source.md)
-literal      = integer-literal | rational-literal | string-literal
-             | text-block | char-literal | "true" | "false" | "null"
-separator    = "(" | ")" | "{" | "}" | "[" | "]" | ";" | "," | "." | "@" | "::"
-operator     = "+" | "-" | "*" | "/" | "%" | "&" | "|" | "^" | "~" | "!"
-             | "<<" | ">>" | "<" | ">" | "<=" | ">=" | "==" | "!="
-             | "&&" | "||" | "?" | ":" | "="
-             | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^="
-             | "<<=" | ">>=" | "++" | "--"
+input           = {whitespace | comment | token}
+comment         = "//" {character other than a line break}
+                | "/*" {character} "*/"
+token           = identifier | keyword | literal | separator | operator
+
+identifier      = ident-start {ident-part}
+ident-start     = letter | "_" | "$"
+ident-part      = letter | number | "_" | "$"
+
+literal         = integer-literal | decimal-literal | char-literal
+                | string-literal | text-block | "true" | "false" | "null"
+integer-literal = decimal-numeral
+                | ("0x" | "0X") hex-digit {["_"] hex-digit}
+                | ("0b" | "0B") binary-digit {["_"] binary-digit}
+decimal-numeral = "0" | nonzero-digit {["_"] digit}
+decimal-literal = decimal-numeral "." digits [exponent]
+                | decimal-numeral exponent
+exponent        = ("e" | "E") ["+" | "-"] digits
+digits          = digit {["_"] digit}
+
+char-literal    = "'" (plain-character | escape) "'"
+string-literal  = '"' {plain-character | escape} '"'
+text-block      = '"""' {" " | tab} line-break {character | escape} '"""'
+escape          = "\n" | "\t" | "\r" | "\\" | '\"' | "\'"
+                | "\u" hex-digit hex-digit hex-digit hex-digit
+                | "\u{" hex-digit {hex-digit} "}"
+
+separator       = "(" | ")" | "{" | "}" | "[" | "]" | ";" | "," | "." | "@"
+                | "::" | "..." | "->"
+operator        = "+" | "-" | "*" | "/" | "%" | "&" | "|" | "^" | "~" | "!"
+                | "<<" | ">>" | "<" | ">" | "<=" | ">=" | "==" | "!="
+                | "&&" | "||" | "??" | "?" | ":" | "++" | "--" | assign-op
+assign-op       = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^="
+                | "<<=" | ">>="
 ```
 
-`?` begins a wildcard in a type argument. In an expression it is the conditional operator and must be followed, later, by `:`.
+A `letter` is a character in Unicode category L, and a `number` one in category N. A `plain-character` is any scalar other than the closing quote, a backslash and a line break. A block comment ends at the first `*/`. An identifier is not a keyword, a reserved word, or one of the three word literals.
 
-An integer literal is a decimal numeral, `0x` or `0X` and hex digits, or `0b` or `0B` and binary digits. A decimal integer literal has no leading `0` unless it is exactly `0`. A rational literal is digits, `.`, digits, and an optional exponent `e` or `E`, an optional sign, and digits. `_` may separate two digits and may not begin or end a digit run. A numeric literal has no type suffix.
+The longest token is read, except that `>` is read alone where it closes a type argument list.
 
-A character literal is `'` one scalar `'`. A string literal is `"` {string-char} `"`. A string character is a scalar other than `"` and `\`, a line break, or an escape, or an escape. An ordinary string literal contains no line break.
-
-```
-escape = "\n" | "\t" | "\r" | "\\" | "\"" | "\'"
-       | "\u" hex hex hex hex
-       | "\u{" hex {hex} "}"
-```
-
-The braced form has one to six hex digits. The value is one Unicode scalar. A surrogate or a value outside 0..10FFFF is rejected.
-
-A text block is `"""`, whitespace, a line break, content lines, and a closing `"""`. Content starts on the line after the opening break. The closing `"""` may have whitespace before it on its own line. That whitespace is the indent. Every content line must begin with the indent, and that prefix is removed. A content line that does not is rejected. Escapes are applied after the indent is removed. Line breaks in the content are U+000A. There is no raw-string form. A text block is a string literal.
-
-## 11.2 Types
+## 11.2 Types and annotations
 
 ```
-type         = {annotation} unann-type
-unann-type   = named-type {"[" "]"}
-named-type   = qualified-name [type-args]
-type-args    = "<" type-arg {"," type-arg} ">"
-type-arg     = type | "?" ["extends" type | "super" type]
-type-params  = "<" type-param {"," type-param} ">"
-type-param   = ["in" | "out"] {annotation} identifier ["extends" bound]
-bound        = type {"&" type}
-qualified-name = identifier {"." identifier}
-annotation   = "@" qualified-name [type-args] ["(" [ann-args] ")"]
-ann-args     = value-pair {"," value-pair} | expr {"," expr}
-value-pair   = identifier "=" expr
+type            = {annotation} named-type {{annotation} "[" "]"}
+named-type      = qualified-name [type-args]
+qualified-name  = identifier {"." identifier}
+type-args       = "<" type-arg {"," type-arg} ">"
+type-arg        = type | "?" [("extends" | "super") type]
+type-list       = type {"," type}
+
+type-params     = "<" type-param {"," type-param} ">"
+type-param      = ["in" | "out"] {annotation} identifier
+                  ["extends" type {"&" type}]
+
+annotation      = "@" qualified-name ["(" annotation-args ")"]
+annotation-args = annotation-value {"," annotation-value}
+                | identifier "=" annotation-value
+                  {"," identifier "=" annotation-value}
+annotation-value = expr | annotation
+                | "{" [annotation-value {"," annotation-value}] "}"
 ```
 
-`in` and `out` are keywords only in the position `type-param` shows. A type argument list is required on a generic type. An empty argument list is rejected.
+An annotation before the named type qualifies it. An annotation before a pair of brackets qualifies that array. With several pairs, the first pair is the outermost array: `Int[] @Nullable []` is an array whose elements are arrays of `Int` or `null`.
 
-## 11.3 Compilation unit
+## 11.3 Compilation units
 
 ```
-unit         = [package-decl] {import-decl} {type-decl}
-package-decl = "package" qualified-name ";"
-import-decl  = "import" qualified-name ["." "*"] ";"
-type-decl    = class-decl | interface-decl | annotation-decl | enum-decl
+unit            = [package-decl] {import-decl} {type-decl}
+package-decl    = "package" qualified-name ";"
+import-decl     = "import" qualified-name ["." "*"] ";"
+type-decl       = class-decl | interface-decl | enum-decl | annotation-decl
 ```
 
 ## 11.4 Declarations
 
 ```
-audience     = "public" | "protected" | "package" | "private" ["(" "this" ")"]
-only-clause  = "only" named-type {"," named-type}
-class-mod    = audience | "abstract" | "final" | "sealed" | "open" | "value"
-class-decl   = {class-mod} "class" identifier [type-params]
-               ["extends" type] ["implements" type {"," type}]
-               ["permits" type {"," type}] class-body
-class-body   = "{" {class-member} "}"
-class-member = field | method | constructor | instance-init | static-init
-field        = {field-mod} type identifier ["=" expr] ";"
-field-mod    = audience | only-clause | "static" | "final"
-method       = {method-mod} [type-params] result identifier "(" [params] ")"
-               (block | ";")
-method-mod   = audience | only-clause | "static" | "final" | "open"
-             | "abstract" | "inline" | "foreign"
-result       = "void" | type
-params       = param {"," param}
-param        = {param-mod} type identifier | {param-mod} type "..." identifier
-param-mod    = "final" | "inline"
-constructor  = {audience} {only-clause} [type-params] identifier "(" [params] ")" block
-instance-init = block
-static-init  = "static" block
+modifiers       = {annotation | modifier}
+modifier        = audience | "static" | "final" | "open" | "abstract"
+                | "sealed" | "foreign"
+audience        = "private"
+                | ("package" | "protected" | "public") ["only" "(" type-list ")"]
+
+class-decl      = modifiers ["value"] "class" identifier [type-params]
+                  ["extends" type] ["implements" type-list]
+                  ["permits" type-list] "{" {class-member} "}"
+class-member    = field | method | constructor | compact-constructor
+                | static-init
+field           = modifiers type identifier ["=" expr] ";"
+method          = modifiers [type-params] result identifier
+                  "(" [receiver ["," params] | params] ")" (block | ";")
+result          = "void" | type
+receiver        = type "this"
+params          = param {"," param}
+param           = modifiers type ["..."] identifier
+constructor     = modifiers identifier "(" [params] ")" block
+compact-constructor = modifiers identifier block
+static-init     = "static" block
+
+interface-decl  = modifiers "interface" identifier [type-params]
+                  ["extends" type-list] ["permits" type-list]
+                  "{" {field | method} "}"
+
+enum-decl       = modifiers "enum" identifier ["implements" type-list]
+                  "{" [enum-constant {"," enum-constant}]
+                  [";" {class-member}] "}"
+enum-constant   = {annotation} identifier ["(" [args] ")"]
+
+annotation-decl = modifiers "annotation" identifier
+                  ["(" element {"," element} ")"] ";"
+element         = type identifier ["=" annotation-value]
 ```
 
-A `foreign` or `abstract` method has `;` and no block. Every other method has a block. A varargs parameter is the last parameter. A constructor's identifier is the class name.
+Each chapter says which modifiers a declaration accepts, and a modifier is written at most once. A method ends in `;` in place of a block when it is abstract, `foreign` or `@Intrinsic`, or when it is an interface method with no body. A constructor's identifier is the name of its class.
 
-```
-interface-decl = {iface-mod} "interface" identifier [type-params]
-                 ["extends" type {"," type}]
-                 ["permits" type {"," type}] interface-body
-iface-mod    = audience | "sealed" | "open"
-interface-body = "{" {interface-member} "}"
-interface-member = method | field
-```
-
-An interface field is `public static final` whether or not those words are written. Omitting them does not change that. Writing a contradictory modifier is rejected.
-
-```
-annotation-decl = {audience} "annotation" identifier [type-params]
-                  ["(" element {"," element} ")"]
-                  ["implements" type {"," type}] annotation-body
-element      = type identifier ["=" expr] 
-enum-decl    = {audience} {only-clause} "enum" identifier
-               ["implements" type {"," type}] enum-body
-enum-body    = "{" enum-constant {"," enum-constant} [";"] {class-member} "}"
-enum-constant = identifier
-```
+An annotation at the end of `modifiers` could also be read as the first annotation of the `type` that follows. For a qualifier the two readings mean the same, as [chapter 8](08-annotations.md#82-declaring-and-writing-an-annotation) says. A declaration annotation belongs to the declaration.
 
 ## 11.5 Statements
 
 ```
-block        = "{" {statement} "}"
-statement    = local | statement-expr ";" | if-stmt | while-stmt | for-stmt
-             | for-each | return-stmt | break-stmt | continue-stmt
-             | throw-stmt | try-stmt | using-stmt | switch-stmt
-             | assert-stmt | block | identifier ":" statement | ";"
-local        = {annotation} ["final"] type identifier ["=" expr] ";"
-             | ["final"] "var" identifier "=" expr ";"
-statement-expr = assignment | call | increment
-if-stmt      = "if" "(" expr ")" statement ["else" statement]
-while-stmt   = "while" "(" expr ")" statement
-for-stmt     = "for" "(" [for-init] ";" [expr] ";" [for-update] ")" statement
-for-init     = local-no-semi | statement-expr {"," statement-expr}
-for-update   = statement-expr {"," statement-expr}
-for-each     = "for" "(" ["final"] type identifier ":" expr ")" statement
-return-stmt  = "return" [expr] ";"
-break-stmt   = "break" [identifier] ";"
-continue-stmt = "continue" [identifier] ";"
-throw-stmt   = "throw" expr ";"
-try-stmt     = "try" block {catch-clause} [finally-clause]
-catch-clause = "catch" "(" type identifier ")" block
-finally-clause = "finally" block
-using-stmt   = "using" "(" resource {"," resource} ")" block
-resource     = type identifier "=" expr
-switch-stmt  = "switch" "(" expr ")" "{" {switch-arm} "}"
-switch-arm   = ("case" constant {"," constant} | "default") "->" statement
-assert-stmt  = "assert" expr [":" expr] ";"
-assignment   = left "=" expr | left compound-assign expr
-left         = name | primary "." identifier | primary "[" expr "]"
-increment    = "++" left | "--" left | left "++" | left "--"
+block           = "{" {statement} "}"
+statement       = block
+                | local ";"
+                | expr ";"
+                | ";"
+                | "if" "(" expr ")" statement ["else" statement]
+                | "while" "(" expr ")" statement
+                | "for" "(" [local | expr-list] ";" [expr] ";" [expr-list] ")"
+                  statement
+                | "for" "(" modifiers (type | "var") identifier ":" expr ")"
+                  statement
+                | "switch" "(" expr ")" "{" {arm-head "->" statement} "}"
+                | "try" block {catch-clause} ["finally" block]
+                | "using" "(" resource {"," resource} ")" block
+                | "return" [expr] ";"
+                | "break" [identifier] ";"
+                | "continue" [identifier] ";"
+                | "throw" expr ";"
+                | "assert" expr [":" expr] ";"
+                | identifier ":" statement
+                | ("super" | "this") "(" [args] ")" ";"
+
+local           = modifiers type identifier ["=" expr]
+                | modifiers "var" identifier "=" expr
+expr-list       = expr {"," expr}
+catch-clause    = "catch" "(" type identifier ")" block
+resource        = (type | "var") identifier "=" expr
+arm-head        = "case" expr-list
+                | "case" type identifier
+                | "default"
 ```
 
-An empty statement `;` is legal and does nothing. A local in `for-init` is in scope in the condition, the update, and the body.
+An `else` belongs to the nearest `if` that has none. A statement that can be read as a local declaration is one. An arm that can be read as `case type identifier` is a type arm.
 
 ## 11.6 Expressions
 
-Operators bind in the layers below, tightest first. Every binary layer is left-associative except assignment and the conditional, which are right-associative. Unary operators are right-associative.
+The rules run from the loosest binding to the tightest. Assignment, `?:` and `??` group to the right. The other binary operators group to the left.
 
 ```
-expr         = assignment-expr
-assignment-expr = conditional-expr
-             | left ("=" | "+=" | "-=" | "*=" | "/=" | "%="
-                    | "&=" | "|=" | "^=" | "<<=" | ">>=") assignment-expr
-conditional-expr = or-else-expr ["?" expr ":" conditional-expr]
-or-else-expr = and-also-expr {"||" and-also-expr}
-and-also-expr = or-expr {"&&" or-expr}
-or-expr      = xor-expr {"|" xor-expr}
-xor-expr     = and-expr {"^" and-expr}
-and-expr     = equality-expr {"&" equality-expr}
-equality-expr = relation-expr {("==" | "!=") relation-expr}
-relation-expr = shift-expr {("<" | ">" | "<=" | ">=" ) shift-expr}
-             | shift-expr "instanceof" type
-shift-expr   = add-expr {("<<" | ">>") add-expr}
-add-expr     = mul-expr {("+" | "-") mul-expr}
-mul-expr     = unary-expr {("*" | "/" | "%") unary-expr}
-unary-expr   = ("+" | "-" | "~" | "!" | "++" | "--" | cast | "new") unary-expr
-             | postfix
-cast         = "(" type ")" unary-expr
-postfix      = primary {postfix-op}
-postfix-op   = "." identifier [type-args] ["(" [args] ")"]
-             | "[" expr "]"
-             | "++" | "--"
-primary      = literal | name | "this" | "super" "." identifier [type-args] ["(" [args] ")"]
-             | "new" named-type ["(" [args] ")"]
-             | "new" type array-creator
-             | "(" expr ")"
-             | lambda
-             | method-ref
-             | switch-expr
-array-creator = "[" expr "]" {"[" "]"} | "[" "]" "{" [expr {"," expr}] "}"
-args         = expr {"," expr}
-lambda       = "(" [lambda-params] ")" "->" (expr | block)
-lambda-params = lambda-param {"," lambda-param}
-lambda-param = [type] identifier
-method-ref   = type "::" identifier | type "::" "new" | expr "::" identifier
-switch-expr  = "switch" "(" expr ")" "{" {switch-arm-expr} "}"
-switch-arm-expr = ("case" constant {"," constant} | "default") "->" expr ";"
-name         = identifier {"." identifier}
-constant     = expr
+expr            = assignment
+assignment      = conditional | unary assign-op assignment
+conditional     = coalesce ["?" expr ":" conditional]
+coalesce        = or-else ["??" coalesce]
+or-else         = and-also {"||" and-also}
+and-also        = bit-or {"&&" bit-or}
+bit-or          = bit-xor {"|" bit-xor}
+bit-xor         = bit-and {"^" bit-and}
+bit-and         = equality {"&" equality}
+equality        = relational {("==" | "!=") relational}
+relational      = shift {("<" | ">" | "<=" | ">=") shift | "instanceof" type}
+shift           = additive {("<<" | ">>") additive}
+additive        = multiplicative {("+" | "-") multiplicative}
+multiplicative  = unary {("*" | "/" | "%") unary}
+unary           = ("-" | "~" | "!" | "++" | "--") unary
+                | "(" type ")" unary
+                | postfix
+postfix         = primary {selector} ["++" | "--"]
+selector        = "." identifier
+                | "." [type-args] identifier "(" [args] ")"
+                | "[" expr "]"
+                | "::" identifier
+
+primary         = literal
+                | identifier
+                | "this"
+                | "(" expr ")"
+                | "super" "." identifier "(" [args] ")"
+                | "new" named-type "(" [args] ")"
+                | "new" {annotation} named-type "[" expr "]" {{annotation} "[" "]"}
+                | "new" type "{" [expr-list] "}"
+                | type "." "class"
+                | type "::" ("new" | identifier)
+                | lambda
+                | switch-expr
+
+args            = expr {"," expr}
+lambda          = "(" [lambda-param {"," lambda-param}] ")" "->" (expr | block)
+lambda-param    = [modifiers type] identifier
+switch-expr     = "switch" "(" expr ")" "{" {arm-head "->" arm-value} "}"
+arm-value       = expr ";" | "throw" expr ";"
 ```
 
-A `constant` in a switch arm is a constant expression, as [chapter 12](12-flow.md) defines. A switch expression's arms are expressions, not statements. A switch statement's arms are statements.
+The grammar derives more than is legal, and these rules settle what it leaves open.
 
-`instanceof` does not continue into a following shift expression. A following `<` is a type argument or a comparison of a larger expression, not part of the type.
+- **Casts.** `(` type `)` begins a cast only when the token after `)` is not `-`, `++` or `--`. `(n) - 1` is a subtraction, and a negated operand is cast as `(Int) (-n)`.
+- **Lambdas.** A `(` begins a lambda when the token after its matching `)` is `->`.
+- **Type arguments in an expression.** A `<` after a name begins type arguments when the tokens up to the matching `>` are type arguments and the next token is `::`, or `.` followed by `class`. Everywhere else it is the comparison operator. The type after `new` and after `instanceof`, and the type arguments of a call, which follow its `.`, are never mistaken for one.
+- **Names.** `a.b.c` is derived as an identifier and two selectors. [Chapter 1](01-source.md#18-scope) says which parts name a package, a type, a field or a variable.
+- **Assignment.** The left side of an assignment, and the operand of `++` and `--`, is a variable, a field or an indexed element.
+- **Statements.** An `expr` that stands as a statement is one that [chapter 4](04-methods.md#49-statements) allows there.
+- **Negative literals.** A `-` directly before a numeric literal is part of the literal for the rules of [chapter 6](06-numbers.md#63-numeric-literals).
+- **Array creation.** `new T[n]` creates an array with `n` elements, and brackets after `[n]` belong to the element type. `new T[] { a, b }` lists the elements, and the type before the braces is an array type.
+- **Method references.** `x::name` is derived by the `selector` rule or by the `type "::"` rule. It is a reference through a value when `x` names one, and through a type otherwise.

@@ -1,0 +1,153 @@
+// A command-line calculator. Each argument is parsed as an arithmetic expression
+// and its exact value is printed: `calc "1/3 + 1/6"` prints `1/3 + 1/6 = 1/2`.
+// Exercises: a sealed interface with value classes, an enum, switch over types
+// and over enum constants, recursion, a user exception, exact Rational arithmetic.
+package demo;
+
+sealed interface Expr permits Num, Neg, Binary {}
+
+value class Num implements Expr {
+    public Rational value;
+}
+
+value class Neg implements Expr {
+    public Expr operand;
+}
+
+value class Binary implements Expr {
+    public Op op;
+    public Expr left;
+    public Expr right;
+}
+
+enum Op { ADD, SUBTRACT, MULTIPLY, DIVIDE }
+
+class ParseException extends Throwable {
+    public ParseException(String message) {
+        super(message);
+    }
+}
+
+class Parser {
+    final String source;
+    Int position;
+
+    public Parser(String source) {
+        this.source = source;
+        this.position = 0;
+    }
+
+    public Expr parse() {
+        Expr result = sum();
+        skipSpaces();
+        if (position < source.length()) {
+            throw new ParseException("unexpected '" + source[position] + "' at " + position);
+        }
+        return result;
+    }
+
+    // sum = product { ("+" | "-") product }
+    Expr sum() {
+        Expr left = product();
+        while (true) {
+            if (accept('+')) {
+                left = new Binary(Op.ADD, left, product());
+            } else if (accept('-')) {
+                left = new Binary(Op.SUBTRACT, left, product());
+            } else {
+                return left;
+            }
+        }
+    }
+
+    // product = unary { ("*" | "/") unary }
+    Expr product() {
+        Expr left = unary();
+        while (true) {
+            if (accept('*')) {
+                left = new Binary(Op.MULTIPLY, left, unary());
+            } else if (accept('/')) {
+                left = new Binary(Op.DIVIDE, left, unary());
+            } else {
+                return left;
+            }
+        }
+    }
+
+    // unary = "-" unary | "(" sum ")" | number
+    Expr unary() {
+        if (accept('-')) {
+            return new Neg(unary());
+        }
+        if (accept('(')) {
+            Expr inner = sum();
+            if (!accept(')')) {
+                throw new ParseException("expected ')' at " + position);
+            }
+            return inner;
+        }
+        return number();
+    }
+
+    Expr number() {
+        skipSpaces();
+        Int start = position;
+        while (position < source.length()
+                && (source[position].isDigit() || source[position] == '.')) {
+            position++;
+        }
+        @Nullable Rational value = Rational.parse(source.substring(start, position));
+        if (value == null) {
+            throw new ParseException("expected a number at " + start);
+        }
+        return new Num(value);
+    }
+
+    Boolean accept(Char expected) {
+        skipSpaces();
+        if (position < source.length() && source[position] == expected) {
+            position++;
+            return true;
+        }
+        return false;
+    }
+
+    void skipSpaces() {
+        while (position < source.length() && source[position].isWhitespace()) {
+            position++;
+        }
+    }
+}
+
+public class Calc {
+    public static void main(String[] args) {
+        for (String text : args) {
+            try {
+                Expr expr = new Parser(text).parse();
+                Console.println(text + " = " + eval(expr));
+            } catch (ParseException e) {
+                Console.error(text + ": " + e.message());
+            } catch (ArithmeticException e) {
+                Console.error(text + ": division by zero");
+            }
+        }
+    }
+
+    // Exhaustive without a default arm, because Expr is sealed.
+    static Rational eval(Expr expr) {
+        return switch (expr) {
+            case Num n -> n.value;
+            case Neg n -> -eval(n.operand);
+            case Binary b -> apply(b.op, eval(b.left), eval(b.right));
+        };
+    }
+
+    static Rational apply(Op op, Rational left, Rational right) {
+        return switch (op) {
+            case Op.ADD -> left + right;
+            case Op.SUBTRACT -> left - right;
+            case Op.MULTIPLY -> left * right;
+            case Op.DIVIDE -> left / right;
+        };
+    }
+}

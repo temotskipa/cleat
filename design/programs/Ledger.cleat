@@ -1,0 +1,61 @@
+// Prices an order exactly: line totals, a percentage discount, and sales tax
+// rounded to the cent.
+// Exercises: exact decimal literals, Rational arithmetic and explicit rounding,
+// a value class, a generic method over Numeric<T>, an Int converted implicitly
+// to a Rational.
+package demo;
+
+value class Line {
+    public String item;
+    public Int quantity;
+    public Rational unitPrice;
+
+    public Rational total() {
+        // The Int converts implicitly to a Rational, which cannot lose anything.
+        return unitPrice * quantity;
+    }
+}
+
+public class Ledger {
+    public static void main(String[] args) {
+        var lines = new List<Line>();
+        lines.add(new Line("notebook", 3, 4.35));
+        lines.add(new Line("pen", 10, 0.89));
+        lines.add(new Line("desk lamp", 1, 27.50));
+
+        var totals = new List<Rational>();
+        for (Line line : lines) {
+            totals.add(line.total());
+            Console.println(line.item + " x" + line.quantity + "  " + line.total().toDecimal(2));
+        }
+
+        // 0.10 and 0.0825 are exactly one tenth and 33/400, not binary approximations.
+        Rational subtotal = sum(totals);
+        Rational discount = (subtotal * 0.10).round(2);
+        Rational taxable = subtotal - discount;
+        Rational tax = (taxable * 0.0825).round(2);
+        Rational due = taxable + tax;
+
+        Console.println("subtotal  " + subtotal.toDecimal(2));
+        Console.println("discount  " + discount.toDecimal(2));
+        Console.println("tax       " + tax.toDecimal(2));
+        Console.println("due       " + due.toDecimal(2));
+
+        // Ten payments of a tenth of the amount add back up to it exactly.
+        Rational tenth = due / 10;
+        Rational paid = Rational.zero();
+        for (var i = 0; i < 10; i++) {
+            paid += tenth;
+        }
+        assert paid == due;
+    }
+
+    // Works for Int, Float64, Rational, or a user class that implements Numeric.
+    static <T extends Numeric<T>> T sum(Iterable<T> items) {
+        T total = T.zero();
+        for (T item : items) {
+            total += item;
+        }
+        return total;
+    }
+}

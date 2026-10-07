@@ -2,75 +2,99 @@
 
 ## 3.1 Audiences
 
-Every class member and every type has an audience. When no audience is written on a class member, the audience is `private`. When no audience is written on a type, the audience is `private`. `public` is written to publish a type or a member.
+Every type and every member has an audience: the code that may name it. A use from outside the audience is rejected.
 
-The audiences are:
-
-| Written | Who may name the member |
+| Written | Who may name a member |
 | --- | --- |
-| `private(this)` | Methods of the declaring class, and only when the receiver is the syntactic expression `this` or the bare field name |
-| `private` | Methods of the declaring class, on any instance |
+| `private` | Code in the declaring type |
 | `package` | Code in the same package |
-| `protected` | The declaring class and its subclasses |
-| `public` | Every type that can see the declaring type |
+| `protected` | Code in the declaring type and in its subclasses |
+| `public` | All code that may name the declaring type |
 
-`protected` does not include the rest of the package. A subclass in another package may use a `protected` member. A non-subclass in the same package may not.
+A member with no audience written is `private`. That covers fields, methods and constructors alike, with the exceptions of [section 3.5](#35-members-with-a-fixed-audience).
 
-`private(this)` on a static member is rejected. `private only` and `private(this) only` are rejected.
+`private` is by type and not by instance. A method of `Account` may read a private field of another `Account`, which is what lets `equals` compare two instances.
 
-Interface methods are public, as [chapter 2](02-objects.md) requires. The audience of a constructor is the audience of that `new` overload.
+`protected` does not include the rest of the package. Code in a subclass `S` uses a protected instance member only on a receiver whose static type is `S` or a subtype of `S`, or through `super`. It does not reach into an instance of another subclass.
 
-A private type may be named only from the compilation unit that declares it. A package type may be named from its package. A public type may be named from anywhere. A member's effective audience is the intersection of its own audience and the audience of its declaring type: a public member of a package type is not visible outside the package.
+A field has one audience for reading and assigning. [Chapter 2](02-objects.md#28-fields) says that no accessor stands between them. A field that everyone may read and only the class may assign is a private field with a public method that returns it.
 
-## 3.2 `only`
-
-`only` narrows an audience. It does not replace the audience keyword, and it is not the sealed-types clause.
-
+```java
+public class Account {
+    String owner;                        // private
+    package Rational balance;
+    protected void audit() { }
+    public Rational balance() { return balance; }
+}
 ```
-only-clause = "only" type {"," type}
-```
 
-The `only` clause lists types. The member's callers are the declaring class plus the named types. Subclasses of a named type do not inherit the grant. Code in a named type may name the member. Code outside that set may not, even when the base audience would have allowed it.
+## 3.2 Types
 
-The named types must sit inside the base audience's domain:
+A type has one of three audiences.
 
-- `package only A` requires each named type to be in the same package.
-- `protected only A` requires each named type to be a subclass of the declaring class.
-- `public only A` may name a type in another package. The member is still not open to every caller. `public` means the grant may cross packages.
+| Written | Who may name the type |
+| --- | --- |
+| Nothing | Code in the same file |
+| `package` | Code in the same package |
+| `public` | All code |
 
-A named type that the declaring type cannot see is rejected. A duplicate name in the list is rejected.
+`private` and `protected` are rejected on a type. [Chapter 1](01-source.md#14-compilation-units) ties a public type to the name of its file.
 
-The check is static. It uses the compile-time type of the receiver, not the runtime class.
+A member is never visible more widely than its type. A public method of a type that only its file may name is callable from outside the file only through a supertype that declares the method.
 
-A lambda has the access of the class whose method contains the lambda expression. It does not have the access of a functional interface it is converted to.
+A declaration is rejected when its own audience may see it and may not name a type in its signature. A public method does not take a parameter of a type that is private to the file.
 
-Generated getters and setters carry the field's audience, including its `only` list.
+## 3.3 `only`
 
-## 3.3 Override and `only`
-
-A subclass that is not in the `only` list cannot override that member and cannot call it. A subclass that is in the list may override it. The override's audience must be a subset of the overridden audience: the same `only` list, or a shorter one whose types are taken from that list, with a base audience that does not add callers. Dropping `only` on the override is rejected, because that widens the set.
-
-A member with no `only` clause uses this widening order: `private`, then `package`, then `protected`, then `public`. An override may keep the audience or move later in that order. It must not move earlier. `private(this)` members are not overridden, because the override would be a different slot. The check is static and uses the compile-time declaring class. It does not depend on the runtime class, on generics, or on nullability.
-
-`final` and the default finality of methods are [chapter 4](04-methods.md). An `only` restriction does not by itself make a method overridable.
-
-## 3.4 `permits`
-
-`permits` appears only on a `sealed` class or interface. It names the types allowed to extend or implement that type. `only` appears only on a member audience. Each keyword in the other's position is rejected.
+`only` narrows an audience to a list of types.
 
 ```java
 public sealed class ArrayList<T> permits SubList {
-    private(this) Int32 cachedHash;
-    private Int32 size;
-    package Object elements only ArrayListItr, SubList;
-    protected Object elementAt(Int32 index) only SubList {
-        return elements;
+    Int size;
+    package only(ArrayListItr, SubList) @Nullable T[] elements;
+
+    protected only(SubList) T elementAt(Int index) {
+        return (T) elements[index];
     }
 }
 ```
 
-`cachedHash` is visible only through the syntactic receiver `this` inside `ArrayList`. `size` is visible to every instance method of `ArrayList`, so `equals` can read the other instance's `size`. `elements` is visible to `ArrayList`, `ArrayListItr`, and `SubList`, and to no other type in the package. `elementAt` is visible to `ArrayList` and `SubList`. A further subclass of `SubList` does not receive either grant. `ArrayListItr` cannot call `elementAt`.
+`only(A, B)` is written directly after `package`, `protected` or `public`. The member may then be named by code in the declaring type and in the types listed, and by no other code. A subclass of a listed type is not included.
 
-## 3.5 Files and types
+Each listed type must lie inside the audience that `only` narrows:
 
-The public type of a file, when there is one, is declared `public` and the file name matches it. A type with no modifier is private to its file. A type declared `package` is visible throughout its package. A second `public` type in the same file is rejected.
+- after `package`, a type of the same package;
+- after `protected`, a subclass of the declaring type;
+- after `public`, any type the declaring type may name.
+
+A type listed twice is rejected. `only` is not written on a type or after `private`.
+
+In the example, `elements` may be named in `ArrayList`, `ArrayListItr` and `SubList`, and in no other type of the package. `elementAt` may be named in `ArrayList` and `SubList`. A subclass of `SubList` receives neither grant.
+
+## 3.4 Audiences and overriding
+
+A method can be overridden only by a class that may name it. An overriding method has the audience of the method it overrides, or a wider one in the order `package`, `protected`, `public`. It is never narrower.
+
+A private method is not overridden. A subclass that declares a method with the same name and signature declares a new method.
+
+When the overridden method has an `only` list, the overriding method has the same audience keyword and a list drawn from that list. It does not drop `only`.
+
+A method that implements an interface method is `public`.
+
+## 3.5 Members with a fixed audience
+
+- The methods of an interface are `public`, and so are its fields, as [chapter 2](02-objects.md#26-interfaces) says. An audience written on one of them is rejected unless it is `public`.
+- The constants of an enum are `public`. Its constructors are `private`.
+- The elements of an annotation are `public`.
+- A class that declares no constructor has one with the audience of the class, as [chapter 9](09-execution.md#95-constructing-an-object) says. A written constructor with no audience is `private`.
+- `main` of the entry class is `public`.
+
+## 3.6 What an audience governs
+
+An audience governs naming. The check uses the type that declares the member and the place where the name is written. It does not depend on the class of an object at run time.
+
+- A lambda has the access of the method that contains it.
+- An instance may be used through any supertype whose members the code may name. A private class that implements a public interface is used through that interface from anywhere.
+- The mirrors of [chapter 8](08-annotations.md#89-reading-annotations) use only members declared `public`. An annotated public member of a type that is not public can be used through its mirror by code that could not name the type. That is the one case where a mirror reaches further than a name.
+
+`sealed` and `permits` restrict which types may extend or implement a type. They are not audiences, and [chapter 2](02-objects.md#24-extension) defines them.

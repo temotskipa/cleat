@@ -1,106 +1,219 @@
 # 7. Generics
 
-## 7.1 Reified type arguments
+## 7.1 Type parameters
 
-A class, interface, annotation, or method may declare type parameters. A use supplies type arguments or, where this chapter allows, infers them. The arguments are present at runtime. A cast and `instanceof` test the arguments. `List<String>` and `List<Object>` are different classes at runtime. There are no raw types. A use of a generic type that omits the arguments is rejected.
-
-Type parameters are invariant unless declared `out` or `in`.
-
-```
-type-params = "<" type-param {"," type-param} ">"
-type-param  = ["in" | "out"] {annotation} identifier ["extends" bound]
-bound       = type {"&" type}
-```
-
-`out T` may appear only in result positions, including a result type, a field type of a final field that is not written from outside, and a type argument that is itself in an `out` position. `in T` may appear only in input positions: parameter types and a type argument that is itself in an `in` position. The compiler rejects a use of the parameter on the wrong side. An invariant parameter may appear on either side.
-
-`Iterator<Int32>` is a subtype of `Iterator<Number>` because `Iterator` declares `out T`. `List<Int32>` is not a subtype of `List<Number>` when `List` is invariant. A use may leave an argument unknown, as [section 7.2](#72-use-site-wildcards) defines. Omitting the argument list is still a raw type and is rejected.
-
-A bound `T extends Number & Iterable<T>` requires the argument to be a subtype of every conjunct. A type parameter with no bound has bound `Object`.
-
-## 7.2 Use-site wildcards
-
-A type argument may be a wildcard. A wildcard is a static unknown over a concrete runtime instantiation. It is not a raw type and not a runtime class of its own.
-
-```
-type-arg = type | "?" | "? extends" type | "? super" type
-```
-
-In a type argument, `?` begins a wildcard. The conditional spelling `?:` is an expression, not a type argument. `*` is not a type argument. A star projection is rejected.
-
-`List<?>` accepts any instantiation of an invariant `List`. `List<? extends Number>` accepts an instantiation whose argument is a subtype of `Number`. `List<? super Int32>` accepts an instantiation whose argument is a supertype of `Int32`. A bare `?` means `? extends B`, where `B` is that parameter's declared bound. A wildcard whose bounds are outside that declared bound is rejected. `? super` is legal only as a type argument, directly after `?`. Elsewhere `super` is the superclass keyword. `in` and `out` are not written in a type argument.
-
-Subtyping compares arguments in order:
-
-- An invariant parameter requires the expected argument to contain the provided argument. A concrete type contains only itself. `? extends U` contains a type `S`, or `? extends S`, when `S` is a subtype of `U`. `? super U` contains a type `S`, or `? super S`, when `U` is a subtype of `S`. `?` contains every argument its bound allows.
-- An `out` parameter also accepts a provided argument that is a subtype of a concrete expected argument. Every type contained in `Iterator<? extends Int32>` is a subtype of `Iterator<Number>`, so that wildcard type is too.
-- An `in` parameter reverses the concrete direction. A provided `Consumer<Number>` is a subtype of an expected `Consumer<Int32>` when `Consumer` declares `in T`.
-
-`List<String>` is a subtype of `List<?>`, of `List<? extends String>`, and of `List<? super String>`. It is not a subtype of `List<Object>`. `List<? extends Number>` is not a subtype of `List<Number>`. `List<List<String>>` is not a subtype of `List<List<?>>`. `List<List<String>>` is a subtype of `List<? extends List<?>>`.
-
-`new` and an explicit method type argument require a concrete argument in that position. `new Box<?>()` and `Box.<?>of(1)` are rejected. A wildcard nested inside a concrete argument is legal: `new Box<List<?>>(items)`.
-
-A class literal requires concrete type arguments. `List<String>.class` has type `Class<List<String>>` and denotes that instantiation. `List<?>.class` is rejected. Where a cast or `instanceof` type contains a wildcard, the test is not a class-literal send. The runtime class must be the named class or a subclass, projected onto that class's parameters. A concrete argument matches only the same argument. A wildcard argument matches a reified argument inside its bounds. `(List<String>) items` on a `List<?>` raises `ClassCastException` unless the reified argument is `String`. `(List<?>) items` on a `List<String>` succeeds. `instanceof List<?>` is true for every `List` instantiation.
-
-Capture is the checker's internal name for a wildcard. Using an expression whose type contains a wildcard replaces each wildcard in that use by a fresh type variable with the wildcard's bounds. The variable is not a name in source. One expression produces one capture, shared by that expression's immediate use. A second expression produces a different capture.
-
-The capture is what a send sees. On `List<? extends Number>`, a method that returns the parameter returns the capture, and the result is usable as `Number`. A method that accepts the parameter requires the capture, so a `Number` argument is rejected. On `List<? super Int32>`, a method that accepts the parameter accepts an `Int32`, and a method that returns the parameter returns the capture, usable as the parameter's upper bound.
-
-A generic method gives one capture a source name for its body. `<T> void twice(List<T> items)` accepts a `List<?>`, and `T` is that argument's capture. Inside `twice`, both uses of the parameter have the same `T`. `<T> void pair(List<T> a, List<T> b)` rejects two separate `List<?>` arguments, because each argument captures on its own. The program passes those values through one type parameter when they are the same instantiation.
-
-Inference does not invent a wildcard. It captures an argument's wildcards before solving the method's type parameters. An annotation constraint is not satisfied by a bare wildcard. `Box<?>` is rejected when `Box` declares `<@Serializable T>`. `Box<? extends S>` is legal when `S` already carries that constraint.
-
-## 7.3 Instantiation and inference
-
-A method type parameter is inferred when every parameter is determined by one of these:
-
-- an argument whose type is not a bare numeric literal and which names the parameter in the corresponding parameter type, producing exactly one solution under subtyping
-- an expected type of the call that names the parameter in the result type
-- a bare numeric literal whose corresponding parameter type is a fixed numeric type, in which case the literal adopts that type when it fits
-
-If a parameter is not determined, or two applicable methods remain after [chapter 4](04-methods.md) resolution, the call is rejected. The program writes the arguments: `Box.<Int32>of(1)`. Because `Class` is `out`, `Class<Int32>` is a subtype of `Class<Number>`. For `Vector<T>.map`, the argument `Int32.class` is a solution for `U=Int32` and for `U=Number`. With no expected type those are two solutions, and `lanes.map(Int32.class)` is rejected. `lanes.<Int32>map(Int32.class)` writes `U`. An expected type `Vector<Int32>` determines `U` as `Int32`. `lanes.map(Number.class)` has the one solution `U=Number`.
-
-Explicit type arguments on a method are written immediately after the `.` of the call, before the method name. Explicit type arguments on a constructor are written on the class: `new Box<Int32>(1)`.
-
-A value-type instantiation whose arguments are all concrete is monomorphized. `Vector<Int32>` has the layout [chapter 6](06-numbers.md) gives it. A wildcard argument is not a layout. The value keeps the representation of its runtime instantiation, and the static type follows [section 7.2](#72-use-site-wildcards). A reference instantiation with concrete arguments shares the reference representation. The static rules do not change with the representation.
-
-A static call whose receiver is a type parameter is legal when the parameter's bound declares that static method. After instantiation it resolves on the class of the type argument, not on the bound. The lane conversion inside `Vector<T>.map` is the send `U.from`. That send is `Int32.from` when `U` is `Int32`, and `Number.from` when `U` is `Number`. `Number.from` returns its argument.
-
-## 7.4 `Class`
+A class, an interface and a method may declare type parameters. An enum and an annotation may not.
 
 ```java
-public final class Class<out T> {
-    public Boolean isInstance(Object value)
-    public Boolean has(Class<Annotation> annotation)
-    public String getName()
-    public @Nullable Class<?> getSuperclass()
-    public Class<?>[] getInterfaces()
-    public Boolean isValue()
-    public Boolean isInterface()
-    public Boolean isAnnotation()
+public class Box<T> { }
+public interface Ordered<in T> { }
+public static <T> T[] build(Int length, Function1<Int, T> element)
+```
+
+A use of a generic class or interface writes one type argument for each parameter, as in `Box<String>` and `new Box<String>(s)`. A use with no arguments is rejected. The one exception is the class name that qualifies a static member, as [chapter 2](02-objects.md) describes. There are no raw types.
+
+A type argument is a type: a class or interface type, an array type, or a type parameter that is in scope, each with its qualifiers. It must satisfy the bound of the parameter it is given for. In some positions a type argument may instead be a wildcard, as [section 7.4](#74-wildcards) defines.
+
+The type parameters of a class are in scope in its `extends` and `implements` clauses, its instance members and its constructors. They are not in scope in its static members. The type parameters of a method are in scope in its signature and its body. A type parameter must not have the name of another type parameter that is in scope.
+
+Type arguments are not erased. [Section 7.7](#77-type-arguments-at-run-time) says what that means at run time.
+
+## 7.2 Bounds
+
+A type parameter may declare a bound, or several bounds joined by `&`:
+
+```java
+static <T extends Numeric<T> & Ordered<T>> T largest(Iterable<T> items)
+```
+
+A type argument must be a subtype of each bound, after the argument is substituted for the parameter in the bound. At most one bound is a class. The others are interfaces.
+
+A type parameter with no bound has the bound `@Nullable Object`, so every type is an argument for it. A bound written without `@Nullable` excludes `@Nullable` arguments: `T extends Object` admits exactly the types that do not contain `null`.
+
+Inside the declaration, a value of type `T` has the members of the bounds of `T`. With no bound, those are the methods of `Object` that take a `@Nullable` receiver.
+
+A tag written before the name of a type parameter is a further requirement, as [chapter 8](08-annotations.md) defines. `class Snapshot<@Frozen T>` accepts only a type argument whose declaration carries `Frozen`, or a type parameter that makes the same requirement.
+
+## 7.3 Variance
+
+A type parameter of a class or an interface is invariant unless it is declared `out` or `in`. The type parameters of a method have no variance.
+
+- `out T` promises that the type only produces values of `T`. `T` may be the result type of a method and the type of a final field.
+- `in T` promises that the type only consumes values of `T`. `T` may be the type of a method parameter.
+- An invariant parameter may be written in either kind of position.
+
+When `T` is written as a type argument, its position is judged through the parameter that receives it. An `out` parameter keeps the direction of the position. An `in` parameter reverses it. An invariant parameter needs both directions, so only an invariant `T` may be written there. A declaration that breaks these rules is rejected. The parameters of a constructor are not restricted.
+
+For a generic type `G`, `G<A>` is a subtype of `G<B>` when this holds for each type parameter:
+
+- for an invariant parameter, `A` and `B` are the same type, with the same qualifiers, or `B` is a wildcard that contains `A` under [section 7.4](#74-wildcards);
+- for an `out` parameter, `A` is a subtype of `B`;
+- for an `in` parameter, `B` is a subtype of `A`.
+
+An instantiation is also a subtype of the supertypes its declaration names, with the arguments substituted. When `List<T>` implements `Iterable<T>`, `List<String>` is a subtype of `Iterable<String>`, and so of `Iterable<Object>`, because `Iterable` declares `out T`. `List<String>` is not a subtype of `List<Object>`.
+
+## 7.4 Wildcards
+
+A type argument may be a wildcard. A wildcard stands for a type that the program does not name.
+
+```java
+static Rational totalArea(List<? extends Shape> shapes)
+static void addUnitCircles(List<? super Circle> sink, Int count)
+static Int size(List<?> items)
+```
+
+- `? extends U` stands for some subtype of `U`.
+- `? super L` stands for some supertype of `L`.
+- `?` stands for some type that the parameter accepts.
+
+A wildcard stands only for a type that could be written as the argument: one within the parameter's bound that carries each tag the parameter requires. `U` and `L` are types within that bound.
+
+`List<? extends Shape>` is the type of every `List<X>` whose `X` is a subtype of `Shape`. A type that has a wildcard among its arguments is a wildcard type. It is a type for variables and parameters and not a class: the class of an object always has a type for each parameter.
+
+**Where a wildcard is written.** A wildcard may be written wherever a type argument is written, with four exceptions that need a type:
+
+- the arguments of the class in `new`;
+- the explicit type arguments of a call;
+- the arguments of a type that an `extends` or `implements` clause names;
+- the arguments of a class literal.
+
+`new List<?>()` is rejected. A wildcard inside one of those arguments is legal: `new List<List<?>>()` creates a list whose elements are lists of any kind.
+
+**Declared variance.** A parameter declared `out` or `in` already varies in one direction, so a bounded wildcard adds nothing to it.
+
+- For an `out` parameter, `G<? extends U>` is the same type as `G<U>`, and `? super` is rejected.
+- For an `in` parameter, `G<? super L>` is the same type as `G<L>`, and `? extends` is rejected.
+
+`?` may be written for any parameter. For an invariant or an `out` parameter with the bound `B`, `?` is the same argument as `? extends B`, so `Iterable<?>` is `Iterable<@Nullable Object>`. For an `in` parameter, `Ordered<?>` is the type of every `Ordered`, which no other spelling gives.
+
+**Subtyping.** [Section 7.3](#73-variance) compares the arguments of an invariant parameter for sameness. With wildcards the rule is containment: `G<A>` is a subtype of `G<B>` when, for each invariant parameter, `B` contains `A`.
+
+- A type contains only itself.
+- `? extends U` contains a type `S`, and the wildcard `? extends S`, when `S` is a subtype of `U`.
+- `? super L` contains a type `S`, and the wildcard `? super S`, when `L` is a subtype of `S`.
+- `?` contains every argument.
+
+`List<Circle>` is a subtype of `List<?>`, of `List<? extends Shape>` and of `List<? super Circle>`. It is not a subtype of `List<Shape>`. `List<? extends Circle>` is a subtype of `List<? extends Shape>`. `List<List<Circle>>` is not a subtype of `List<List<?>>`, because `List<?>` is there a type and contains only itself. It is a subtype of `List<? extends List<?>>`.
+
+A wildcard type has the supertypes that its declaration names, read as the result type of a member is read below. `List<? extends Shape>` is a subtype of `Iterable<Shape>`, so a `for` statement visits its elements as shapes.
+
+`List<? extends Object>` accepts no list of a `@Nullable` type, by the rule of [section 7.2](#72-bounds). `List<?>` accepts every list.
+
+**Members.** When a member is used through a wildcard type, each wildcard stands for one unknown type, called `X` here. The checker knows the bounds of `X` and nothing else: `X` is a subtype of `U` for `? extends U`, a supertype of `L` for `? super L`, and within the parameter's bound in every case. The member's signature is read with `X` in place of the type parameter.
+
+- An argument must be assignable to its parameter as read. Where the parameter's type is `X`, a subtype of `L` is assignable when the wildcard is `? super L`. Nothing is assignable when the wildcard is `? extends U` or `?`.
+- The result has the result type as read. The program has no name for `X`, so the type of the expression is written without it. `X` on its own, or as the argument of an `out` parameter, becomes its upper bound: `U`, or the parameter's bound. `X` as the argument of an invariant parameter becomes the wildcard it came from. `X` as the argument of an `in` parameter becomes `L` when it has that lower bound, and `?` otherwise.
+
+A field is read and assigned by the same reading.
+
+```java
+List<? extends Shape> shapes = circles;
+Shape first = shapes[0];              // get returns X, which is a Shape
+shapes.add(new Circle(1));            // rejected: a Circle is not known to be an X
+
+List<? super Circle> sink = shapes2;
+sink.add(new Circle(1));              // a Circle is an X, whatever X is
+@Nullable Object item = sink[0];      // X is known only to be within the bound of List's parameter
+```
+
+**Naming the unknown.** Each evaluation of an expression has an unknown of its own. For a `List<?> items`, `items[0] = items[1]` is rejected, because nothing says that the two uses of `items` have one element type. A generic method says it:
+
+```java
+static <T> void swap(List<T> items, Int i, Int j) {
+    T held = items[i];
+    items[i] = items[j];
+    items[j] = held;
+}
+
+static void swapFirstTwo(List<?> items) {
+    swap(items, 0, 1);                // T is the unknown element type of items
 }
 ```
 
-`out` is legal because none of these methods produces a `T`. `Class<String>` is a subtype of `Class<Object>`. `has` accepts `Serializable.class` when `Serializable` implements `Annotation`, because `Class<Serializable>` is then a subtype of `Class<Annotation>`.
+An argument of a wildcard type may be given for a parameter whose type has a type parameter of the method in that position, as `List<T>` has. The type parameter is then the unknown type of that argument. At run time it is the type argument of the object that was passed. Two arguments never supply the same unknown: `static <T> void copy(List<T> from, List<T> to)` rejects two arguments of type `List<?>`. The result type of such a call is written without `X`, as a member's is.
 
-For a receiver whose static type is `C` or `@Nullable C`, the result type of `getClass` is `Class<C>`. This is a property of that one method. It is not a general covariant-return rule. The runtime class object is the instance's actual class. A class literal `C.class` has type `Class<C>` and does not initialize `C`.
+## 7.5 Generic methods and inference
 
-`isInstance` tests the runtime class and, for a generic class, the reified arguments. A wildcard argument in the tested type matches any reified argument inside that wildcard's bounds. A concrete argument matches only itself. `isInstance` returns `false` for `null` unless the tested class is `Null`.
+A call of a generic method writes all of its type arguments or none of them. Written arguments follow the `.` of the call: `Array.<String>build(n, f)`. `new` always writes the type arguments of a generic class: `new Box<Int>(1)`.
 
-`getName` returns the binary name: the qualified name, with `.` between packages and the type, and with type arguments rendered in source order inside `<>`. A nested type does not occur. `getSuperclass` returns the class object of the superclass, or `null` when the receiver is `Object.class` or an interface. The result is `Class<?>` because the superclass is not a type parameter of `Class`. `getInterfaces` returns the interfaces the class declares, in source order, as `Class<?>`. `isValue`, `isInterface`, and `isAnnotation` report the kind of declaration. There is no reflective invocation. A program that has a `Class` object and no instance cannot send an arbitrary member through `Class`.
+When a call writes none, they are inferred. Each type parameter `P` of the method collects constraints from the call:
 
-## 7.5 Annotation constraints on type parameters
+- An argument of static type `A` for a parameter whose type is `P`, with or without qualifiers, makes `A` a lower bound of `P`.
+- An argument for a parameter whose type has `P` as a type argument, such as `List<P>`, is matched against that type, through the supertype of the argument's type that instantiates the same generic type. The type argument found opposite `P` fixes `P` when the position is invariant. It is a lower bound of `P` when the position is `out`, and an upper bound when it is `in`. When `P` is nested more deeply, the positions on the way combine as [section 7.3](#73-variance) combines them.
+- A parameter type that writes `? extends P` puts `P` in an `out` position, and one that writes `? super P` puts it in an `in` position. When the argument's own type has a wildcard opposite `P`, the wildcard's upper bound is what an `out` position finds, and its lower bound is what an `in` position finds. A wildcard with no bound on that side gives no constraint. In an invariant position the wildcard fixes `P` to the unknown type of that argument, as [section 7.4](#74-wildcards) describes.
+- The expected type of the call, when there is one, constrains `P` through the method's result type. It is an upper bound when the result type is `P`, and it is matched as an argument is when the result type has `P` as a type argument.
+- A lambda argument is considered after the other arguments. Its parameter types must be known by then, from the constraints so far or because the lambda writes them. A parameter type that the lambda writes fixes the type parameter in that position. The type of the lambda's result is then a lower bound for the type parameter in the result position.
+- A numeric literal argument for a parameter of type `P` is considered last. If `P` is already determined, the literal is checked against that type, which is its expected type under [chapter 6](06-numbers.md). Otherwise the literal's default class is a lower bound of `P`.
 
-A declaration annotation on a type parameter is a constraint on the instantiating class. `<@Serializable T>` requires the class of the type argument to carry `Serializable` as [chapter 8](08-annotations.md) defines retention. `<@Serializable T extends Number>` requires both the bound and the annotation. The check is performed at instantiation. A type argument that is itself a type parameter must carry the same annotation constraint.
+Each `P` is then determined by the first of these rules that applies:
 
-`value.getClass().has(Serializable.class)` is the runtime form of that test. It does not replace the static check.
+1. If the constraints fix `P`, `P` is that type. All of them must fix it to the same type.
+2. If `P` has lower bounds, `P` is the lower bound that every other lower bound is a subtype of. When no lower bound is such a type, `P` is the upper bound that the expected type gave, if it gave one.
+3. If `P` has an upper bound from an argument or from the expected type, `P` is that bound. When it has several, `P` is the one that is a subtype of all the others.
 
-## 7.6 Arrays and generics
+If no rule determines `P`, the method is not applicable to the call. It is also not applicable when the type determined for `P` is not a supertype of one of its lower bounds, not a subtype of one of its upper bounds, or not within its declared bound. The program then writes the type arguments.
 
-`T[]` is reified in `T`. `instanceof String[]` is false for an `Object[]`. Generic array creation `new T[n]` inside a generic method is legal because `T` is reified, and it is rejected when [chapter 6](06-numbers.md) rejects `new T[n]` for lack of a default element.
+An implicit conversion plays no part in determining `P`. Once `P` is determined, each argument must be assignable to its parameter under [chapter 4](04-methods.md#45-assignability), and there an argument may be converted.
 
-## 7.7 Override and erasure
+```java
+static <T> T first(List<T> items)
+static <T> List<T> pair(T a, T b)
+static <A, B> List<B> map(List<A> items, Function1<A, B> f)
 
-Signatures are compared with their type arguments, not after erasure. There is no bridge method. A class implements an interface method by declaring the same name, the same type parameters, and the same parameter and result types. Two methods that would have collided after erasure and differ in their arguments are distinct and both exist.
+first(names)                       // T is String: List<T> fixes it
+pair("a", "b")                     // T is String
+pair("a", 'b')                     // rejected: neither String nor Char is a supertype of the other
+List<Object> xs = pair("a", 'b');  // T is Object: the expected type fixes it
+map(names, (s) -> s.length())      // A is String, then B is Int from the lambda's result
 
-A superclass method and an interface method of the same signature are one method. The class implements it once.
+static <T> void addAll(List<? super T> sink, Iterable<T> items)
+
+addAll(shapes, circles)            // T is Circle: Iterable<T> gives the lower bound Circle,
+                                   // and List<Shape> against List<? super T> the upper bound Shape
+```
+
+A type is inferred with its qualifiers. Inference never produces a type that the program could not have written, apart from the unknown type of a wildcard argument.
+
+## 7.6 Static requirements
+
+When a bound of `P` is an interface that requires a static method, as [chapter 2](02-objects.md) describes, `P.name(args)` calls that method. The method that runs is the one the class of the type argument has.
+
+```java
+static <T extends Numeric<T>> T sum(Iterable<T> items) {
+    T total = T.zero();
+    for (T item : items) {
+        total += item;
+    }
+    return total;
+}
+```
+
+`sum` of an `Iterable<Rational>` runs `Rational.zero()`. No other static member is reached through a type parameter.
+
+## 7.7 Type arguments at run time
+
+Type arguments exist at run time.
+
+- Each instantiation of a generic class is a class of its own. `List<String>` and `List<Int>` have different class objects, and `getClass()` on their instances returns different results. The qualifiers of a type argument are part of it, as [chapter 8](08-annotations.md) says.
+- A cast and an `instanceof` test type arguments by the subtype rules of [section 7.3](#73-variance) and [section 7.4](#74-wildcards). `(List<String>) o` fails for a `List<Int>`. `o instanceof Iterable<Object>` is `true` for a `List<String>`. `o instanceof List<?>` is `true` for every list, and `o instanceof List<? extends Shape>` is `true` for a `List<Circle>`.
+- Inside a generic class or method, a type parameter stands for its argument. `(T) e` and `e instanceof T` test against that argument, and `new @Nullable T[n]` creates an array of it.
+- `T[]` is `Array<T>`, an invariant generic class like any other. `o instanceof String[]` is `false` for an `Object[]`. An array of some subtype of `Shape` is written `Array<? extends Shape>`.
+- A wildcard type may be a type argument, and it is then part of the class as any argument is. `List<List<?>>` and `List<List<String>>` are different classes.
+
+`getName()` of an instantiation is the name of the generic type, then `<`, the names of the type arguments separated by `, `, and `>`. The name of a type argument is the `getName()` of its class, preceded by each qualifier it carries, written as `@` and the qualifier's qualified name and ordered by that name. A `List` of nullable strings is `cleat.List<@cleat.Nullable cleat.String>`.
+
+A wildcard inside a type argument is named `?`, or `? extends ` or `? super ` followed by the name of its bound. Two spellings of one type have one name: a wildcard that [section 7.4](#74-wildcards) makes the same as a type is named as that type, and `? extends` the parameter's own bound is named `?`.
+
+How an implementation represents instantiations, with shared code or with a copy for each, is not observable.
+
+## 7.8 Signatures
+
+A signature keeps its type arguments. `void accept(List<String> items)` and `void accept(List<Int> items)` are different signatures, and one class may declare both. There is no bridge method.
+
+A class implements a method of a generic interface by declaring it with the interface's type arguments substituted. A class that implements `Ordered<Money>` declares `Int compare(Money other)`.
+
+A class implements a given generic interface with one set of type arguments. `implements Ordered<A>, Ordered<B>` is rejected.
+
+A superclass method and an interface method with the same signature are one method, and the class implements it once.
+
+A generic method is overridden only by a generic method with the same number of type parameters and the same bounds.

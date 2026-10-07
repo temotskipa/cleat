@@ -1,0 +1,65 @@
+// Counts words across several files in parallel, one task per file.
+// Exercises: structured concurrency, lambdas that capture locals, an atomic
+// counter, a lock around shared state, a failed task cancelling the others.
+package demo;
+
+class Longest {
+    final Lock lock = new Lock();
+    String word = "";
+
+    public Longest() {}
+
+    public void offer(String candidate) {
+        lock.exclusive(() -> {
+            if (candidate.length() > word.length()) {
+                word = candidate;
+            }
+        });
+    }
+
+    public String current() {
+        return lock.exclusive(() -> word);
+    }
+}
+
+public class ParallelCount {
+    public static void main(String[] args) {
+        var finished = new AtomicInt(0);
+        var longest = new Longest();
+
+        try {
+            // Every forked task has finished, or been cancelled, when call returns.
+            Map<String, Int> total = Scope.call((scope) -> {
+                var tasks = new List<Task<Map<String, Int>>>();
+                for (String path : args) {
+                    tasks.add(scope.fork(() -> {
+                        Map<String, Int> counts = WordCount.count(File.readText(path));
+                        for (String word : counts.keys()) {
+                            longest.offer(word);
+                        }
+                        Console.println("counted " + path + " ("
+                                + finished.incrementAndGet() + " of " + args.length() + ")");
+                        return counts;
+                    }));
+                }
+                var merged = new Map<String, Int>();
+                for (Task<Map<String, Int>> task : tasks) {
+                    merge(merged, task.result());
+                }
+                return merged;
+            });
+            Console.println("distinct words: " + total.size());
+            Console.println("longest word: " + longest.current());
+        } catch (IOException e) {
+            // One unreadable file fails its task; the scope cancels the rest and rethrows.
+            Console.error("cannot read input: " + e.message());
+            Process.exit(1);
+        }
+    }
+
+    static void merge(Map<String, Int> into, Map<String, Int> from) {
+        for (Entry<String, Int> entry : from.entries()) {
+            into[entry.key] = (into[entry.key] ?? 0) + entry.value;
+        }
+    }
+}
