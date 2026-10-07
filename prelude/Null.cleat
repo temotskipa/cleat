@@ -1,0 +1,8 @@
+package cleat;
+
+// The class of `null`. It stands outside the hierarchy of Object, and no expression
+// creates an instance of it.
+public value class Null {
+    private Null {
+    }
+}

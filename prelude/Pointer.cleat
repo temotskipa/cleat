@@ -1,0 +1,10 @@
+package cleat;
+
+// An address for foreign calls. Cleat does not read or write through it.
+public value class Pointer {
+    private Pointer {
+    }
+
+    @Intrinsic
+    public static Pointer zero();
+}

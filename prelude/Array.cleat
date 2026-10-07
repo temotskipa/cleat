@@ -1,0 +1,57 @@
+package cleat;
+
+// The class of T[]. The implementation supplies the storage.
+public final class Array<T> implements Iterable<T> {
+    @Intrinsic
+    private Array();
+
+    @Intrinsic
+    public Int length();
+
+    @Intrinsic
+    public T get(Int index);
+
+    @Intrinsic
+    public void set(Int index, T value);
+
+    // An array of `length` elements, each given by `element` for its index.
+    public static <T> T[] build(Int length, Function1<Int, T> element) {
+        T[] made = Array.<T>unfilled(length);
+        for (var i = 0; i < length; i++) {
+            made[i] = element.invoke(i);
+        }
+        return made;
+    }
+
+    // An array whose elements have not been given values. Only `build` uses it, and it
+    // fills every element before the array can be seen.
+    @Intrinsic
+    private static <T> T[] unfilled(Int length);
+
+    @Override
+    public Iterator<T> iterator() {
+        return new ArrayIterator<T>(this);
+    }
+}
+
+class ArrayIterator<T> implements Iterator<T> {
+    final T[] array;
+    Int index;
+
+    public ArrayIterator(T[] array) {
+        this.array = array;
+        this.index = 0;
+    }
+
+    @Override
+    public Boolean hasNext() {
+        return index < array.length();
+    }
+
+    @Override
+    public T next() {
+        T item = array[index];
+        index++;
+        return item;
+    }
+}

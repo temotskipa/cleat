@@ -1,0 +1,55 @@
+package cleat;
+
+// One Unicode scalar.
+public value class Char implements Ordered<Char> {
+    private Char {
+    }
+
+    // The scalar with that number. Raises ArithmeticException for a surrogate or a
+    // number outside 0 through 10FFFF.
+    @Intrinsic
+    public static Char from(Int code);
+
+    @Intrinsic
+    public Int code();
+
+    @Override
+    public Boolean lessThan(Char other) {
+        return code() < other.code();
+    }
+
+    @Override
+    public Boolean atMost(Char other) {
+        return code() <= other.code();
+    }
+
+    @Override
+    public Boolean greaterThan(Char other) {
+        return code() > other.code();
+    }
+
+    @Override
+    public Boolean atLeast(Char other) {
+        return code() >= other.code();
+    }
+
+    @Override
+    public Int compare(Char other) {
+        return code().compare(other.code());
+    }
+
+    @Intrinsic
+    public Boolean isLetter();
+
+    @Intrinsic
+    public Boolean isDigit();
+
+    @Intrinsic
+    public Boolean isWhitespace();
+
+    @Intrinsic
+    public Char toLowerCase();
+
+    @Intrinsic
+    public Char toUpperCase();
+}

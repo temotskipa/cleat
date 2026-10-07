@@ -1,0 +1,137 @@
+package cleat;
+
+// A sequence of Unicode scalars.
+public value class String implements Ordered<String>, Iterable<Char> {
+    private String {
+    }
+
+    @Intrinsic
+    public Int length();
+
+    @Intrinsic
+    public Char get(Int index);
+
+    @Intrinsic
+    public String substring(Int begin, Int end);
+
+    @Intrinsic
+    public String plus(@Nullable Object other);
+
+    @Intrinsic
+    public Int indexOf(Char c);
+
+    @Intrinsic
+    public Int indexOf(String s);
+
+    @Intrinsic
+    public Boolean startsWith(String s);
+
+    @Intrinsic
+    public Boolean endsWith(String s);
+
+    public Boolean isEmpty() {
+        return length() == 0;
+    }
+
+    public Boolean contains(String s) {
+        return indexOf(s) >= 0;
+    }
+
+    @Intrinsic
+    public UInt8[] toUtf8();
+
+    @Intrinsic
+    public static String fromUtf8(UInt8[] bytes);
+
+    // The first `count` scalars of `chars`.
+    @Intrinsic
+    public static String fromChars(Char[] chars, Int count);
+
+    @Intrinsic
+    public String toLowerCase();
+
+    @Intrinsic
+    public String toUpperCase();
+
+    // The string without the whitespace at either end.
+    public String trim() {
+        var begin = 0;
+        var end = length();
+        while (begin < end && this[begin].isWhitespace()) {
+            begin++;
+        }
+        while (end > begin && this[end - 1].isWhitespace()) {
+            end--;
+        }
+        return substring(begin, end);
+    }
+
+    // The pieces between occurrences of `separator`. An empty separator is rejected.
+    public List<String> split(String separator) {
+        if (separator.isEmpty()) {
+            throw new IllegalArgumentException("the separator is empty");
+        }
+        var pieces = new List<String>();
+        var rest = this;
+        while (true) {
+            var at = rest.indexOf(separator);
+            if (at < 0) {
+                pieces.add(rest);
+                return pieces;
+            }
+            pieces.add(rest.substring(0, at));
+            rest = rest.substring(at + separator.length(), rest.length());
+        }
+    }
+
+    @Override
+    @Intrinsic
+    public Int compare(String other);
+
+    @Override
+    public Boolean lessThan(String other) {
+        return compare(other) < 0;
+    }
+
+    @Override
+    public Boolean atMost(String other) {
+        return compare(other) <= 0;
+    }
+
+    @Override
+    public Boolean greaterThan(String other) {
+        return compare(other) > 0;
+    }
+
+    @Override
+    public Boolean atLeast(String other) {
+        return compare(other) >= 0;
+    }
+
+    @Override
+    public Iterator<Char> iterator() {
+        return new StringIterator(this);
+    }
+}
+
+class StringIterator implements Iterator<Char> {
+    final String text;
+    Int index;
+
+    public StringIterator(String text) {
+        this.text = text;
+        this.index = 0;
+    }
+
+    @Override
+    public Boolean hasNext() {
+        return index < text.length();
+    }
+
+    @Override
+    public Char next() {
+        Char c = text[index];
+        index++;
+        return c;
+    }
+}

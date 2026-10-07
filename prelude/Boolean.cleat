@@ -1,0 +1,18 @@
+package cleat;
+
+public value class Boolean {
+    private Boolean {
+    }
+
+    @Intrinsic
+    public Boolean and(Boolean other);
+
+    @Intrinsic
+    public Boolean or(Boolean other);
+
+    @Intrinsic
+    public Boolean xor(Boolean other);
+
+    @Intrinsic
+    public Boolean not();
+}

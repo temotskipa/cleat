@@ -1,0 +1,22 @@
+package cleat;
+
+// The root class. Every class other than Null is a subclass of it.
+public open class Object {
+    public Object() {
+    }
+
+    @Intrinsic
+    public open Boolean equals(@Nullable Object this, @Nullable Object other);
+
+    @Intrinsic
+    public open Int hashCode(@Nullable Object this);
+
+    @Intrinsic
+    public open String toString(@Nullable Object this);
+
+    @Intrinsic
+    public final Boolean identical(@Nullable Object this, @Nullable Object other);
+
+    @Intrinsic
+    public final Class getClass();
+}

@@ -1,0 +1,25 @@
+package cleat;
+
+// The superclass of every enum. A program declares an enum with `enum`.
+public abstract class Enum {
+    final String constantName;
+    final Int position;
+
+    protected Enum(String name, Int ordinal) {
+        this.constantName = name;
+        this.position = ordinal;
+    }
+
+    public final String name() {
+        return constantName;
+    }
+
+    public final Int ordinal() {
+        return position;
+    }
+
+    @Override
+    public open String toString() {
+        return constantName;
+    }
+}

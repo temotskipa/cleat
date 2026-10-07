@@ -1,0 +1,63 @@
+package cleat;
+
+public open class Throwable {
+    final String text;
+    final @Nullable Throwable reason;
+    @Nullable Throwable[] held;
+    Int heldCount;
+
+    public Throwable() {
+        this.text = "";
+        this.reason = null;
+        this.held = new @Nullable Throwable[0];
+        this.heldCount = 0;
+    }
+
+    public Throwable(String message) {
+        this.text = message;
+        this.reason = null;
+        this.held = new @Nullable Throwable[0];
+        this.heldCount = 0;
+    }
+
+    public Throwable(String message, Throwable cause) {
+        this.text = message;
+        this.reason = cause;
+        this.held = new @Nullable Throwable[0];
+        this.heldCount = 0;
+    }
+
+    public final String message() {
+        return text;
+    }
+
+    public final @Nullable Throwable cause() {
+        return reason;
+    }
+
+    public final Throwable[] suppressed() {
+        return Array.<Throwable>build(heldCount, (i) -> (Throwable) held[i]);
+    }
+
+    // Records `other` as suppressed on this exception. `try` and `using` call it.
+    package final void suppress(Throwable other) {
+        if (heldCount == held.length()) {
+            @Nullable Throwable[] larger = new @Nullable Throwable[heldCount * 2 + 2];
+            for (var i = 0; i < heldCount; i++) {
+                larger[i] = held[i];
+            }
+            held = larger;
+        }
+        held[heldCount] = other;
+        heldCount++;
+    }
+
+    @Override
+    public open String toString() {
+        String name = getClass().getName();
+        if (text.isEmpty()) {
+            return name;
+        }
+        return name + ": " + text;
+    }
+}

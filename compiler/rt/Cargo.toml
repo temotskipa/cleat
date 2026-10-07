@@ -5,7 +5,10 @@ edition = "2021"
 
 [lib]
 path = "src/lib.rs"
-crate-type = ["rlib", "staticlib"]
+crate-type = ["rlib"]
 
 [dependencies]
-mmtk = { path = "../vendor/mmtk", features = ["object_pinning"] }
+num-bigint = "0.4"
+num-rational = "0.4"
+num-traits = "0.2"
+num-integer = "0.1"

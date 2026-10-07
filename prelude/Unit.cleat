@@ -1,0 +1,5 @@
+package cleat;
+
+// The result of a method that returns nothing. It has one value.
+public value class Unit {
+}
