@@ -48,6 +48,7 @@ pub fn build(mut units: Vec<ast::Unit>) -> Program {
         packages: HashSet::new(),
         wk: WellKnown::default(),
         diags: Vec::new(),
+        warnings: Vec::new(),
         captures: Vec::new(),
         supertype_cache: HashMap::new(),
         headers_done: false,
@@ -1020,11 +1021,12 @@ fn members(p: &mut Program) {
                         p.error(unit, f.pos, "an annotation declares its elements in its header");
                     }
                     let only = only_list(p, cx, mods, id);
+                    let value_field = p.class(id).is_value() && !is_static;
                     p.classes[id as usize].fields.push(Field {
                         name: f.name.clone(),
                         ty,
                         is_static,
-                        is_final: mods.is_final || is_iface || (p.class(id).is_value() && !is_static),
+                        is_final: mods.is_final || is_iface || value_field,
                         aud,
                         only,
                         init: f.init.clone(),
@@ -1040,7 +1042,10 @@ fn members(p: &mut Program) {
                     let mods = &md.mods;
                     let index = p.class(id).methods.len() as u32;
                     let mref = MethodRef { class: id, index };
-                    let mut cx = if mods.is_static { cx_static.clone() } else { cx_inst.clone() };
+                    // A static requirement of an interface may use the interface's type
+                    // parameters, which stand for the implementer's arguments.
+                    let requirement = is_iface && mods.is_static && md.body.is_none();
+                    let mut cx = if mods.is_static && !requirement { cx_static.clone() } else { cx_inst.clone() };
                     let mut seen = HashSet::new();
                     for (i, tp) in md.type_params.iter().enumerate() {
                         if !seen.insert(tp.name.clone()) || cx.tvars.iter().any(|(n, _)| *n == tp.name) {
@@ -1276,8 +1281,9 @@ fn members(p: &mut Program) {
                     })
                     .collect();
                 let c = &mut p.classes[id as usize];
-                match c.ctors.iter_mut().find(|k| k.of_value) {
-                    Some(k) => k.params = params,
+                let compact = c.ctors.iter().position(|k| k.of_value);
+                match compact {
+                    Some(k) => c.ctors[k].params = params,
                     None if c.ctors.is_empty() => c.ctors.push(Ctor {
                         params,
                         // An annotation is constructed only by its uses.

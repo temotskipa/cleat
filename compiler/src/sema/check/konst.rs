@@ -577,6 +577,23 @@ pub fn evaluate_annotations(p: &mut Program) {
     let n = p.classes.len() as ClassId;
     let wk = p.wk.clone();
 
+    // Element defaults first: every later use of an annotation may need them.
+    for id in 0..n {
+        if !p.class(id).is_annotation() {
+            continue;
+        }
+        for ei in 0..p.class(id).elements.len() {
+            let e = p.class(id).elements[ei].clone();
+            if let Some(src) = &e.default_src {
+                let mut ck = Checker::new(p, id, true);
+                ck.push_frame(None, None);
+                let v = ck.eval_ann_value(&e.ty, src, e.pos);
+                drop(ck);
+                p.classes[id as usize].elements[ei].default = v;
+            }
+        }
+    }
+
     // Annotation declarations first: their targets govern every later use.
     for round in 0..2 {
         for id in 0..n {
@@ -629,19 +646,6 @@ pub fn evaluate_annotations(p: &mut Program) {
                 }
             }
             p.classes[id as usize].anns = anns;
-            // Element defaults.
-            if round == 0 {
-                for ei in 0..p.class(id).elements.len() {
-                    let e = p.class(id).elements[ei].clone();
-                    if let Some(src) = &e.default_src {
-                        let mut ck = Checker::new(p, id, true);
-                        ck.push_frame(None, None);
-                        let v = ck.eval_ann_value(&e.ty, src, e.pos);
-                        drop(ck);
-                        p.classes[id as usize].elements[ei].default = v;
-                    }
-                }
-            }
         }
     }
     // A refinement must not sit below itself.

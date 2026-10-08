@@ -1,0 +1,67 @@
+package cleat;
+
+// Starts tasks and waits for all of them (section 13.5).
+public final class Scope {
+    final Thread owner;
+    final List<Task<?>> tasks;
+    final AtomicInt cancelled;
+    Boolean open;
+
+    Scope() {
+        this.owner = Thread.current();
+        this.tasks = new List<Task<?>>();
+        this.cancelled = new AtomicInt(0);
+        this.open = true;
+    }
+
+    public static <T> T call(Function1<Scope, T> body) {
+        Scope scope = new Scope();
+        @Nullable Throwable failure = null;
+        @Nullable Object result = null;
+        try {
+            result = body.invoke(scope);
+        } catch (Throwable e) {
+            failure = e;
+            scope.cancel();
+        }
+        scope.open = false;
+        for (Task<?> task : scope.tasks) {
+            task.await();
+        }
+        // The exception of the first failed task, when the body raised none.
+        for (Task<?> task : scope.tasks) {
+            @Nullable Throwable raised = task.failure();
+            if (raised == null || raised instanceof CancellationException) {
+                continue;
+            }
+            if (failure == null) {
+                failure = raised;
+            } else if (!failure.identical(raised)) {
+                failure.suppress(raised);
+            }
+        }
+        if (failure != null) {
+            throw failure;
+        }
+        return (T) result;
+    }
+
+    @Discardable
+    public <T> Task<T> fork(Function0<T> body) {
+        if (!open || !owner.identical(Thread.current())) {
+            throw new IllegalStateException("only the thread that runs the call of the scope may fork, while its body runs");
+        }
+        Task<T> task = new Task<T>(this, body);
+        tasks.add(task);
+        task.start();
+        return task;
+    }
+
+    public void cancel() {
+        cancelled.set(1);
+    }
+
+    public Boolean isCancelled() {
+        return cancelled.get() != 0;
+    }
+}

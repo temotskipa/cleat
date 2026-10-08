@@ -21,8 +21,8 @@ A field has one audience for reading and assigning. [Chapter 2](02-objects.md#28
 
 ```java
 public class Account {
-    String owner;                        // private
-    package Rational balance;
+    String owner = "";                   // private
+    package Rational balance = 0;
     protected void audit() { }
     public Rational balance() { return balance; }
 }
@@ -50,8 +50,8 @@ A declaration is rejected when its own audience may see it and may not name a ty
 
 ```java
 public sealed class ArrayList<T> permits SubList {
-    Int size;
-    package only(ArrayListItr, SubList) @Nullable T[] elements;
+    Int size = 0;
+    package only(ArrayListItr, SubList) @Nullable T[] elements = new @Nullable T[8];
 
     protected only(SubList) T elementAt(Int index) {
         return (T) elements[index];

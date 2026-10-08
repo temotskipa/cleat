@@ -1,0 +1,19 @@
+package cleat;
+
+// A mirror of one parameter of a method that carries an annotation (section 8.9).
+public value class Parameter {
+    Class owner;
+    Int method;
+    Int index;
+
+    package Parameter {
+    }
+
+    public String getName() {
+        return owner.parameterName(method, index);
+    }
+
+    public <A extends Annotation> @Nullable A getAnnotation() {
+        return owner.<A>parameterAnnotation(method, index);
+    }
+}

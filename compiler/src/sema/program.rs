@@ -311,6 +311,8 @@ pub struct Program {
     pub packages: HashSet<String>,
     pub wk: WellKnown,
     pub diags: Vec<Diagnostic>,
+    /// Reports that do not reject the program: uses of deprecated declarations.
+    pub warnings: Vec<Diagnostic>,
     /// The bounds of captured wildcards, by capture number.
     pub captures: Vec<VarInfo>,
     pub supertype_cache: HashMap<(ClassId, ClassId), Option<Type>>,

@@ -1,0 +1,31 @@
+package cleat;
+
+// The standard streams of the host.
+public class Console {
+    private Console() {
+    }
+
+    public static void print(@Nullable Object value) {
+        write(1, value.toString());
+    }
+
+    public static void println(@Nullable Object value) {
+        write(1, value.toString() + "\n");
+    }
+
+    public static void println() {
+        write(1, "\n");
+    }
+
+    // Writes a line to the error stream.
+    public static void error(@Nullable Object value) {
+        write(2, value.toString() + "\n");
+    }
+
+    // The next line of input without its line end, or null at the end of input.
+    @Intrinsic
+    public static @Nullable String readLine();
+
+    @Intrinsic
+    static void write(Int stream, String text);
+}

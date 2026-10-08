@@ -1,0 +1,62 @@
+package cleat;
+
+// One task of a scope, and its result (section 13.5).
+public final class Task<out T> {
+    final Scope scope;
+    final Function0<T> body;
+    final Atomic<@Nullable Object> value;
+    final Atomic<@Nullable Throwable> raised;
+    @Nullable Thread thread;
+
+    package Task(Scope scope, Function0<T> body) {
+        this.scope = scope;
+        this.body = body;
+        this.value = new Atomic<@Nullable Object>(null);
+        this.raised = new Atomic<@Nullable Throwable>(null);
+        this.thread = null;
+        super();
+        this.thread = new Thread(() -> run(), scope);
+    }
+
+    public T result() {
+        Thread.checkCancelled();
+        Thread thread = (Thread) this.thread;
+        while (!thread.finished(20)) {
+            Thread.checkCancelled();
+        }
+        @Nullable Throwable failure = raised.get();
+        if (failure != null) {
+            throw failure;
+        }
+        return (T) value.get();
+    }
+
+    public Boolean isDone() {
+        @Nullable Thread thread = this.thread;
+        return thread != null && !thread.isAlive();
+    }
+
+    package void start() {
+        ((Thread) thread).launch();
+    }
+
+    // Waits for the task, whatever is cancelled.
+    package void await() {
+        ((Thread) thread).await();
+    }
+
+    package @Nullable Throwable failure() {
+        return raised.get();
+    }
+
+    void run() {
+        try {
+            value.set(body.invoke());
+        } catch (Throwable e) {
+            raised.set(e);
+            if (!(e instanceof CancellationException)) {
+                scope.cancel();
+            }
+        }
+    }
+}

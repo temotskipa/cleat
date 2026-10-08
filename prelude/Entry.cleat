@@ -1,0 +1,7 @@
+package cleat;
+
+// One key of a map with its value.
+public value class Entry<K, V> {
+    public K key;
+    public V value;
+}

@@ -1,0 +1,28 @@
+package cleat;
+
+// An Int that changes in one step (section 13.4).
+public final class AtomicInt {
+    Int value;
+
+    public AtomicInt(Int initial) {
+        this.value = initial;
+    }
+
+    @Intrinsic
+    public Int get();
+
+    @Intrinsic
+    public void set(Int value);
+
+    @Intrinsic
+    public Boolean compareAndSet(Int expected, Int update);
+
+    @Discardable
+    @Intrinsic
+    public Int addAndGet(Int delta);
+
+    @Discardable
+    public Int incrementAndGet() {
+        return addAndGet(1);
+    }
+}

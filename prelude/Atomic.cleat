@@ -1,0 +1,19 @@
+package cleat;
+
+// A cell that changes in one step (section 13.4). It compares with `identical`.
+public final class Atomic<T> {
+    T value;
+
+    public Atomic(T initial) {
+        this.value = initial;
+    }
+
+    @Intrinsic
+    public T get();
+
+    @Intrinsic
+    public void set(T value);
+
+    @Intrinsic
+    public Boolean compareAndSet(T expected, T update);
+}

@@ -1,0 +1,118 @@
+package cleat;
+
+// A thread of the program (section 13.1).
+public final class Thread {
+    // The thread of the host. The implementation creates it and frees it with the object.
+    final Pointer host;
+    final @Nullable Function0<Unit> body;
+    // The scope whose cancellation reaches this thread, for a task.
+    final @Nullable Scope scope;
+    @Nullable Throwable failure;
+
+    package Thread(@Nullable Function0<Unit> body, @Nullable Scope scope) {
+        this.host = create();
+        this.body = body;
+        this.scope = scope;
+        this.failure = null;
+    }
+
+    @Discardable
+    public static Thread start(Function0<Unit> body) {
+        Thread thread = new Thread(body, null);
+        thread.launch();
+        return thread;
+    }
+
+    public static Thread current() {
+        @Nullable Thread thread = running();
+        if (thread == null) {
+            // The thread that runs `main`.
+            Thread adopted = new Thread(null, null);
+            adopt(adopted);
+            return adopted;
+        }
+        return thread;
+    }
+
+    public static void sleep(Int milliseconds) {
+        if (milliseconds < 0) {
+            throw new IllegalArgumentException("a sleep of " + milliseconds + " milliseconds");
+        }
+        checkCancelled();
+        var left = milliseconds;
+        while (left > 0) {
+            var step = left < 20 ? left : 20;
+            pause(step);
+            left -= step;
+            checkCancelled();
+        }
+    }
+
+    // Raises CancellationException on a task whose scope is cancelled.
+    public static void checkCancelled() {
+        @Nullable Scope scope = current().scope;
+        if (scope != null && scope.isCancelled()) {
+            throw new CancellationException();
+        }
+    }
+
+    public void join() {
+        if (identical(current())) {
+            throw new IllegalStateException("a thread does not join itself");
+        }
+        checkCancelled();
+        while (!finished(20)) {
+            checkCancelled();
+        }
+    }
+
+    // Waits for the body to complete, whatever is cancelled.
+    package void await() {
+        while (!finished(1000)) {
+        }
+    }
+
+    @Intrinsic
+    public Boolean isAlive();
+
+    public @Nullable Throwable uncaught() {
+        if (isAlive()) {
+            return null;
+        }
+        return failure;
+    }
+
+    // The whole life of a started thread. The implementation calls it on the new thread.
+    void run() {
+        @Nullable Function0<Unit> body = this.body;
+        if (body == null) {
+            return;
+        }
+        try {
+            body.invoke();
+        } catch (Throwable e) {
+            failure = e;
+            Console.error(e);
+        }
+    }
+
+    @Intrinsic
+    static Pointer create();
+
+    // Starts the host thread, which calls `run`.
+    @Intrinsic
+    package void launch();
+
+    // Waits up to that long for the body to complete, and says whether it has.
+    @Intrinsic
+    package Boolean finished(Int milliseconds);
+
+    @Intrinsic
+    static @Nullable Thread running();
+
+    @Intrinsic
+    static void adopt(Thread thread);
+
+    @Intrinsic
+    static void pause(Int milliseconds);
+}

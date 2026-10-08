@@ -1,0 +1,43 @@
+package cleat;
+
+// Something the holders of one lock wait for (section 13.3).
+public final class Condition {
+    final Lock lock;
+    // The condition of the host, created and freed as the host lock is.
+    final Pointer host;
+
+    package Condition(Lock lock) {
+        this.lock = lock;
+        this.host = create();
+    }
+
+    @Intrinsic
+    static Pointer create();
+
+    // May return without a signal.
+    public void await() {
+        mustHold();
+        Thread.checkCancelled();
+        lock.park(host, 20);
+        Thread.checkCancelled();
+    }
+
+    public void signal() {
+        mustHold();
+        wake(false);
+    }
+
+    public void signalAll() {
+        mustHold();
+        wake(true);
+    }
+
+    void mustHold() {
+        if (!lock.held()) {
+            throw new IllegalStateException("the running thread does not hold the lock of the condition");
+        }
+    }
+
+    @Intrinsic
+    void wake(Boolean all);
+}

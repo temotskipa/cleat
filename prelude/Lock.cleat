@@ -1,0 +1,42 @@
+package cleat;
+
+// A lock that one thread holds at a time (section 13.3).
+public final class Lock {
+    // The lock of the host. The implementation creates it and frees it with the object.
+    final Pointer host;
+
+    public Lock() {
+        this.host = create();
+    }
+
+    @Intrinsic
+    static Pointer create();
+
+    @Intrinsic
+    public void lock();
+
+    @Intrinsic
+    public void unlock();
+
+    public <T> T exclusive(Function0<T> body) {
+        lock();
+        try {
+            return body.invoke();
+        } finally {
+            unlock();
+        }
+    }
+
+    public Condition newCondition() {
+        return new Condition(this);
+    }
+
+    // Whether the running thread holds the lock.
+    @Intrinsic
+    package Boolean held();
+
+    // Releases the lock completely, waits for a signal on `condition` or for the time
+    // to pass, and holds the lock again as before.
+    @Intrinsic
+    package void park(Pointer condition, Int milliseconds);
+}

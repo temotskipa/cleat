@@ -1,0 +1,118 @@
+package cleat;
+
+// A hash map. It visits its keys in the order they were first set.
+public class Map<K, V> {
+    @Nullable K[] keyAt;
+    @Nullable V[] valueAt;
+    // For each slot, one more than the position of its entry, or zero.
+    Int[] slots;
+    Int count;
+
+    public Map() {
+        this.keyAt = new @Nullable K[8];
+        this.valueAt = new @Nullable V[8];
+        this.slots = new Int[16];
+        this.count = 0;
+    }
+
+    public Int size() {
+        return count;
+    }
+
+    public Boolean isEmpty() {
+        return count == 0;
+    }
+
+    // map[key]: the value set for the key, or null when there is none.
+    public @Nullable V get(K key) {
+        Int at = find(key);
+        if (at < 0) {
+            return null;
+        }
+        return valueAt[at];
+    }
+
+    public Boolean containsKey(K key) {
+        return find(key) >= 0;
+    }
+
+    // map[key] = value
+    public void set(K key, V value) {
+        Int at = find(key);
+        if (at >= 0) {
+            valueAt[at] = value;
+            return;
+        }
+        if (count == keyAt.length()) {
+            grow();
+        }
+        keyAt[count] = key;
+        valueAt[count] = value;
+        place(key, count);
+        count++;
+    }
+
+    public List<K> keys() {
+        var all = new List<K>();
+        for (var i = 0; i < count; i++) {
+            all.add((K) keyAt[i]);
+        }
+        return all;
+    }
+
+    public List<V> values() {
+        var all = new List<V>();
+        for (var i = 0; i < count; i++) {
+            all.add((V) valueAt[i]);
+        }
+        return all;
+    }
+
+    public List<Entry<K, V>> entries() {
+        var all = new List<Entry<K, V>>();
+        for (var i = 0; i < count; i++) {
+            all.add(new Entry<K, V>((K) keyAt[i], (V) valueAt[i]));
+        }
+        return all;
+    }
+
+    // The position of the entry of the key, or -1.
+    Int find(K key) {
+        Int mask = slots.length() - 1;
+        Int at = key.hashCode() & mask;
+        while (true) {
+            Int slot = slots[at];
+            if (slot == 0) {
+                return -1;
+            }
+            if (key == keyAt[slot - 1]) {
+                return slot - 1;
+            }
+            at = (at + 1) & mask;
+        }
+    }
+
+    void place(K key, Int position) {
+        Int mask = slots.length() - 1;
+        Int at = key.hashCode() & mask;
+        while (slots[at] != 0) {
+            at = (at + 1) & mask;
+        }
+        slots[at] = position + 1;
+    }
+
+    void grow() {
+        @Nullable K[] keys = new @Nullable K[count * 2];
+        @Nullable V[] values = new @Nullable V[count * 2];
+        for (var i = 0; i < count; i++) {
+            keys[i] = keyAt[i];
+            values[i] = valueAt[i];
+        }
+        keyAt = keys;
+        valueAt = values;
+        slots = new Int[count * 4];
+        for (var i = 0; i < count; i++) {
+            place((K) keyAt[i], i);
+        }
+    }
+}

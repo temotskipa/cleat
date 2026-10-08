@@ -261,7 +261,9 @@ The type test is the test of a cast. No implicit conversion applies, so an `Int3
 ```java
 @Target(Site.METHOD)
 public annotation Check(String name);
+```
 
+```java
 static void runChecks(Object suite) {
     for (Method method : suite.getClass().<Check>getAnnotatedMethods()) {
         Check check = (Check) method.<Check>getAnnotation();

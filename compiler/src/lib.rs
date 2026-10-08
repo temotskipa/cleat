@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 pub mod ast;
 pub mod lex;
 pub mod parse;
+pub mod sema;
 
 #[derive(Clone, Debug)]
 pub struct Diagnostic {
@@ -40,8 +41,73 @@ pub fn parse_project(root: &Path) -> Result<Vec<ast::Unit>, Vec<Diagnostic>> {
 
 /// Typechecks every `.cleat` file under `root` as one program.
 pub fn check(root: &Path) -> Result<(), Vec<Diagnostic>> {
-    parse_project(root)?;
-    Ok(())
+    analyze(&[root]).map(|_| ())
+}
+
+/// Parses and checks the `.cleat` files under every root as one program, with the
+/// prelude. A file of the package `cleat` among the roots stands in place of the
+/// prelude's file of the same name.
+pub fn analyze(roots: &[&Path]) -> Result<sema::program::Program, Vec<Diagnostic>> {
+    let mut units = Vec::new();
+    let mut errors = Vec::new();
+    for root in roots {
+        match parse_project(root) {
+            Ok(u) => units.extend(u),
+            Err(e) => errors.extend(e),
+        }
+    }
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+    analyze_units(units)
+}
+
+/// Checks source given as text, each with the name of its file, as one program.
+pub fn analyze_sources(sources: &[(PathBuf, String)]) -> Result<sema::program::Program, Vec<Diagnostic>> {
+    let mut units = Vec::new();
+    let mut errors = Vec::new();
+    for (path, text) in sources {
+        match parse::parse_unit(path, text) {
+            Ok(u) => units.push(u),
+            Err(e) => errors.push(e),
+        }
+    }
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+    analyze_units(units)
+}
+
+fn analyze_units(mut units: Vec<ast::Unit>) -> Result<sema::program::Program, Vec<Diagnostic>> {
+    static PRELUDE: std::sync::OnceLock<Result<Vec<ast::Unit>, Vec<Diagnostic>>> = std::sync::OnceLock::new();
+    let prelude = PRELUDE.get_or_init(|| parse_project(&prelude_dir())).clone()?;
+    let same = |a: &Path, b: &Path| match (a.canonicalize(), b.canonicalize()) {
+        (Ok(x), Ok(y)) => x == y,
+        _ => false,
+    };
+    for u in prelude {
+        let replaced = units.iter().any(|r| {
+            same(&r.file, &u.file) || (r.package == ["cleat"] && r.file.file_name() == u.file.file_name())
+        });
+        if !replaced {
+            units.push(u);
+        }
+    }
+    let mut p = sema::analyze(units);
+    if p.diags.is_empty() {
+        Ok(p)
+    } else {
+        Err(std::mem::take(&mut p.diags))
+    }
+}
+
+/// Where the prelude's source is: `CLEAT_PRELUDE`, or the `prelude` directory beside
+/// the compiler's own source.
+pub fn prelude_dir() -> PathBuf {
+    match std::env::var_os("CLEAT_PRELUDE") {
+        Some(p) => PathBuf::from(p),
+        None => Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("prelude"),
+    }
 }
 
 /// Typechecks `root` and writes a native executable for the entry class `entry`.

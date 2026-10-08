@@ -1,0 +1,30 @@
+package cleat;
+
+// A mirror of one field that carries an annotation (section 8.9).
+public value class Field {
+    Class owner;
+    Int index;
+
+    package Field {
+    }
+
+    public String getName() {
+        return owner.fieldName(index);
+    }
+
+    public Boolean isStatic() {
+        return owner.fieldIsStatic(index);
+    }
+
+    public <A extends Annotation> @Nullable A getAnnotation() {
+        return owner.<A>fieldAnnotation(index);
+    }
+
+    public @Nullable Object get(@Nullable Object target) {
+        return owner.fieldGet(index, target);
+    }
+
+    public void set(@Nullable Object target, @Nullable Object value) {
+        owner.fieldSet(index, target, value);
+    }
+}

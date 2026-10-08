@@ -1,0 +1,78 @@
+package cleat;
+
+// The class object of a type (section 2.7), and the way to its annotations (section 8.9).
+public final class Class {
+    @Intrinsic
+    private Class();
+
+    @Intrinsic
+    public String getName();
+
+    @Intrinsic
+    public @Nullable Class getSuperclass();
+
+    @Intrinsic
+    public Class[] getInterfaces();
+
+    @Intrinsic
+    public <A extends Annotation> @Nullable A getAnnotation();
+
+    public <A extends Annotation> Field[] getAnnotatedFields() {
+        Int[] found = this.<A>annotatedFields();
+        return Array.<Field>build(found.length(), (i) -> new Field(this, found[i]));
+    }
+
+    public <A extends Annotation> Method[] getAnnotatedMethods() {
+        Int[] found = this.<A>annotatedMethods();
+        return Array.<Method>build(found.length(), (i) -> new Method(this, found[i]));
+    }
+
+    @Override
+    public String toString() {
+        return getName();
+    }
+
+    // What the mirrors are made of. A member is named by its position in the type.
+
+    @Intrinsic
+    <A extends Annotation> Int[] annotatedFields();
+
+    @Intrinsic
+    <A extends Annotation> Int[] annotatedMethods();
+
+    @Intrinsic
+    package String fieldName(Int field);
+
+    @Intrinsic
+    package Boolean fieldIsStatic(Int field);
+
+    @Intrinsic
+    package <A extends Annotation> @Nullable A fieldAnnotation(Int field);
+
+    @Intrinsic
+    package @Nullable Object fieldGet(Int field, @Nullable Object target);
+
+    @Intrinsic
+    package void fieldSet(Int field, @Nullable Object target, @Nullable Object value);
+
+    @Intrinsic
+    package String methodName(Int method);
+
+    @Intrinsic
+    package Boolean methodIsStatic(Int method);
+
+    @Intrinsic
+    package Int parameterCount(Int method);
+
+    @Intrinsic
+    package String parameterName(Int method, Int parameter);
+
+    @Intrinsic
+    package <A extends Annotation> @Nullable A methodAnnotation(Int method);
+
+    @Intrinsic
+    package <A extends Annotation> @Nullable A parameterAnnotation(Int method, Int parameter);
+
+    @Intrinsic
+    package @Nullable Object methodInvoke(Int method, @Nullable Object target, @Nullable Object[] arguments);
+}

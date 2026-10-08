@@ -1,0 +1,77 @@
+package cleat;
+
+// A text file. A failed operation raises IOException.
+public class File {
+    final List<String> lines;
+    Int position;
+    Boolean closed;
+
+    File(List<String> lines) {
+        this.lines = lines;
+        this.position = 0;
+        this.closed = false;
+    }
+
+    // The whole file as text. The file holds UTF-8.
+    public static String readText(String path) {
+        UInt8[] bytes = readBytes(path);
+        try {
+            return String.fromUtf8(bytes);
+        } catch (IllegalArgumentException e) {
+            throw new IOException(path + " is not UTF-8 text", e);
+        }
+    }
+
+    // The lines of the file, without their line ends.
+    public static List<String> readLines(String path) {
+        String text = readText(path);
+        var lines = new List<String>();
+        var start = 0;
+        for (var i = 0; i < text.length(); i++) {
+            if (text[i] == '\n') {
+                var end = i;
+                if (end > start && text[end - 1] == '\r') {
+                    end--;
+                }
+                lines.add(text.substring(start, end));
+                start = i + 1;
+            }
+        }
+        if (start < text.length()) {
+            lines.add(text.substring(start, text.length()));
+        }
+        return lines;
+    }
+
+    public static void writeText(String path, String text) {
+        writeBytes(path, text.toUtf8());
+    }
+
+    // Opens the file for reading line by line.
+    public static File open(String path) {
+        return new File(readLines(path));
+    }
+
+    // The next line, or null at the end of the file.
+    public @Nullable String readLine() {
+        if (closed) {
+            throw new IllegalStateException("the file is closed");
+        }
+        if (position == lines.size()) {
+            return null;
+        }
+        String line = lines[position];
+        position++;
+        return line;
+    }
+
+    public void close() {
+        closed = true;
+    }
+
+    @Intrinsic
+    static UInt8[] readBytes(String path);
+
+    @Intrinsic
+    static void writeBytes(String path, UInt8[] bytes);
+}

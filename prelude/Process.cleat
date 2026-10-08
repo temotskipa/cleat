@@ -1,0 +1,18 @@
+package cleat;
+
+// The running program as the host sees it.
+public class Process {
+    private Process() {
+    }
+
+    // Ends the program at once with the given status.
+    public static void exit(Int status) {
+        if (status < 0 || status > 255) {
+            throw new IllegalArgumentException("an exit status is 0 through 255, not " + status);
+        }
+        halt(status);
+    }
+
+    @Intrinsic
+    static void halt(Int status);
+}
