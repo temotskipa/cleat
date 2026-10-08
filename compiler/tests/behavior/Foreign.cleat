@@ -1,0 +1,30 @@
+// Calls to C (section 4.11), here to functions of the C library.
+package t;
+
+public class Foreign {
+    foreign static Int32 abs(Int32 n);
+
+    foreign static Float64 sqrt(Float64 x);
+
+    @Symbol("llabs")
+    foreign static Int magnitude(Int n);
+
+    foreign static UInt64 strlen(UInt8[] text);
+
+    foreign static Pointer memset(UInt8[] target, Int32 value, UInt64 count);
+
+    foreign static Int32 toupper(Int32 c);
+
+    public static void main() {
+        Console.println(abs(-5));
+        Console.println(sqrt(2.25));
+        Console.println(magnitude(-9000000000));
+        UInt8[] text = new UInt8[] { 104, 105, 0, 33 };
+        Console.println(strlen(text));
+        UInt8[] buffer = new UInt8[4];
+        Pointer p = memset(buffer, 7, 3);
+        Console.println("" + buffer[0] + buffer[2] + buffer[3]);
+        Console.println(p == Pointer.zero());
+        Console.println(Char.from(Int.from(toupper(97))));
+    }
+}

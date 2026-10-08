@@ -1,0 +1,131 @@
+// Generics that exist at run time, variance and wildcards (chapter 7).
+package t;
+
+class Box<T> {
+    T item;
+
+    public Box(T item) {
+        this.item = item;
+    }
+
+    public T get() {
+        return item;
+    }
+
+    public void put(T item) {
+        this.item = item;
+    }
+
+    public <R> Box<R> map(Function1<T, R> f) {
+        return new Box<R>(f.invoke(item));
+    }
+
+    public Boolean holds(Object o) {
+        return o instanceof T;
+    }
+
+    public @Nullable T[] spare(Int n) {
+        return new @Nullable T[n];
+    }
+}
+
+interface Source<out T> {
+    T next();
+}
+
+class Ones implements Source<Int> {
+    public Ones() {
+    }
+
+    @Override
+    public Int next() {
+        return 1;
+    }
+}
+
+value class Pair<A, B> {
+    public A first;
+    public B second;
+
+    public Pair<B, A> swap() {
+        return new Pair<B, A>(second, first);
+    }
+}
+
+public class Generics {
+    static <T extends Ordered<T>> T largest(Iterable<T> items, T start) {
+        T best = start;
+        for (T item : items) {
+            if (item > best) {
+                best = item;
+            }
+        }
+        return best;
+    }
+
+    static <T extends Numeric<T>> T total(Iterable<T> items) {
+        T sum = T.zero();
+        for (T item : items) {
+            sum += item;
+        }
+        return sum;
+    }
+
+    static Int count(Iterable<?> items) {
+        var n = 0;
+        for (@Nullable Object item : items) {
+            n++;
+        }
+        return n;
+    }
+
+    public static void main() {
+        var b = new Box<Int>(41);
+        b.put(b.get() + 1);
+        Console.println(b.get());
+        Box<String> s = b.map((n) -> "n=" + n);
+        Console.println(s.get());
+        Console.println(b.holds(7));
+        Console.println(b.holds("seven"));
+        Console.println(b.spare(3).length());
+        Object o = b;
+        Console.println(o instanceof Box<Int>);
+        Console.println(o instanceof Box<String>);
+        Console.println(o instanceof Box<?>);
+        Console.println(o.getClass().getName());
+        try {
+            Box<String> wrong = (Box<String>) o;
+            Console.println(wrong.get());
+        } catch (ClassCastException e) {
+            Console.println("not a Box<String>");
+        }
+        Source<Int> ones = new Ones();
+        Source<Object> any = ones;
+        Console.println(any.next());
+        var numbers = new List<Int>();
+        numbers.add(3);
+        numbers.add(9);
+        numbers.add(4);
+        Console.println(largest(numbers, 0));
+        Console.println(total(numbers));
+        var prices = new List<Rational>();
+        prices.add(0.1);
+        prices.add(0.2);
+        Console.println(total(prices));
+        Console.println(count(numbers) + count(prices));
+        var pair = new Pair<String, Int>("a", 1);
+        Console.println(pair.swap());
+        Console.println(pair.swap().getClass().getName());
+        Console.println(new Pair<Int, Int>(1, 2) == new Pair<Int, Int>(1, 2));
+        Int[] squares = Array.build(4, (i) -> i * i);
+        Console.println(squares[3]);
+        Object arr = squares;
+        Console.println(arr instanceof Int[]);
+        Console.println(arr instanceof Object[]);
+        var nested = new List<List<Int>>();
+        nested.add(numbers);
+        Console.println(nested[0][1]);
+        List<? extends Object> view = numbers;
+        Console.println(view[0]);
+    }
+}

@@ -1,0 +1,23 @@
+42
+n=42
+true
+false
+3
+true
+false
+true
+t.Box<cleat.Int>
+not a Box<String>
+1
+9
+16
+3/10
+5
+Pair(1, a)
+t.Pair<cleat.Int, cleat.String>
+true
+9
+true
+false
+9
+3

@@ -1,0 +1,24 @@
+zero small large
+string of 3, int 42, other
+-1 10 0
+caught zero
+finally 0
+finally 1
+body
+finally 2
+open a
+open b
+work
+close b
+close a
+handled stop
+3x2
+15 42 hello
+4 small
+true
+false
+from lambda
+second suppressed 1 first
+2500
+t.Boom: shown
+total was 2500

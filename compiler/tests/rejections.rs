@@ -79,6 +79,8 @@ fn a_literal_must_fit_its_class() {
 #[test]
 fn a_constant_expression_that_would_raise_is_rejected() {
     rejected("static void f() { Int32 big = 2147483647 + 1; }", "", "ArithmeticException");
+    // The mistake inside an argument is the one reported.
+    rejected("static void f() { Console.println(Int8.from(128)); }", "", "ArithmeticException");
 }
 
 #[test]

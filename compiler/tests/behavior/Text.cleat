@@ -1,0 +1,98 @@
+// Strings, arrays and the prelude's collections (sections 6.9 and 6.10).
+package t;
+
+public class Text {
+    public static void main() {
+        String s = "Hello, Wörld";
+        Console.println(s.length());
+        Console.println(s[7]);
+        Console.println(s.substring(7, 12));
+        Console.println("" + s.indexOf('o') + " " + s.indexOf("lo") + " " + s.indexOf("xyz"));
+        Console.println("" + s.startsWith("Hell") + " " + s.endsWith("x"));
+        Console.println(s.toUpperCase() + s.toLowerCase());
+        Console.println(s.toUtf8().length());
+        Console.println(String.fromUtf8(s.toUtf8()) == s);
+        Console.println("  padded ".trim() + "|");
+        Console.println("a,b,,c".split(",").size());
+        Console.println("" + "b".compare("a") + " " + ("a" < "b"));
+        var count = 0;
+        for (Char c : "héllo") {
+            if (c.isLetter()) {
+                count++;
+            }
+        }
+        Console.println(count);
+        try {
+            Console.println(s[99]);
+        } catch (IndexOutOfBoundsException e) {
+            Console.println(e.message());
+        }
+        Console.println("""
+            two
+              lines
+            """);
+        Console.println("tab\tquote\"");
+
+        Int[] a = new Int[3];
+        a[0] = 4;
+        a[2] = 6;
+        Console.println(a[0] + a[1] + a[2]);
+        Console.println(a.length());
+        try {
+            a[3] = 1;
+        } catch (IndexOutOfBoundsException e) {
+            Console.println("out of range");
+        }
+        Int length = -1;
+        try {
+            var bad = new Int[length];
+        } catch (ArithmeticException e) {
+            Console.println("negative length");
+        }
+        String[][] grid = new String[][] { new String[] { "a", "b" }, new String[] { "c" } };
+        Console.println(grid[1][0] + grid.length());
+        @Nullable String[] holes = new @Nullable String[2];
+        Console.println(holes[0] ?? "empty");
+        Rational[] rs = new Rational[2];
+        Console.println(rs[1] + 1);
+        Float64[] fs = new Float64[] { 1.5, 2.5 };
+        Float64 sum = 0;
+        for (Float64 f : fs) {
+            sum += f;
+        }
+        Console.println(sum);
+        Boolean[] flags = new Boolean[2];
+        Console.println(flags[0]);
+        Char[] cs = new Char[] { 'o', 'k' };
+        Console.println(String.fromChars(cs, 2));
+
+        var m = new Map<String, Int>();
+        m["one"] = 1;
+        m["two"] = 2;
+        m["three"] = 3;
+        m["two"] = 22;
+        Console.println("" + m.size() + " " + m["two"] + " " + m["none"]);
+        for (Entry<String, Int> e : m.entries()) {
+            Console.println(e.key + "=" + e.value);
+        }
+        for (var i = 0; i < 100; i++) {
+            m["k" + i] = i;
+        }
+        Console.println("" + m.size() + " " + m["k57"] + " " + m.containsKey("k100"));
+        var sb = new StringBuilder();
+        for (var i = 0; i < 5; i++) {
+            sb.append(i).append(',');
+        }
+        Console.println(sb.toString() + sb.length());
+        var list = new List<Int>();
+        for (var i = 10; i > 0; i--) {
+            list.add(i * 7 % 10);
+        }
+        list.sort((x, y) -> x.compare(y));
+        var line = new StringBuilder();
+        for (Int v : list) {
+            line.append(v);
+        }
+        Console.println(line);
+    }
+}

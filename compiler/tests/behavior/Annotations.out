@@ -1,0 +1,29 @@
+t.Person
+people
+people
+true
+name -> full_name/10
+age -> years/3
+hidden -> secret/10
+fixed -> fixed/10
+36
+37
+wrong type
+wrong target
+the field t.Person.hidden is not public
+the field t.Person.fixed is final
+Ada greets Bo x2
+2 other
+whom
+true
+wrong count
+wrong argument
+secret static=false
+twice static=true
+42
+not public
+SAFE t.Person 2b
+true
+true
+true
+cleat.Iterable<cleat.Int>

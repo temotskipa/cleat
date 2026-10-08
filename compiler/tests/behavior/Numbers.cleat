@@ -1,0 +1,71 @@
+// Numbers and literals (chapter 6).
+package t;
+
+public class Numbers {
+    public static void main() {
+        Int a = 7;
+        Int b = -3;
+        Console.println(a + b);
+        Console.println(a * b);
+        Console.println(a.floorDiv(b));
+        Console.println(a % b);
+        Console.println(a.truncatingDiv(b));
+        Console.println(a.truncatingRem(b));
+        Console.println(-7 % 3);
+        Int32 small = 2147483647;
+        try {
+            Console.println(small + 1);
+        } catch (ArithmeticException e) {
+            Console.println("overflow");
+        }
+        Console.println(small.wrappingPlus(1));
+        UInt8 mask = 0xF0;
+        Console.println(mask | 0x0F);
+        Console.println(mask >> 4);
+        Console.println(mask ^ 0xFF);
+        Console.println(~mask);
+        Int n = small;
+        Console.println(n + 1);
+        Float64 x = 0.1;
+        Float64 y = 0.2;
+        Console.println(x + y);
+        Console.println((x + y).toFixed(2));
+        Float64 half = 2.5;
+        Console.println(half.round());
+        Console.println(half.floor());
+        Console.println(Int.from(half.ceil()));
+        Rational third = 1.0 / 3;
+        Console.println(third);
+        Console.println(third * 3 == 1);
+        Console.println(third.toDecimal(5));
+        Console.println((third + 0.5).round(1));
+        Console.println(Float64.nearest(third).toFixed(4));
+        try {
+            Console.println(Float64.from(third));
+        } catch (ArithmeticException e) {
+            Console.println("not exact");
+        }
+        Console.println(Float64.from(0.5) + 1);
+        Console.println(Int.parse("42") ?? -1);
+        Console.println(Int.parse("4x2") ?? -1);
+        Console.println(Int8.from(127));
+        Int big = 128;
+        try {
+            Console.println(Int8.from(big));
+        } catch (ArithmeticException e) {
+            Console.println(e.message());
+        }
+        Console.println(1 << 10);
+        Console.println(a.compare(b));
+        Console.println(a.max(b) + a.min(b));
+        Char c = 'a';
+        Console.println(Char.from(c.code() + 1));
+        Console.println(c < 'b');
+        Console.println(true & false | true ^ true);
+        Console.println(0.1 + 0.2 == 0.3);
+        Float64 zero = 0.0;
+        Float64 nan = zero / zero;
+        Console.println(nan == nan);
+        Console.println(nan < nan);
+    }
+}

@@ -1,0 +1,157 @@
+// Lambdas, switch, exceptions, `using`, loops and labels (chapters 4 and 9).
+package t;
+
+class Resource {
+    final String name;
+    final List<String> log;
+
+    public Resource(String name, List<String> log) {
+        this.name = name;
+        this.log = log;
+        log.add("open " + name);
+    }
+
+    public void close() {
+        log.add("close " + name);
+    }
+}
+
+class Boom extends Throwable {
+    public Boom(String message) {
+        super(message);
+    }
+}
+
+public class Control {
+    static String classify(Int n) {
+        return switch (n) {
+            case 0 -> "zero";
+            case 1, 2, 3 -> "small";
+            default -> "large";
+        };
+    }
+
+    static String kind(Object o) {
+        switch (o) {
+            case String s -> {
+                return "string of " + s.length();
+            }
+            case Int i -> {
+                return "int " + (i + 1);
+            }
+            default -> {
+                return "other";
+            }
+        }
+    }
+
+    static Int tryIt(Int n, List<String> log) {
+        try {
+            if (n == 0) {
+                throw new Boom("zero");
+            }
+            if (n == 1) {
+                return 10;
+            }
+            log.add("body");
+        } catch (Boom e) {
+            log.add("caught " + e.message());
+            return -1;
+        } finally {
+            log.add("finally " + n);
+        }
+        return 0;
+    }
+
+    static Function0<Int> adder(Int n) {
+        return () -> n + 1;
+    }
+
+    public static void main() {
+        Console.println(classify(0) + " " + classify(2) + " " + classify(9));
+        Console.println(kind("abc") + ", " + kind(41) + ", " + kind(2.5));
+        var log = new List<String>();
+        Console.println("" + tryIt(0, log) + " " + tryIt(1, log) + " " + tryIt(2, log));
+        for (String line : log) {
+            Console.println(line);
+        }
+
+        var events = new List<String>();
+        try {
+            using (Resource a = new Resource("a", events), Resource b = new Resource("b", events)) {
+                events.add("work");
+                throw new Boom("stop");
+            }
+        } catch (Boom e) {
+            events.add("handled " + e.message());
+        }
+        for (String line : events) {
+            Console.println(line);
+        }
+
+        var found = "";
+        outer: for (var i = 0; i < 5; i++) {
+            for (var j = 0; j < 5; j++) {
+                if (j == 3) {
+                    continue outer;
+                }
+                if (i * j == 6) {
+                    found = "" + i + "x" + j;
+                    break outer;
+                }
+            }
+        }
+        Console.println(found);
+
+        var base = 10;
+        Function1<Int, Int> addBase = (n) -> n + base;
+        Function2<Int, Int, Int> times = (x, y) -> x * y;
+        Function0<String> hello = () -> "hello";
+        Console.println("" + addBase.invoke(5) + " " + times.invoke(6, 7) + " " + hello.invoke());
+        Function1<String, Int> len = String::length;
+        Function1<Int, String> show = Control::classify;
+        Console.println("" + len.invoke("four") + " " + show.invoke(1));
+        Console.println(adder(3) == adder(3));
+        Console.println(adder(3) == adder(4));
+
+        Function0<Int> bad = () -> {
+            throw new Boom("from lambda");
+        };
+        try {
+            Console.println(bad.invoke());
+        } catch (Boom e) {
+            Console.println(e.message());
+        }
+        try {
+            try {
+                throw new Boom("first");
+            } finally {
+                throw new Boom("second");
+            }
+        } catch (Boom e) {
+            Console.println(e.message() + " suppressed " + e.suppressed().length() + " " + e.suppressed()[0].message());
+        }
+
+        var i = 0;
+        var total = 0;
+        while (true) {
+            i++;
+            if (i > 100) {
+                break;
+            }
+            if (i % 2 == 0) {
+                continue;
+            }
+            total += i;
+        }
+        Console.println(total);
+        Throwable t = new Boom("shown");
+        Console.println(t);
+        assert total == 2500 : "sum";
+        try {
+            assert total == 0 : "total was " + total;
+        } catch (AssertionException e) {
+            Console.println(e.message());
+        }
+    }
+}

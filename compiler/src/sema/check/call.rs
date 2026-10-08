@@ -652,6 +652,21 @@ impl<'p> Checker<'p> {
                     }
                 };
             }
+            // An argument that failed on its own explains the failure better than the
+            // call does: report its mistake.
+            let mut reported = false;
+            for (i, a) in site.args.iter().enumerate() {
+                if let (ArgIn::Ast(e), PreArg::Deferred) = (a, &pre[i]) {
+                    if matches!(e.kind, ExprKind::Call { .. }) {
+                        let before = self.p.diags.len();
+                        self.check_expr(e, None);
+                        reported |= self.p.diags.len() > before;
+                    }
+                }
+            }
+            if reported {
+                return None;
+            }
             let mut shown = Vec::new();
             for a in pre {
                 shown.push(match a {

@@ -1,0 +1,33 @@
+12
+W
+Wörld
+4 3 -1
+true false
+HELLO, WÖRLDhello, wörld
+13
+true
+padded|
+4
+1 true
+5
+index 99, length 12
+two
+  lines
+tab	quote"
+10
+3
+out of range
+negative length
+c2
+empty
+1
+4.0
+false
+ok
+3 22 null
+one=1
+two=22
+three=3
+103 57 false
+0,1,2,3,4,10
+0123456789

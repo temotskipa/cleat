@@ -1,0 +1,149 @@
+// Classes, value classes, interfaces and enums (chapter 2).
+package t;
+
+interface Animal {
+    String name();
+    String sound();
+
+    String describe() {
+        return name() + " says " + sound();
+    }
+}
+
+open class Dog implements Animal {
+    final String called;
+
+    public Dog(String called) {
+        this.called = called;
+    }
+
+    @Override
+    public String name() {
+        return called;
+    }
+
+    @Override
+    public open String sound() {
+        return "woof";
+    }
+}
+
+class Puppy extends Dog {
+    public Puppy(String called) {
+        super(called + " jr");
+    }
+
+    @Override
+    public String sound() {
+        return "yip";
+    }
+
+    @Override
+    public String describe() {
+        return "small: " + super.describe();
+    }
+}
+
+value class Point {
+    public Int x;
+    public Int y;
+
+    public Point plus(Point other) {
+        return new Point(x + other.x, y + other.y);
+    }
+}
+
+enum Level {
+    LOW(1), HIGH(10);
+
+    public final Int weight;
+
+    Level(Int weight) {
+        this.weight = weight;
+    }
+
+    public Boolean above(Level other) {
+        return weight > other.weight;
+    }
+}
+
+abstract class Shape {
+    public abstract Float64 area();
+
+    public String label() {
+        return "area " + area().toFixed(1);
+    }
+}
+
+class Square extends Shape {
+    final Float64 side;
+
+    public Square(Float64 side) {
+        this.side = side;
+    }
+
+    @Override
+    public Float64 area() {
+        return side * side;
+    }
+}
+
+class Counter {
+    static Int made = 0;
+    public static final Int LIMIT = 3;
+    final Int id;
+
+    public Counter() {
+        made++;
+        this.id = made;
+    }
+
+    public static Int count() {
+        return made;
+    }
+}
+
+public class Objects {
+    public static void main() {
+        Animal a = new Dog("Rex");
+        Console.println(a.describe());
+        Animal p = new Puppy("Rex");
+        Console.println(p.describe());
+        Console.println(p instanceof Dog);
+        Console.println(a instanceof Puppy);
+        var p1 = new Point(1, 2);
+        var p2 = new Point(1, 2);
+        Console.println(p1 == p2);
+        Console.println(p1.identical(p2));
+        Console.println(p1 + p2);
+        Console.println(p1.hashCode() == p2.hashCode());
+        var d1 = new Dog("a");
+        var d2 = new Dog("a");
+        Console.println(d1 == d2);
+        Console.println(d1 == d1);
+        Console.println(Level.HIGH.above(Level.LOW));
+        Console.println(Level.HIGH.name() + " " + Level.HIGH.ordinal());
+        Console.println(Level.valueOf("LOW") == Level.LOW);
+        Console.println(Level.values().length());
+        for (Level l : Level.values()) {
+            Console.println(l);
+        }
+        try {
+            var missing = Level.valueOf("MID");
+        } catch (IllegalArgumentException e) {
+            Console.println(e.message());
+        }
+        Shape s = new Square(2.0);
+        Console.println(s.label());
+        var c1 = new Counter();
+        var c2 = new Counter();
+        Console.println(Counter.count());
+        Console.println(Counter.LIMIT);
+        Console.println(p1.getClass().getName());
+        Console.println(a.getClass() == d1.getClass());
+        Console.println(new Point(3, 4).toString());
+        Object o = 5;
+        Console.println(o.getClass().getName());
+        Console.println(o == 5);
+    }
+}

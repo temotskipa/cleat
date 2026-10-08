@@ -1,0 +1,121 @@
+// Threads, locks, conditions, atomic cells and scopes (chapter 13).
+package t;
+
+class Account {
+    final Lock lock = new Lock();
+    Int balance = 0;
+
+    public Account() {
+    }
+
+    public void deposit(Int amount) {
+        lock.exclusive(() -> {
+            balance += amount;
+        });
+    }
+
+    public Int read() {
+        return lock.exclusive(() -> balance);
+    }
+}
+
+class Channel {
+    final Lock lock = new Lock();
+    final Condition ready = lock.newCondition();
+    @Nullable String message;
+
+    public Channel() {
+    }
+
+    public void send(String text) {
+        lock.exclusive(() -> {
+            message = text;
+            ready.signalAll();
+        });
+    }
+
+    public String receive() {
+        return lock.exclusive(() -> {
+            while (message == null) {
+                ready.await();
+            }
+            String got = (String) message;
+            message = null;
+            return got;
+        });
+    }
+}
+
+public class Threads {
+    public static void main() {
+        var account = new Account();
+        var counter = new AtomicInt(0);
+        var workers = new List<Thread>();
+        for (var t = 0; t < 4; t++) {
+            workers.add(Thread.start(() -> {
+                for (var i = 0; i < 1000; i++) {
+                    account.deposit(1);
+                    counter.incrementAndGet();
+                }
+            }));
+        }
+        for (Thread w : workers) {
+            w.join();
+        }
+        Console.println("" + account.read() + " " + counter.get());
+
+        var channel = new Channel();
+        var receiver = Thread.start(() -> {
+            Console.println("got " + channel.receive());
+        });
+        Thread.sleep(20);
+        channel.send("ping");
+        receiver.join();
+        Console.println(receiver.isAlive());
+
+        Int sum = Scope.call((scope) -> {
+            var tasks = new List<Task<Int>>();
+            for (var k = 1; k <= 5; k++) {
+                var n = k;
+                tasks.add(scope.fork(() -> n * n));
+            }
+            var total = 0;
+            for (Task<Int> task : tasks) {
+                total += task.result();
+            }
+            return total;
+        });
+        Console.println(sum);
+
+        try {
+            Scope.call((scope) -> {
+                scope.fork(() -> {
+                    throw new IllegalStateException("task failed");
+                });
+                scope.fork(() -> {
+                    while (true) {
+                        Thread.sleep(5);
+                    }
+                });
+            });
+        } catch (IllegalStateException e) {
+            Console.println(e.message());
+        }
+
+        var failed = Thread.start(() -> {
+            throw new IllegalStateException("thread failed");
+        });
+        failed.join();
+        @Nullable Throwable why = failed.uncaught();
+        Console.println(why == null ? "none" : why.message());
+
+        var cell = new Atomic<String>("a");
+        Console.println("" + cell.compareAndSet("a", "b") + cell.compareAndSet("a", "c") + cell.get());
+        try {
+            new Lock().unlock();
+        } catch (IllegalStateException e) {
+            Console.println("not held");
+        }
+        Console.println(Thread.current() == Thread.current());
+    }
+}

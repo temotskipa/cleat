@@ -1,0 +1,137 @@
+// Annotations a program declares, and reading them through mirrors (chapter 8).
+package t;
+
+@Target(Site.TYPE)
+@Inherited
+annotation Entity(String table = "none");
+
+@Target({Site.FIELD, Site.METHOD})
+annotation Column(String name, Int width = 10);
+
+@Target(Site.PARAMETER)
+annotation Named(String value);
+
+annotation Marker;
+
+enum Mode { FAST, SAFE }
+
+annotation Config(Mode mode, Class type, String[] tags = {});
+
+@Entity("people")
+open class Person {
+    @Column("full_name")
+    public String name;
+
+    @Column(name = "years", width = 3)
+    public Int age;
+
+    @Column("secret")
+    Int hidden = 7;
+
+    @Column("fixed")
+    public final Int fixed = 1;
+
+    public Person(String name, Int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    @Column("greeting")
+    public String greet(@Named("whom") String other, Int times) {
+        return name + " greets " + other + " x" + times;
+    }
+
+    @Marker
+    void secret() {
+    }
+
+    @Marker
+    public static Int twice(Int n) {
+        return n * 2;
+    }
+}
+
+class Student extends Person {
+    public Student(String name) {
+        super(name, 20);
+    }
+}
+
+@Config(mode = Mode.SAFE, type = Person.class, tags = {"a", "b"})
+class Settings {
+}
+
+public class Annotations {
+    public static void main() {
+        var p = new Person("Ada", 36);
+        Class c = p.getClass();
+        Console.println(c.getName());
+        @Nullable Entity e = c.<Entity>getAnnotation();
+        Console.println(e == null ? "none" : e.table);
+        @Nullable Entity inherited = new Student("Bo").getClass().<Entity>getAnnotation();
+        Console.println(inherited == null ? "none" : inherited.table);
+        Console.println(c.<Marker>getAnnotation() == null);
+        for (Field f : c.<Column>getAnnotatedFields()) {
+            Column col = (Column) f.<Column>getAnnotation();
+            Console.println(f.getName() + " -> " + col.name + "/" + col.width);
+        }
+        Field age = c.<Column>getAnnotatedFields()[1];
+        Console.println(age.get(p));
+        age.set(p, 37);
+        Console.println(p.age);
+        try {
+            age.set(p, "old");
+        } catch (ClassCastException x) {
+            Console.println("wrong type");
+        }
+        try {
+            var v = age.get("not a person");
+        } catch (ClassCastException x) {
+            Console.println("wrong target");
+        }
+        Field hidden = c.<Column>getAnnotatedFields()[2];
+        try {
+            var v = hidden.get(p);
+        } catch (IllegalAccessException x) {
+            Console.println(x.message());
+        }
+        Field fixed = c.<Column>getAnnotatedFields()[3];
+        try {
+            fixed.set(p, 2);
+        } catch (IllegalAccessException x) {
+            Console.println(x.message());
+        }
+        Method greet = c.<Column>getAnnotatedMethods()[0];
+        Console.println(greet.invoke(p, "Bo", 2));
+        Console.println("" + greet.getParameters().length() + " " + greet.getParameters()[0].getName());
+        Named named = (Named) greet.getParameters()[0].<Named>getAnnotation();
+        Console.println(named.value);
+        Console.println(greet.getParameters()[1].<Named>getAnnotation() == null);
+        try {
+            greet.invoke(p, "Bo");
+        } catch (IllegalArgumentException x) {
+            Console.println("wrong count");
+        }
+        try {
+            greet.invoke(p, 1, 2);
+        } catch (ClassCastException x) {
+            Console.println("wrong argument");
+        }
+        for (Method m : c.<Marker>getAnnotatedMethods()) {
+            Console.println(m.getName() + " static=" + m.isStatic());
+        }
+        Method twice = c.<Marker>getAnnotatedMethods()[1];
+        Console.println(twice.invoke(null, 21));
+        try {
+            c.<Marker>getAnnotatedMethods()[0].invoke(p);
+        } catch (IllegalAccessException x) {
+            Console.println("not public");
+        }
+        Config cfg = (Config) Settings.class.<Config>getAnnotation();
+        Console.println("" + cfg.mode + " " + cfg.type.getName() + " " + cfg.tags.length() + cfg.tags[1]);
+        Console.println(c.<Entity>getAnnotation() == c.<Entity>getAnnotation());
+        Console.println(c.getSuperclass() == Object.class);
+        Console.println(Student.class.getSuperclass() == c);
+        Console.println(List<Int>.class.getInterfaces()[0].getName());
+    }
+}

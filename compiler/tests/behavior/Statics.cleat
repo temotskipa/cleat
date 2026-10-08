@@ -1,0 +1,86 @@
+// Static state and class initialization (section 9.7).
+package t;
+
+class Registry {
+    package static List<String> names = new List<String>();
+    package static Int count;
+
+    static {
+        count = 0;
+        Console.println("Registry initialized");
+    }
+
+    package static void register(String name) {
+        names.add(name);
+        count++;
+    }
+}
+
+class Lazy {
+    package static Int value = compute();
+
+    static Int compute() {
+        Console.println("Lazy computed");
+        return 42;
+    }
+}
+
+class Broken {
+    package static Int value = fail();
+
+    static Int fail() {
+        throw new IllegalStateException("no good");
+    }
+}
+
+class Early {
+    package static Int first = peek();
+    package static Int second = 5;
+
+    static Int peek() {
+        return second + 1;
+    }
+}
+
+open class Base {
+    static {
+        Console.println("Base initialized");
+    }
+
+    public Base() {
+    }
+}
+
+class Derived extends Base {
+    package static Int n = 1;
+
+    public Derived() {
+        super();
+    }
+}
+
+public class Statics {
+    public static void main() {
+        Console.println("start");
+        Registry.register("a");
+        Registry.register("b");
+        Console.println("" + Registry.count + Registry.names[1]);
+        Console.println(Lazy.value + Lazy.value);
+        for (var i = 0; i < 2; i++) {
+            try {
+                Console.println(Broken.value);
+            } catch (IllegalStateException e) {
+                Console.println("first: " + e.message());
+            } catch (ClassInitializationException e) {
+                Console.println("later: " + (e.cause() ?? e).message());
+            }
+        }
+        try {
+            Console.println(Early.first);
+        } catch (ClassInitializationException e) {
+            Console.println("early read");
+        }
+        var d = new Derived();
+        Console.println(Derived.n);
+    }
+}

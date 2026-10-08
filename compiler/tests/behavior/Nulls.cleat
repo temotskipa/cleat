@@ -1,0 +1,74 @@
+// Null, `@Nullable` and narrowing (chapter 5).
+package t;
+
+class Node {
+    public final Int value;
+    public final @Nullable Node next;
+
+    public Node(Int value, @Nullable Node next) {
+        this.value = value;
+        this.next = next;
+    }
+}
+
+public class Nulls {
+    static Int length(@Nullable Node list) {
+        var n = 0;
+        @Nullable Node at = list;
+        while (at != null) {
+            n++;
+            at = at.next;
+        }
+        return n;
+    }
+
+    static String show(@Nullable String s) {
+        if (s == null || s.isEmpty()) {
+            return "<none>";
+        }
+        return s;
+    }
+
+    static @Nullable Int find(Int[] items, Int wanted) {
+        for (var i = 0; i < items.length(); i++) {
+            if (items[i] == wanted) {
+                return i;
+            }
+        }
+        return null;
+    }
+
+    public static void main() {
+        var list = new Node(1, new Node(2, new Node(3, null)));
+        Console.println(length(list));
+        Console.println(length(null));
+        Console.println(show(null) + show("") + show("x"));
+        Int[] items = new Int[] { 5, 6, 7 };
+        Console.println(find(items, 6) ?? -1);
+        Console.println(find(items, 9) ?? -1);
+        @Nullable String maybe = null;
+        Console.println(maybe);
+        Console.println(maybe == null);
+        Console.println("it is " + maybe);
+        Console.println(maybe.toString());
+        @Nullable Object o = "text";
+        if (o instanceof String) {
+            Console.println(o.length());
+        }
+        try {
+            String s = (String) maybe;
+            Console.println(s);
+        } catch (ClassCastException e) {
+            Console.println("cast failed");
+        }
+        @Nullable String kept = (@Nullable String) maybe;
+        Console.println(kept ?? "fallback");
+        Console.println(maybe.equals(null));
+        Console.println(maybe.hashCode());
+        @Nullable Int count = find(items, 7);
+        if (count != null && count > 1) {
+            Console.println("far");
+        }
+        Console.println(maybe instanceof String);
+    }
+}
