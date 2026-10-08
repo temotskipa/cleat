@@ -1,0 +1,727 @@
+package cleat;
+
+// An integer of any size: the numerator and denominator of a Rational. The
+// specification does not name it, so it is visible only in the prelude's package.
+//
+// A value that an Int holds is `small`, and `digits` is null. Any other value is its
+// sign in `small`, 1 or -1, and the digits of its magnitude in base 2^30, lowest first,
+// in a chain with no leading zero. Every value has one form, and every part of the form
+// is a value, so `equals` and `identical` compare values, as section 2.5 asks of a
+// value whose storage is not observable. Arithmetic on a large value copies its digits
+// into a Natural, works there, and builds a new chain.
+package value class BigInt implements Numeric<BigInt>, Ordered<BigInt> {
+    Int small;
+    @Nullable Digit digits;
+
+    private BigInt {
+    }
+
+    // The least Int, which has no negation.
+    private static final Int LEAST = -9223372036854775808;
+
+    package static BigInt from(Int value) {
+        return new BigInt(value, null);
+    }
+
+    package static BigInt from(UInt64 value) {
+        if (value <= 9223372036854775807) {
+            return new BigInt(Int.from(value), null);
+        }
+        return of(1, Natural.from(value));
+    }
+
+    // The value with this sign, 1 or -1, and this magnitude, in its one form.
+    package static BigInt of(Int sign, Natural magnitude) {
+        if (magnitude.fitsInt()) {
+            var value = magnitude.toInt();
+            return new BigInt(sign < 0 ? -value : value, null);
+        }
+        if (sign < 0 && magnitude.isLeastMagnitude()) {
+            return new BigInt(LEAST, null);
+        }
+        @Nullable Digit chain = null;
+        for (var i = magnitude.length - 1; i >= 0; i--) {
+            chain = new Digit(magnitude.digits[i], chain);
+        }
+        return new BigInt(sign < 0 ? -1 : 1, chain);
+    }
+
+    // The magnitude, as a Natural the caller may change.
+    package Natural magnitude() {
+        if (digits == null) {
+            return Natural.ofMagnitude(small);
+        }
+        var count = 0;
+        for (var d = digits; d != null; d = d.next) {
+            count++;
+        }
+        var magnitude = new Natural(count + 1);
+        for (var d = digits; d != null; d = d.next) {
+            magnitude.digits[magnitude.length] = d.value;
+            magnitude.length++;
+        }
+        return magnitude;
+    }
+
+    // 1, 0 or -1, as the value is above, at or below zero.
+    package Int sign() {
+        if (digits != null) {
+            return small;
+        }
+        return small > 0 ? 1 : small < 0 ? -1 : 0;
+    }
+
+    package Boolean isZero() {
+        return digits == null && small == 0;
+    }
+
+    package Boolean isOne() {
+        return digits == null && small == 1;
+    }
+
+    package Boolean isNegative() {
+        return small < 0;
+    }
+
+    // The value, or ArithmeticException when an Int does not hold it.
+    package Int toInt() {
+        if (digits != null) {
+            throw new ArithmeticException(toString() + " is not a value of Int");
+        }
+        return small;
+    }
+
+    // The value, or ArithmeticException when a UInt64 does not hold it.
+    package UInt64 toUInt64() {
+        if (digits == null && small >= 0) {
+            return UInt64.from(small);
+        }
+        if (digits != null && small > 0) {
+            var magnitude = magnitude();
+            if (magnitude.fitsUInt64()) {
+                return magnitude.toUInt64();
+            }
+        }
+        throw new ArithmeticException(toString() + " is not a value of UInt64");
+    }
+
+    // Ten to the power `exponent`, which is not below zero.
+    package static BigInt tenTo(Int exponent) {
+        var power = Natural.ofMagnitude(1);
+        power.multiplyByTenTo(exponent);
+        return of(1, power);
+    }
+
+    @Override
+    public static BigInt zero() {
+        return new BigInt(0, null);
+    }
+
+    @Override
+    public static BigInt one() {
+        return new BigInt(1, null);
+    }
+
+    @Override
+    public BigInt plus(BigInt other) {
+        if (digits == null && other.digits == null) {
+            var sum = small.wrappingPlus(other.small);
+            // The sum wrapped when both operands have one sign and the sum the other.
+            if (((small ^ sum) & (other.small ^ sum)) >= 0) {
+                return new BigInt(sum, null);
+            }
+        }
+        return combine(other, other.sign());
+    }
+
+    @Override
+    public BigInt minus(BigInt other) {
+        if (digits == null && other.digits == null) {
+            var difference = small.wrappingMinus(other.small);
+            // The difference wrapped when the operands differ in sign and the
+            // difference does not have the sign of this.
+            if (((small ^ other.small) & (small ^ difference)) >= 0) {
+                return new BigInt(difference, null);
+            }
+        }
+        return combine(other, -other.sign());
+    }
+
+    // This plus the magnitude of `other` with the sign `otherSign`.
+    private BigInt combine(BigInt other, Int otherSign) {
+        var mine = sign();
+        if (otherSign == 0) {
+            return this;
+        }
+        if (mine == 0) {
+            return of(otherSign, other.magnitude());
+        }
+        var a = magnitude();
+        var b = other.magnitude();
+        if (mine == otherSign) {
+            a.add(b);
+            return of(mine, a);
+        }
+        var order = a.compare(b);
+        if (order == 0) {
+            return zero();
+        }
+        if (order > 0) {
+            a.subtract(b);
+            return of(mine, a);
+        }
+        b.subtract(a);
+        return of(otherSign, b);
+    }
+
+    @Override
+    public BigInt negate() {
+        if (digits == null && small != LEAST) {
+            return new BigInt(-small, null);
+        }
+        return of(-sign(), magnitude());
+    }
+
+    @Override
+    public BigInt times(BigInt other) {
+        // Two factors below 2^31 have a product below 2^62.
+        if (digits == null && other.digits == null && small > -2147483648 && small < 2147483648 && other.small > -2147483648 && other.small < 2147483648) {
+            return new BigInt(small * other.small, null);
+        }
+        var s = sign() * other.sign();
+        if (s == 0) {
+            return zero();
+        }
+        return of(s, magnitude().times(other.magnitude()));
+    }
+
+    // The quotient rounded toward negative infinity. A zero divisor raises.
+    package BigInt floorDiv(BigInt other) {
+        return divide(other, false);
+    }
+
+    // What floorDiv leaves: zero, or a value with the sign of the divisor.
+    package BigInt mod(BigInt other) {
+        return divide(other, true);
+    }
+
+    private BigInt divide(BigInt other, Boolean remainder) {
+        if (other.isZero()) {
+            throw new ArithmeticException("division by zero");
+        }
+        if (digits == null && other.digits == null && (small != LEAST || other.small != -1)) {
+            return new BigInt(remainder ? small % other.small : small.floorDiv(other.small), null);
+        }
+        var mine = sign();
+        var theirs = other.sign();
+        var rest = magnitude();
+        var quotient = rest.divide(other.magnitude());
+        if (mine * theirs < 0 && !rest.isZero()) {
+            // Rounded toward zero the quotient is one short of the floor, and the
+            // remainder then takes the divisor's sign.
+            quotient.addSmall(1);
+            var flipped = other.magnitude();
+            flipped.subtract(rest);
+            rest = flipped;
+        }
+        return remainder ? of(theirs, rest) : of(mine * theirs, quotient);
+    }
+
+    // The greatest common divisor, which is not below zero. It is zero only when both
+    // values are.
+    package BigInt gcd(BigInt other) {
+        if (digits == null && other.digits == null && small != LEAST && other.small != LEAST) {
+            var a = small < 0 ? -small : small;
+            var b = other.small < 0 ? -other.small : other.small;
+            while (b != 0) {
+                var rest = a % b;
+                a = b;
+                b = rest;
+            }
+            return new BigInt(a, null);
+        }
+        var a = magnitude();
+        var b = other.magnitude();
+        while (!b.isZero()) {
+            a.divide(b);
+            var rest = a;
+            a = b;
+            b = rest;
+        }
+        return of(1, a);
+    }
+
+    package BigInt abs() {
+        return isNegative() ? -this : this;
+    }
+
+    // The value times 2 to the power `count`, which is not below zero.
+    package BigInt shiftLeft(Int count) {
+        var magnitude = magnitude();
+        magnitude.shiftLeft(count);
+        return of(sign(), magnitude);
+    }
+
+    @Override
+    public Int compare(BigInt other) {
+        if (digits == null && other.digits == null) {
+            return small.compare(other.small);
+        }
+        // A value in the chain form is further from zero than any Int.
+        if (digits == null) {
+            return other.small > 0 ? -1 : 1;
+        }
+        if (other.digits == null) {
+            return small > 0 ? 1 : -1;
+        }
+        if (small != other.small) {
+            return small < other.small ? -1 : 1;
+        }
+        var order = magnitude().compare(other.magnitude());
+        return small < 0 ? -order : order;
+    }
+
+    @Override
+    public Boolean lessThan(BigInt other) {
+        return compare(other) < 0;
+    }
+
+    @Override
+    public Boolean atMost(BigInt other) {
+        return compare(other) <= 0;
+    }
+
+    @Override
+    public Boolean greaterThan(BigInt other) {
+        return compare(other) > 0;
+    }
+
+    @Override
+    public Boolean atLeast(BigInt other) {
+        return compare(other) >= 0;
+    }
+
+    // The decimal digits, after a minus sign when the value is below zero.
+    @Override
+    public String toString() {
+        if (digits == null) {
+            return small.toString();
+        }
+        // Groups of nine digits, the lowest first. Each group takes more than 29 bits.
+        var rest = magnitude();
+        var groups = new Int[rest.bitLength().floorDiv(29) + 1];
+        var count = 0;
+        while (!rest.isZero()) {
+            groups[count] = rest.divideSmall(1000000000);
+            count++;
+        }
+        var text = new StringBuilder();
+        if (small < 0) {
+            text.append('-');
+        }
+        text.append(groups[count - 1]);
+        for (var i = count - 2; i >= 0; i--) {
+            var group = groups[i].toString();
+            for (var pad = group.length(); pad < 9; pad++) {
+                text.append('0');
+            }
+            text.append(group);
+        }
+        return text.toString();
+    }
+
+    // An integer in decimal: a sign, then a digit, then digits or `_`, which separates
+    // nothing and is skipped. Null when the text is not one.
+    package static @Nullable BigInt parse(String text) {
+        var at = 0;
+        var negative = false;
+        if (text.startsWith("-") || text.startsWith("+")) {
+            negative = text.startsWith("-");
+            at = 1;
+        }
+        if (at == text.length() || !isDigit(text[at])) {
+            return null;
+        }
+        var magnitude = new Natural(text.length().floorDiv(9) + 1);
+        while (at < text.length()) {
+            var c = text[at];
+            if (c != '_') {
+                if (!isDigit(c)) {
+                    return null;
+                }
+                magnitude.multiplySmall(10);
+                magnitude.addSmall(c.code() - 48);
+            }
+            at++;
+        }
+        return of(negative ? -1 : 1, magnitude);
+    }
+
+    package static Boolean isDigit(Char c) {
+        return c >= '0' && c <= '9';
+    }
+}
+
+// One digit of a BigInt's chain, and the digits above it.
+value class Digit {
+    package Int value;
+    package @Nullable Digit next;
+}
+
+// A natural number that changes in place: the working form of BigInt's arithmetic, and
+// of the conversions between floats and decimal digits. Its digits are in base 2^30,
+// lowest first. `length` counts them without leading zeros, so zero has none, and the
+// array may hold more.
+package class Natural {
+    package Int[] digits;
+    package Int length;
+
+    package static final Int BITS = 30;
+    package static final Int BASE = 1073741824;
+    package static final Int MASK = 1073741823;
+
+    package Natural(Int capacity) {
+        this.digits = new Int[capacity > 0 ? capacity : 1];
+        this.length = 0;
+    }
+
+    // The magnitude of `value`. The least Int has a magnitude that no Int holds, so the
+    // digits are taken from the value as it is.
+    package static Natural ofMagnitude(Int value) {
+        var n = new Natural(3);
+        var rest = value;
+        while (rest != 0) {
+            var digit = rest.truncatingRem(BASE);
+            n.digits[n.length] = digit < 0 ? -digit : digit;
+            n.length++;
+            rest = rest.truncatingDiv(BASE);
+        }
+        return n;
+    }
+
+    package static Natural from(UInt64 value) {
+        var n = new Natural(3);
+        var rest = value;
+        while (rest != 0) {
+            n.digits[n.length] = Int.from(rest & 1073741823);
+            n.length++;
+            rest = rest >> 30;
+        }
+        return n;
+    }
+
+    package Natural copy() {
+        var n = new Natural(length + 1);
+        for (var i = 0; i < length; i++) {
+            n.digits[i] = digits[i];
+        }
+        n.length = length;
+        return n;
+    }
+
+    package Boolean isZero() {
+        return length == 0;
+    }
+
+    package Boolean isOdd() {
+        return length > 0 && (digits[0] & 1) == 1;
+    }
+
+    // Whether the value is below 2^63, so that an Int holds it.
+    package Boolean fitsInt() {
+        return length < 3 || length == 3 && digits[2] < 8;
+    }
+
+    // Whether the value is 2^63, the magnitude of the least Int.
+    package Boolean isLeastMagnitude() {
+        return length == 3 && digits[2] == 8 && digits[1] == 0 && digits[0] == 0;
+    }
+
+    // The value, which is below 2^63.
+    package Int toInt() {
+        var value = 0;
+        for (var i = length - 1; i >= 0; i--) {
+            value = (value << BITS) | digits[i];
+        }
+        return value;
+    }
+
+    // Whether the value is below 2^64, so that a UInt64 holds it.
+    package Boolean fitsUInt64() {
+        return length < 3 || length == 3 && digits[2] < 16;
+    }
+
+    // The value, which is below 2^64.
+    package UInt64 toUInt64() {
+        UInt64 value = 0;
+        for (var i = length - 1; i >= 0; i--) {
+            value = (value << 30) | UInt64.from(digits[i]);
+        }
+        return value;
+    }
+
+    // The number of bits up to the highest that is set.
+    package Int bitLength() {
+        if (length == 0) {
+            return 0;
+        }
+        var bits = (length - 1) * BITS;
+        for (var top = digits[length - 1]; top != 0; top = top >> 1) {
+            bits++;
+        }
+        return bits;
+    }
+
+    package Int compare(Natural other) {
+        if (length != other.length) {
+            return length < other.length ? -1 : 1;
+        }
+        for (var i = length - 1; i >= 0; i--) {
+            if (digits[i] != other.digits[i]) {
+                return digits[i] < other.digits[i] ? -1 : 1;
+            }
+        }
+        return 0;
+    }
+
+    // Room for `count` digits, with the digits that are kept.
+    private void reserve(Int count) {
+        if (count > digits.length()) {
+            var larger = new Int[count + count.floorDiv(2)];
+            for (var i = 0; i < length; i++) {
+                larger[i] = digits[i];
+            }
+            digits = larger;
+        }
+    }
+
+    // Drops the leading zeros.
+    private void trim() {
+        while (length > 0 && digits[length - 1] == 0) {
+            length--;
+        }
+    }
+
+    package void add(Natural other) {
+        var longer = length > other.length ? length : other.length;
+        reserve(longer + 1);
+        var carry = 0;
+        for (var i = 0; i < longer; i++) {
+            var sum = (i < length ? digits[i] : 0) + (i < other.length ? other.digits[i] : 0) + carry;
+            digits[i] = sum & MASK;
+            carry = sum >> BITS;
+        }
+        digits[longer] = carry;
+        length = carry != 0 ? longer + 1 : longer;
+    }
+
+    // Subtracts `other`, which is not more than this.
+    package void subtract(Natural other) {
+        var borrow = 0;
+        for (var i = 0; i < length; i++) {
+            var difference = digits[i] - (i < other.length ? other.digits[i] : 0) - borrow;
+            borrow = difference < 0 ? 1 : 0;
+            digits[i] = difference & MASK;
+        }
+        trim();
+    }
+
+    // Adds `value`, from 0 below 2^30.
+    package void addSmall(Int value) {
+        reserve(length + 1);
+        var carry = value;
+        var i = 0;
+        while (carry != 0) {
+            var sum = (i < length ? digits[i] : 0) + carry;
+            digits[i] = sum & MASK;
+            carry = sum >> BITS;
+            i++;
+        }
+        if (i > length) {
+            length = i;
+        }
+    }
+
+    // Multiplies by `factor`, from 0 below 2^30.
+    package void multiplySmall(Int factor) {
+        if (factor == 0) {
+            length = 0;
+            return;
+        }
+        reserve(length + 1);
+        var carry = 0;
+        for (var i = 0; i < length; i++) {
+            var product = digits[i] * factor + carry;
+            digits[i] = product & MASK;
+            carry = product >> BITS;
+        }
+        if (carry != 0) {
+            digits[length] = carry;
+            length++;
+        }
+    }
+
+    // Multiplies by ten to the power `exponent`, which is not below zero.
+    package void multiplyByTenTo(Int exponent) {
+        var left = exponent;
+        while (left >= 9) {
+            multiplySmall(1000000000);
+            left -= 9;
+        }
+        var factor = 1;
+        for (var i = 0; i < left; i++) {
+            factor = factor * 10;
+        }
+        multiplySmall(factor);
+    }
+
+    // Divides by `divisor`, from 1 below 2^30, and returns the remainder.
+    package Int divideSmall(Int divisor) {
+        var rest = 0;
+        for (var i = length - 1; i >= 0; i--) {
+            var part = (rest << BITS) | digits[i];
+            var quotient = part.truncatingDiv(divisor);
+            digits[i] = quotient;
+            rest = part - quotient * divisor;
+        }
+        trim();
+        return rest;
+    }
+
+    package Natural times(Natural other) {
+        var product = new Natural(length + other.length);
+        for (var i = 0; i < length; i++) {
+            var digit = digits[i];
+            var carry = 0;
+            for (var j = 0; j < other.length; j++) {
+                var part = product.digits[i + j] + digit * other.digits[j] + carry;
+                product.digits[i + j] = part & MASK;
+                carry = part >> BITS;
+            }
+            product.digits[i + other.length] = carry;
+        }
+        product.length = length + other.length;
+        product.trim();
+        return product;
+    }
+
+    // Multiplies by 2 to the power `count`, which is not below zero.
+    package void shiftLeft(Int count) {
+        if (length == 0 || count == 0) {
+            return;
+        }
+        var whole = count.truncatingDiv(BITS);
+        var part = count - whole * BITS;
+        var shifted = new Int[length + whole + 1];
+        var carry = 0;
+        for (var i = 0; i < length; i++) {
+            var digit = digits[i];
+            shifted[i + whole] = ((digit << part) & MASK) | carry;
+            carry = digit >> (BITS - part);
+        }
+        shifted[length + whole] = carry;
+        digits = shifted;
+        length = length + whole + 1;
+        trim();
+    }
+
+    // Divides by 2 to the power `count`, which is not below zero, and drops the
+    // remainder.
+    package void shiftRight(Int count) {
+        var whole = count.truncatingDiv(BITS);
+        if (whole >= length) {
+            length = 0;
+            return;
+        }
+        var part = count - whole * BITS;
+        var kept = length - whole;
+        for (var i = 0; i < kept; i++) {
+            var low = digits[i + whole] >> part;
+            var high = i + whole + 1 < length ? (digits[i + whole + 1] << (BITS - part)) & MASK : 0;
+            digits[i] = low | high;
+        }
+        length = kept;
+        trim();
+    }
+
+    // Divides by `divisor`, which is not zero: this becomes the remainder, and the
+    // quotient is returned. Knuth's algorithm D (The Art of Computer Programming,
+    // section 4.3.1), in base 2^30, so that every step fits an Int.
+    @Discardable
+    package Natural divide(Natural divisor) {
+        var n = divisor.length;
+        if (compare(divisor) < 0) {
+            return new Natural(1);
+        }
+        if (n == 1) {
+            var quotient = copy();
+            var rest = quotient.divideSmall(divisor.digits[0]);
+            digits[0] = rest;
+            length = rest == 0 ? 0 : 1;
+            return quotient;
+        }
+        // Both are shifted until the divisor's top digit has its highest bit set. Then
+        // the quotient digit guessed from the top digits is at most two too large.
+        var shift = 0;
+        for (var top = divisor.digits[n - 1]; top < BASE >> 1; top = top << 1) {
+            shift++;
+        }
+        var v = divisor.copy();
+        v.shiftLeft(shift);
+        var shifted = copy();
+        shifted.shiftLeft(shift);
+        var u = new Int[shifted.length + 1];
+        for (var i = 0; i < shifted.length; i++) {
+            u[i] = shifted.digits[i];
+        }
+        var m = shifted.length - n;
+        var quotient = new Natural(m + 1);
+        var vTop = v.digits[n - 1];
+        var vNext = v.digits[n - 2];
+        for (var j = m; j >= 0; j--) {
+            var top = u[j + n] * BASE + u[j + n - 1];
+            var guess = top.truncatingDiv(vTop);
+            var rest = top - guess * vTop;
+            while (guess >= BASE || guess * vNext > rest * BASE + u[j + n - 2]) {
+                guess--;
+                rest += vTop;
+                if (rest >= BASE) {
+                    break;
+                }
+            }
+            // u[j .. j + n] -= guess × v
+            var borrow = 0;
+            var carry = 0;
+            for (var i = 0; i < n; i++) {
+                var product = guess * v.digits[i] + carry;
+                carry = product >> BITS;
+                var difference = u[i + j] - (product & MASK) - borrow;
+                borrow = difference < 0 ? 1 : 0;
+                u[i + j] = difference & MASK;
+            }
+            var last = u[j + n] - carry - borrow;
+            if (last < 0) {
+                // The guess was one too large, so the divisor is added back once.
+                guess--;
+                var c = 0;
+                for (var i = 0; i < n; i++) {
+                    var sum = u[i + j] + v.digits[i] + c;
+                    u[i + j] = sum & MASK;
+                    c = sum >> BITS;
+                }
+                u[j + n] = (last + c) & MASK;
+            } else {
+                u[j + n] = last;
+            }
+            quotient.digits[j] = guess;
+        }
+        quotient.length = m + 1;
+        quotient.trim();
+        // The remainder is in the low n digits of u, shifted.
+        digits = u;
+        length = n;
+        trim();
+        shiftRight(shift);
+        return quotient;
+    }
+}
