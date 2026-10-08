@@ -141,7 +141,7 @@ pub unsafe extern "C" fn cl_Thread_launch(ctx: *mut Ctx, t: Obj) {
         // The object stays alive until the new thread holds it.
         gc::world().pinned.push(t);
         let object = t as usize;
-        let spawned = std::thread::Builder::new().stack_size(16 << 20).spawn(move || {
+        let spawned = std::thread::Builder::new().stack_size(gc::STACK).spawn(move || {
             let me = gc::new_ctx();
             let t = object as Obj;
             (*me).thread = t;

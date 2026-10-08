@@ -255,7 +255,7 @@ impl<'p> Checker<'p> {
             return self.error_expr(pos, format!("a method reference stands where a functional interface is expected, and `{s}` is not one"));
         };
         let n = self.p.method(fm).params.len();
-        let names: Vec<String> = (0..n).map(|i| format!("$a{i}")).collect();
+        let names: Vec<String> = (0..n).map(|i| format!("#a{i}")).collect();
         let arg = |i: usize| ast::Expr { kind: ExprKind::Name(names[i].clone()), pos };
         let lam = |body: ast::Expr| ast::Expr {
             kind: ExprKind::Lambda {
@@ -310,7 +310,7 @@ impl<'p> Checker<'p> {
                 if v.ty.is_error() {
                     return v;
                 }
-                let hidden = format!("$mr{}", self.frame().locals.len());
+                let hidden = format!("#mr{}", self.frame().locals.len());
                 let id = self.declare(&hidden, v.ty.clone(), true, pos, false);
                 let f = self.frame();
                 f.flow.assigned.insert(id);

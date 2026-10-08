@@ -221,7 +221,7 @@ impl<'p> Checker<'p> {
     // ---- locals and scopes ----
 
     pub fn declare(&mut self, name: &str, ty: Type, is_final: bool, pos: Pos, is_param: bool) -> LocalId {
-        if !name.starts_with('$') && self.find_local(name).is_some() {
+        if !name.starts_with('#') && self.find_local(name).is_some() {
             self.err(pos, format!("`{name}` is already a variable of this method; a variable does not hide another"));
         }
         let f = self.frame();
@@ -241,7 +241,7 @@ impl<'p> Checker<'p> {
     pub fn temp(&mut self, ty: Type) -> LocalId {
         let f = self.frame();
         let id = f.locals.len() as LocalId;
-        f.locals.push(LocalVar { name: format!("$t{id}"), ty, is_param: false });
+        f.locals.push(LocalVar { name: format!("#t{id}"), ty, is_param: false });
         f.meta.push(LocalMeta { is_final: true, reassigned: false, captured_at: None, pos: 0 });
         f.flow.assigned.insert(id);
         f.flow.maybe.insert(id);
@@ -291,8 +291,8 @@ impl<'p> Checker<'p> {
         }
         let field = self.p.class(lambda_class).fields.len() as u32;
         let name = match &source {
-            CapSource::This => "$this".to_string(),
-            CapSource::Local(id) => format!("${}", self.frames[owner].locals[*id as usize].name),
+            CapSource::This => "#this".to_string(),
+            CapSource::Local(id) => format!("#{}", self.frames[owner].locals[*id as usize].name),
         };
         self.p.classes[lambda_class as usize].fields.push(Field {
             name: name.clone(),

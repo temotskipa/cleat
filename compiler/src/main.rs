@@ -1,74 +1,83 @@
-use std::path::PathBuf;
+use cleatc::Diagnostic;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+
+const USAGE: &str = "usage: cleatc check <path>...\n       cleatc build <path>... --entry pkg.Type -o out.exe [--link file]...";
+
+fn show(d: &Diagnostic, warning: bool) {
+    let kind = if warning { "warning: " } else { "" };
+    eprintln!("{}:{}:{}: {kind}{}", d.file.display(), d.line, d.column, d.message);
+}
 
 fn main() -> ExitCode {
     let mut args = std::env::args().skip(1);
     let Some(command) = args.next() else {
-        eprintln!(
-            "usage: cleatc check <project> | cleatc build <project> --entry pkg.Type -o out.exe"
-        );
+        eprintln!("{USAGE}");
         return ExitCode::from(2);
     };
-    let result = match command.as_str() {
-        "check" => {
-            let Some(root) = args.next() else {
-                eprintln!("usage: cleatc check <project>");
-                return ExitCode::from(2);
-            };
-            cleatc::check(PathBuf::from(root).as_path())
-        }
-        "build" => {
-            let Some(root) = args.next() else {
-                eprintln!("usage: cleatc build <project> --entry pkg.Type -o out.exe");
-                return ExitCode::from(2);
-            };
-            let mut entry = None;
-            let mut output = None;
-            let rest: Vec<String> = args.collect();
-            let mut i = 0;
-            while i < rest.len() {
-                match rest[i].as_str() {
-                    "--entry" => {
-                        i += 1;
-                        entry = rest.get(i).cloned();
-                    }
-                    "-o" => {
-                        i += 1;
-                        output = rest.get(i).cloned();
-                    }
-                    other => {
-                        eprintln!("unknown argument {other}");
+    let rest: Vec<String> = args.collect();
+    let mut roots: Vec<PathBuf> = Vec::new();
+    let mut entry = None;
+    let mut output = None;
+    let mut link: Vec<PathBuf> = Vec::new();
+    let mut i = 0;
+    while i < rest.len() {
+        match rest[i].as_str() {
+            "--entry" => {
+                i += 1;
+                entry = rest.get(i).cloned();
+            }
+            "-o" => {
+                i += 1;
+                output = rest.get(i).cloned();
+            }
+            "--link" => {
+                i += 1;
+                match rest.get(i) {
+                    Some(p) => link.push(PathBuf::from(p)),
+                    None => {
+                        eprintln!("{USAGE}");
                         return ExitCode::from(2);
                     }
                 }
-                i += 1;
             }
+            other if other.starts_with('-') => {
+                eprintln!("unknown argument {other}\n{USAGE}");
+                return ExitCode::from(2);
+            }
+            path => roots.push(PathBuf::from(path)),
+        }
+        i += 1;
+    }
+    if roots.is_empty() {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    }
+    let paths: Vec<&Path> = roots.iter().map(|p| p.as_path()).collect();
+    let result = match command.as_str() {
+        "check" => cleatc::analyze(&paths).map(|mut p| std::mem::take(&mut p.warnings)),
+        "build" => {
             let (Some(entry), Some(output)) = (entry, output) else {
-                eprintln!("usage: cleatc build <project> --entry pkg.Type -o out.exe");
+                eprintln!("{USAGE}");
                 return ExitCode::from(2);
             };
-            cleatc::build(
-                PathBuf::from(root).as_path(),
-                &entry,
-                PathBuf::from(output).as_path(),
-            )
+            cleatc::build_with(&paths, &entry, Path::new(&output), &link)
         }
         other => {
-            eprintln!("unknown command {other}");
+            eprintln!("unknown command {other}\n{USAGE}");
             return ExitCode::from(2);
         }
     };
     match result {
-        Ok(()) => ExitCode::from(0),
+        Ok(warnings) => {
+            for w in &warnings {
+                show(w, true);
+            }
+            ExitCode::from(0)
+        }
         Err(errors) => {
-            for err in errors {
-                eprintln!(
-                    "{}:{}:{}: {}",
-                    err.file.display(),
-                    err.line,
-                    err.column,
-                    err.message
-                );
+            for err in &errors {
+                show(err, false);
             }
             ExitCode::from(1)
         }

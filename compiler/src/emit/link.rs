@@ -72,14 +72,22 @@ pub fn runtime() -> Result<PathBuf, String> {
     best.map(|(_, p)| p).ok_or_else(|| format!("the runtime library cleatrt was not found near {}; build it with `cargo build`, or set CLEAT_RT", exe.display()))
 }
 
-pub fn link(ir: &str, output: &Path) -> Result<(), String> {
+/// Compiles the module, and the C shim when there is one, and links them with the
+/// runtime and with the files the program was built with.
+pub fn link(ir: &str, shim: &str, output: &Path, extra: &[PathBuf]) -> Result<(), String> {
     let dir = output.parent().filter(|d| !d.as_os_str().is_empty()).unwrap_or_else(|| Path::new("."));
     std::fs::create_dir_all(dir).map_err(|err| err.to_string())?;
     let ll = output.with_extension("ll");
     std::fs::write(&ll, ir).map_err(|err| format!("cannot write {}: {err}", ll.display()))?;
     let rt = runtime()?;
     let mut cmd = Command::new(clang());
-    cmd.arg("-O1").arg("-Wno-override-module").arg(&ll).arg(&rt).arg("-o").arg(output);
+    cmd.arg("-O1").arg("-Wno-override-module").arg(&ll);
+    if !shim.is_empty() {
+        let c = output.with_extension("shim.c");
+        std::fs::write(&c, shim).map_err(|err| format!("cannot write {}: {err}", c.display()))?;
+        cmd.arg(&c);
+    }
+    cmd.args(extra).arg(&rt).arg("-o").arg(output);
     if cfg!(windows) {
         for lib in ["kernel32", "ntdll", "userenv", "ws2_32", "dbghelp", "advapi32", "bcrypt", "synchronization"] {
             cmd.arg(format!("-l{lib}"));

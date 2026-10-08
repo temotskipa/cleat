@@ -119,6 +119,12 @@ pub fn build(root: &Path, entry: &str, output: &Path) -> Result<(), Vec<Diagnost
 /// Compiles the files under every root as one program. The result is the reports that
 /// do not reject the program.
 pub fn build_roots(roots: &[&Path], entry: &str, output: &Path) -> Result<Vec<Diagnostic>, Vec<Diagnostic>> {
+    build_with(roots, entry, output, &[])
+}
+
+/// As `build_roots`, linking the given files too: the libraries or objects that supply
+/// the foreign methods of the program.
+pub fn build_with(roots: &[&Path], entry: &str, output: &Path, link: &[PathBuf]) -> Result<Vec<Diagnostic>, Vec<Diagnostic>> {
     let mut p = analyze(roots)?;
     let first = roots.first().copied().unwrap_or(Path::new("."));
     let fail = |message: String| vec![Diagnostic::general(first, message)];
@@ -129,8 +135,8 @@ pub fn build_roots(roots: &[&Path], entry: &str, output: &Path) -> Result<Vec<Di
     if found.len() != 1 {
         return Err(fail(format!("the entry class `{entry}` names {} classes of the program", found.len())));
     }
-    let ir = emit::emit(&mut p, found[0]).map_err(|errors| errors.into_iter().map(|m| Diagnostic::general(first, m)).collect::<Vec<_>>())?;
-    emit::link::link(&ir, output).map_err(fail)?;
+    let (ir, shim) = emit::emit(&mut p, found[0]).map_err(|errors| errors.into_iter().map(|m| Diagnostic::general(first, m)).collect::<Vec<_>>())?;
+    emit::link::link(&ir, &shim, output, link).map_err(fail)?;
     Ok(std::mem::take(&mut p.warnings))
 }
 

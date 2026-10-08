@@ -173,7 +173,57 @@ pub struct Emitter<'p> {
     rationals: HashMap<String, usize>,
     static_roots: Vec<String>,
     thunks: u32,
+    /// C source that passes structs by value for foreign methods (section 4.11).
+    shim: String,
+    shim_structs: BTreeSet<ClassId>,
     pub errors: Vec<String>,
+}
+
+/// How one parameter of a foreign method that needs the C shim is passed to it.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum ShimParam {
+    Scalar(Repr),
+    /// An array of scalars: the address of its first element.
+    Array,
+    /// A value class: its object, which the shim copies into a C struct.
+    Struct,
+    /// An array of value classes: its elements, fresh objects to copy back into, and
+    /// the length.
+    StructArray,
+}
+
+#[derive(Clone, Debug)]
+pub struct Shim {
+    pub symbol: String,
+    pub params: Vec<ShimParam>,
+    pub ret_struct: bool,
+    pub ret: Repr,
+}
+
+fn c_scalar(r: Repr) -> &'static str {
+    match r {
+        Repr::I8 => "int8_t",
+        Repr::I16 => "int16_t",
+        Repr::I32 => "int32_t",
+        Repr::I64 => "int64_t",
+        Repr::U8 => "uint8_t",
+        Repr::U16 => "uint16_t",
+        Repr::U32 | Repr::Char => "uint32_t",
+        Repr::U64 => "uint64_t",
+        Repr::F32 => "float",
+        Repr::F64 => "double",
+        Repr::Bool => "_Bool",
+        _ => "void *",
+    }
+}
+
+fn c_size(r: Repr) -> usize {
+    match r {
+        Repr::I8 | Repr::U8 | Repr::Bool => 1,
+        Repr::I16 | Repr::U16 => 2,
+        Repr::I32 | Repr::U32 | Repr::Char | Repr::F32 => 4,
+        _ => 8,
+    }
 }
 
 fn esc(s: &str) -> String {
@@ -430,6 +480,139 @@ impl<'p> Emitter<'p> {
             let _ = writeln!(self.globals, "@tc.{id} = internal global ptr null");
         }
         format!("@tc.{id}")
+    }
+
+    /// Whether a type is a value class the program declares, passed to C as a struct.
+    pub fn is_struct(&self, t: &Type) -> bool {
+        match (&t.ty, self.repr(t)) {
+            (Ty::Class(id, _), Repr::Ref) => !t.nullable && self.p.class(*id).kind == TypeKind::ValueClass && self.p.class(*id).package != "cleat",
+            _ => false,
+        }
+    }
+
+    /// The C struct of a value class, with the functions that copy the fields of an
+    /// object into it and back. The offset of a field in the object follows the layout
+    /// rules of C, as LLVM does for the same fields.
+    fn c_struct(&mut self, id: ClassId) -> String {
+        let name = format!("struct cleat_s{id}");
+        if !self.shim_structs.insert(id) {
+            return name;
+        }
+        let fields: Vec<(FieldRef, Repr, u32)> = self.layout(id).fields.clone();
+        let (mut decl, mut copy_in, mut copy_out) = (String::new(), String::new(), String::new());
+        let mut at = 16usize;
+        for (k, (f, r, _)) in fields.iter().enumerate() {
+            let size = c_size(*r);
+            at = (at + size - 1) / size * size;
+            if *r == Repr::Ref {
+                let inner = self.p.field(*f).ty.class_id().unwrap_or(id);
+                let iname = self.c_struct(inner);
+                let _ = write!(decl, "{iname} f{k}; ");
+                let _ = write!(copy_in, "cleat_in_{inner}(&d->f{k}, *(char **)(o + {at})); ");
+                let _ = write!(copy_out, "cleat_out_{inner}(&s->f{k}, *(char **)(o + {at})); ");
+            } else {
+                let ct = c_scalar(*r);
+                let _ = write!(decl, "{ct} f{k}; ");
+                let _ = write!(copy_in, "d->f{k} = *({ct} *)(o + {at}); ");
+                let _ = write!(copy_out, "*({ct} *)(o + {at}) = s->f{k}; ");
+            }
+            at += size;
+        }
+        let _ = writeln!(self.shim, "{name} {{ {decl}}};");
+        let _ = writeln!(self.shim, "static void cleat_in_{id}({name} *d, char *o) {{ {copy_in}}}");
+        let _ = writeln!(self.shim, "static void cleat_out_{id}(const {name} *s, char *o) {{ {copy_out}}}");
+        name
+    }
+
+    /// The shim for a foreign method that takes or returns a struct, or `None` when
+    /// every type is a scalar or an array of scalars and the method is called directly.
+    pub fn foreign_shim(&mut self, m: MethodRef) -> Option<Shim> {
+        let md = self.p.method(m);
+        let elem = |t: &Type| self.p.array_elem(t);
+        let needs = self.is_struct(&md.ret) || md.params.iter().any(|p| self.is_struct(&p.ty) || elem(&p.ty).map(|e| self.is_struct(&e)).unwrap_or(false));
+        if !needs {
+            return None;
+        }
+        let name = md.symbol.clone().unwrap_or_else(|| md.name.clone());
+        let symbol = format!("cleat_shim_{}_{}", m.class, m.index);
+        let ret = self.repr(&md.ret);
+        let ret_struct = self.is_struct(&md.ret);
+        let first = !self.shim.contains(&format!(" {symbol}("));
+        let mut c_params = Vec::new();
+        let mut shim_params = Vec::new();
+        let mut ll_params = Vec::new();
+        let (mut before, mut after, mut args) = (String::new(), String::new(), Vec::new());
+        if ret_struct {
+            shim_params.push("char *ret".to_string());
+            ll_params.push("ptr");
+        }
+        let mut kinds = Vec::new();
+        for (i, prm) in md.params.clone().iter().enumerate() {
+            if self.is_struct(&prm.ty) {
+                let id = prm.ty.class_id().unwrap();
+                let s = self.c_struct(id);
+                c_params.push(s.clone());
+                shim_params.push(format!("char *a{i}"));
+                ll_params.push("ptr");
+                let _ = write!(before, "{s} c{i}; cleat_in_{id}(&c{i}, a{i}); ");
+                args.push(format!("c{i}"));
+                kinds.push(ShimParam::Struct);
+            } else if let Some(e) = self.p.array_elem(&prm.ty) {
+                if self.is_struct(&e) {
+                    let id = e.class_id().unwrap();
+                    let s = self.c_struct(id);
+                    c_params.push(format!("{s} *"));
+                    shim_params.push(format!("char **a{i}, char **b{i}, int64_t n{i}"));
+                    ll_params.extend(["ptr", "ptr", "i64"]);
+                    let _ = write!(
+                        before,
+                        "{s} *t{i} = malloc(sizeof({s}) * (n{i} > 0 ? n{i} : 1)); for (int64_t k = 0; k < n{i}; k++) cleat_in_{id}(&t{i}[k], a{i}[k]); "
+                    );
+                    let _ = write!(after, "for (int64_t k = 0; k < n{i}; k++) {{ cleat_out_{id}(&t{i}[k], b{i}[k]); a{i}[k] = b{i}[k]; }} free(t{i}); ");
+                    args.push(format!("t{i}"));
+                    kinds.push(ShimParam::StructArray);
+                } else {
+                    let ct = c_scalar(self.repr(&e));
+                    c_params.push(format!("{ct} *"));
+                    shim_params.push(format!("{ct} *a{i}"));
+                    ll_params.push("ptr");
+                    args.push(format!("a{i}"));
+                    kinds.push(ShimParam::Array);
+                }
+            } else {
+                let r = self.repr(&prm.ty);
+                let ct = c_scalar(r);
+                c_params.push(ct.to_string());
+                shim_params.push(format!("{ct} a{i}"));
+                ll_params.push(r.ll());
+                args.push(format!("a{i}"));
+                kinds.push(ShimParam::Scalar(r));
+            }
+        }
+        let c_ret = if ret_struct {
+            self.c_struct(md.ret.class_id().unwrap())
+        } else if ret == Repr::Unit {
+            "void".to_string()
+        } else {
+            c_scalar(ret).to_string()
+        };
+        let call = format!("{name}({})", args.join(", "));
+        let void_params = |v: &Vec<String>| if v.is_empty() { "void".to_string() } else { v.join(", ") };
+        if first {
+            let _ = writeln!(self.shim, "extern {c_ret} {name}({});", void_params(&c_params));
+            let (shim_ret, body) = if ret_struct {
+                let id = md.ret.class_id().unwrap();
+                ("void".to_string(), format!("{before}{c_ret} r = {call}; {after}cleat_out_{id}(&r, ret);"))
+            } else if ret == Repr::Unit {
+                ("void".to_string(), format!("{before}{call}; {after}"))
+            } else {
+                (c_ret.clone(), format!("{before}{c_ret} r = {call}; {after}return r;"))
+            };
+            let _ = writeln!(self.shim, "{shim_ret} {symbol}({}) {{ {body} }}", void_params(&shim_params));
+        }
+        let ll_ret = if ret_struct { "void" } else { ret.ll() };
+        self.declare(format!("declare {ll_ret} @{symbol}({})", ll_params.join(", ")));
+        Some(Shim { symbol: format!("@{symbol}"), params: kinds, ret_struct, ret })
     }
 
     pub fn next_thunk(&mut self) -> u32 {
@@ -764,7 +947,7 @@ impl<'p> Emitter<'p> {
 
     // ---- the whole program ----
 
-    fn finish(mut self, entry: ClassId) -> Result<String, Vec<String>> {
+    fn finish(mut self, entry: ClassId) -> Result<(String, String), Vec<String>> {
         let p = self.p;
         let n = p.classes.len() as ClassId;
         for id in 0..n {
@@ -836,7 +1019,8 @@ impl<'p> Emitter<'p> {
         out.push_str(&self.globals);
         out.push('\n');
         out.push_str(&self.funcs);
-        Ok(out)
+        let shim = if self.shim.is_empty() { String::new() } else { format!("#include <stdint.h>\n#include <stdlib.h>\n{}", self.shim) };
+        Ok((out, shim))
     }
 
     fn ptr_array_global(&mut self, items: &[String], name: &str) -> String {
@@ -850,7 +1034,7 @@ impl<'p> Emitter<'p> {
 }
 
 const HEADER: &str = r#"; Generated by cleatc.
-%Ctx = type { ptr, ptr, i32, i32, ptr }
+%Ctx = type { ptr, ptr, i32, i32, ptr, ptr }
 %MethodEntry = type { i32, i32, ptr }
 %FieldInfo = type { ptr, i32, i32, i32, i32 }
 %AnnInfo = type { ptr, ptr }
@@ -863,6 +1047,8 @@ const HEADER: &str = r#"; Generated by cleatc.
 %Program = type { i32, i32, ptr, ptr, i32, i32, ptr, ptr, ptr, ptr, ptr, ptr }
 @cl_unit = external global ptr
 declare void @llvm.memset.p0.i64(ptr, i8, i64, i1)
+declare ptr @llvm.frameaddress.p0(i32)
+declare void @cl_stack_overflow()
 declare ptr @cl_start(ptr)
 declare ptr @cl_args(ptr)
 declare i32 @cl_finish(ptr)
@@ -887,13 +1073,15 @@ declare ptr @cl_rational_const(ptr, ptr, ptr, i64)
 declare void @cl_mirror_fail(ptr, i32, ptr, i64)
 declare void @cl_foreign_enter(ptr)
 declare void @cl_foreign_leave(ptr)
+declare ptr @cl_ffi_fresh(ptr, ptr)
 declare ptr @cl_Array_get_Int(ptr, ptr, i64)
 declare void @cl_Array_set_Int_Object(ptr, ptr, i64, ptr)
 declare i8 @cl_Object_equals_Object(ptr, ptr, ptr)
 "#;
 
-/// Compiles a checked program to LLVM IR. `entry` is the class whose `main` runs.
-pub fn emit(p: &mut Program, entry: ClassId) -> Result<String, Vec<String>> {
+/// Compiles a checked program to LLVM IR. `entry` is the class whose `main` runs. The
+/// second result is C source to compile with it, when a foreign method passes a struct.
+pub fn emit(p: &mut Program, entry: ClassId) -> Result<(String, String), Vec<String>> {
     let n = p.classes.len();
     let w = p.wk.clone();
     // How each class's values are held.
@@ -1087,6 +1275,8 @@ pub fn emit(p: &mut Program, entry: ClassId) -> Result<String, Vec<String>> {
         rationals: HashMap::new(),
         static_roots: Vec::new(),
         thunks: 0,
+        shim: String::new(),
+        shim_structs: BTreeSet::new(),
         errors: Vec::new(),
     };
     let _ = TypeKind::Class;

@@ -42,6 +42,8 @@ pub struct Ctx {
     pub _pad: u32,
     /// The `Thread` object of the running thread, or null before `Thread.current`.
     pub thread: Obj,
+    /// The lowest address a call's frame may have. Below it, the stack is full.
+    pub stack_limit: usize,
     // The rest is the runtime's own.
     pub temps: Vec<Obj>,
     pub allocated: Vec<Obj>,

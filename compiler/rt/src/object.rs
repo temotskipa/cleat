@@ -224,6 +224,53 @@ pub unsafe extern "C" fn cl_Array_unfilled_Int(ctx: *mut Ctx, targs: *const Td, 
     unsafe { cl_array_new(ctx, array_type(*targs), n) }
 }
 
+/// A copy of a value of a class the program declares, with its value fields copied too.
+unsafe fn copy_value(ctx: *mut Ctx, o: Obj) -> Obj {
+    unsafe {
+        if o.is_null() {
+            return o;
+        }
+        let c = class_of(o);
+        if !c.is(F_VALUE) || c.kind != 0 {
+            return o;
+        }
+        let size = c.size as usize;
+        let _t = Temp::new(ctx, o);
+        let n = checked(ctx, gc::alloc(ctx, (*o).td, size));
+        if n.is_null() {
+            return n;
+        }
+        std::ptr::copy_nonoverlapping(at::<u8>(o, BODY), at::<u8>(n, BODY), size - BODY);
+        let _n = Temp::new(ctx, n);
+        for f in slice(c.fields, c.nfields) {
+            if f.kind == 0 {
+                let inner = copy_value(ctx, *at::<Obj>(o, f.offset as usize));
+                *at::<Obj>(n, f.offset as usize) = inner;
+            }
+        }
+        n
+    }
+}
+
+/// An array of fresh copies of the elements of an array. What a foreign function writes
+/// goes to the copies, so no other holder of an element sees it (section 4.11).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn cl_ffi_fresh(ctx: *mut Ctx, a: Obj) -> Obj {
+    unsafe {
+        let _a = Temp::new(ctx, a);
+        let fresh = cl_array_new(ctx, (*a).td, len(a));
+        if fresh.is_null() {
+            return fresh;
+        }
+        let _f = Temp::new(ctx, fresh);
+        for i in 0..len(a) as usize {
+            let copy = copy_value(ctx, *at::<Obj>(a, ELEMS).add(i));
+            *at::<Obj>(fresh, ELEMS).add(i) = copy;
+        }
+        fresh
+    }
+}
+
 // ---- calling the three methods every value has ----
 
 pub unsafe fn v_equals(ctx: *mut Ctx, a: Obj, b: Obj) -> bool {
@@ -832,6 +879,15 @@ pub unsafe extern "C" fn cl_start(program: *const Program) -> *mut Ctx {
         cl_unit = gc::alloc_static(types::wk_type(K_UNIT), BODY);
         gc::new_ctx()
     }
+}
+
+/// A call found no room for its frame (section 9.10). This is not an exception.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn cl_stack_overflow() {
+    use std::io::Write;
+    let _ = std::io::stdout().flush();
+    eprintln!("cleat: a call cannot be given stack space");
+    std::process::exit(1);
 }
 
 /// The arguments the host passed, without the program's own name.

@@ -53,13 +53,22 @@ pub fn program() -> &'static Program {
     unsafe { &*PROGRAM }
 }
 
+/// The stack every thread of a program has: `emit/link.rs` asks the linker for it, and
+/// `host.rs` asks for it when it starts a thread.
+pub const STACK: usize = 16 << 20;
+
 pub fn new_ctx() -> *mut Ctx {
+    // The thread's own stack starts about here. Calls stop well before its end, so
+    // the runtime always has room to report that the stack is full.
+    let marker = 0u8;
+    let top = &marker as *const u8 as usize;
     let ctx = Box::into_raw(Box::new(Ctx {
         exc: std::ptr::null_mut(),
         top: std::ptr::null_mut(),
         poll: std::sync::atomic::AtomicU32::new(0),
         _pad: 0,
         thread: std::ptr::null_mut(),
+        stack_limit: top.saturating_sub(STACK - (1 << 20)),
         temps: Vec::new(),
         allocated: Vec::new(),
         bytes: 0,

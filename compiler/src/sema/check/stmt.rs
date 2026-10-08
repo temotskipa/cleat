@@ -1140,8 +1140,8 @@ fn check_ctor(p: &mut Program, id: ClassId, ci: usize) {
 
     ck.frame().ctor = CtorPhase::Before;
     let hidden: Vec<TExpr> = if c.is_enum() {
-        let name = ck.declare("$name", ck.string(), true, k.pos, true);
-        let ordinal = ck.declare("$ordinal", ck.int(), true, k.pos, true);
+        let name = ck.declare("#name", ck.string(), true, k.pos, true);
+        let ordinal = ck.declare("#ordinal", ck.int(), true, k.pos, true);
         vec![TExpr { kind: TKind::Local(name), ty: ck.string() }, TExpr { kind: TKind::Local(ordinal), ty: ck.int() }]
     } else {
         Vec::new()

@@ -979,6 +979,11 @@ impl<'a, 'p> Func<'a, 'p> {
                 }
             }
         }
+        if md.foreign {
+            if let Some(shim) = self.e.foreign_shim(c.method) {
+                return self.shim_call(c, &shim, want);
+            }
+        }
         let target = if c.dispatch == Dispatch::Virtual { self.e.root_of(c.method) } else { c.method };
         let sig = self.e.sig(target);
         let recv = match (&c.recv, sig.recv) {
@@ -1049,6 +1054,84 @@ impl<'a, 'p> Func<'a, 'p> {
             self.e.errors.push(format!("internal: the instance method `{}` is called without a receiver", md.name));
         }
         self.finish_call(&callee, &sig, all, want)
+    }
+
+    /// A foreign call that passes a struct: through the C shim, which copies each value
+    /// class into the struct C expects and back (section 4.11).
+    fn shim_call(&mut self, c: &Call, shim: &Shim, want: Repr) -> Val {
+        enum Piece {
+            Value(&'static str, Val),
+            Elements(Val),
+            Length(Val),
+        }
+        let ret_ty = self.e.p.method(c.method).ret.clone();
+        let mut pieces = Vec::new();
+        for (a, kind) in c.args.iter().zip(shim.params.iter()) {
+            let v = self.expr(a);
+            match kind {
+                ShimParam::Scalar(r) => {
+                    let v = self.convert(v, self.repr(&a.ty), *r);
+                    pieces.push(Piece::Value(r.ll(), v));
+                }
+                ShimParam::Struct => pieces.push(Piece::Value("ptr", v)),
+                ShimParam::Array => pieces.push(Piece::Elements(v)),
+                ShimParam::StructArray => {
+                    // The function writes into fresh values, which then take the
+                    // elements' places.
+                    let o = self.val(&v);
+                    let f = self.tmp();
+                    self.ins(&format!("{f} = call ptr @cl_ffi_fresh(ptr %ctx, ptr {o})"));
+                    self.check();
+                    let fresh = self.root(&f);
+                    pieces.push(Piece::Elements(v.clone()));
+                    pieces.push(Piece::Elements(fresh));
+                    pieces.push(Piece::Length(v));
+                }
+            }
+        }
+        let result = if shim.ret_struct { self.default_value(&ret_ty, 0) } else { None };
+        let mut all: Vec<String> = Vec::new();
+        if let Some(r) = &result {
+            let o = self.val(r);
+            all.push(format!("ptr {o}"));
+        }
+        for p in &pieces {
+            match p {
+                Piece::Value(ty, v) => {
+                    let x = self.val(v);
+                    all.push(format!("{ty} {x}"));
+                }
+                Piece::Elements(v) => {
+                    let o = self.val(v);
+                    let e = self.tmp();
+                    self.ins(&format!("{e} = getelementptr inbounds i8, ptr {o}, i64 24"));
+                    all.push(format!("ptr {e}"));
+                }
+                Piece::Length(v) => {
+                    let o = self.val(v);
+                    let lp = self.tmp();
+                    self.ins(&format!("{lp} = getelementptr inbounds i8, ptr {o}, i64 16"));
+                    let n = self.tmp();
+                    self.ins(&format!("{n} = load i64, ptr {lp}"));
+                    all.push(format!("i64 {n}"));
+                }
+            }
+        }
+        self.ins("call void @cl_foreign_enter(ptr %ctx)");
+        let scalar = if shim.ret_struct || shim.ret == Repr::Unit {
+            self.ins(&format!("call void {}({})", shim.symbol, all.join(", ")));
+            None
+        } else {
+            let t = self.tmp();
+            self.ins(&format!("{t} = call {} {}({})", shim.ret.ll(), shim.symbol, all.join(", ")));
+            Some(t)
+        };
+        self.ins("call void @cl_foreign_leave(ptr %ctx)");
+        match (result, scalar) {
+            (Some(o), _) => self.convert(o, Repr::Ref, want),
+            (None, Some(t)) => self.convert(Val::Imm(shim.ret, t), shim.ret, want),
+            _ => Val::Unit,
+        }
     }
 
     /// A type argument that is the unknown type of a wildcard: the type argument of the
@@ -1474,9 +1557,22 @@ impl<'a, 'p> Func<'a, 'p> {
         text.push_str("entry:\n");
         text.push_str(&self.allocas);
         let n = self.slots_max;
-        text.push_str("  %poll = getelementptr inbounds i8, ptr %ctx, i64 16\n");
         if n > 0 {
             let _ = writeln!(text, "  %frame = alloca {{ ptr, i64, [{n} x ptr] }}");
+        }
+        if let (true, EnvSrc::Both(_, nc, nm)) = (self.uses_env, self.env_src) {
+            let _ = writeln!(text, "  %env = alloca [{} x ptr]", nc + nm);
+        }
+        // A call that finds the stack full ends the program (section 9.10).
+        text.push_str("  %sp = call ptr @llvm.frameaddress.p0(i32 0)\n");
+        text.push_str("  %sp.limit.at = getelementptr inbounds i8, ptr %ctx, i64 32\n");
+        text.push_str("  %sp.limit = load ptr, ptr %sp.limit.at\n");
+        text.push_str("  %sp.full = icmp ult ptr %sp, %sp.limit\n");
+        text.push_str("  br i1 %sp.full, label %stack.full, label %setup\n");
+        text.push_str("stack.full:\n  call void @cl_stack_overflow()\n  unreachable\n");
+        text.push_str("setup:\n");
+        text.push_str("  %poll = getelementptr inbounds i8, ptr %ctx, i64 16\n");
+        if n > 0 {
             let _ = writeln!(text, "  call void @llvm.memset.p0.i64(ptr %frame, i8 0, i64 {}, i1 false)", 16 + 8 * n as u64);
             text.push_str("  %top = getelementptr inbounds i8, ptr %ctx, i64 8\n");
             text.push_str("  %prev = load ptr, ptr %top\n");
@@ -1506,7 +1602,6 @@ impl<'a, 'p> Func<'a, 'p> {
                     let _ = writeln!(text, "  %env = call ptr @cl_env(ptr %p0, ptr {})", self.e.class_info(c));
                 }
                 EnvSrc::Both(c, nc, nm) => {
-                    let _ = writeln!(text, "  %env = alloca [{} x ptr]", nc + nm);
                     let _ = writeln!(text, "  %cenv = call ptr @cl_env(ptr %p0, ptr {})", self.e.class_info(c));
                     for i in 0..nc + nm {
                         let (src, j) = if i < nc { ("%cenv", i) } else { ("%targs", i - nc) };
