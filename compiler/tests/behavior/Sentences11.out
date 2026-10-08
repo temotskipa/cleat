@@ -1,0 +1,7 @@
+dangling else: 2 3
+binding: 7 true
+right: 5 5 2 c
+left: -5 1
+cast or subtraction: 4 -5
+array creation: 3 2
+references: 3 5

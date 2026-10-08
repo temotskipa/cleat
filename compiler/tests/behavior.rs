@@ -45,6 +45,7 @@ cases![
     sentences_01 => "Sentences01",
     sentences_02 => "Sentences02",
     sentences_05 => "Sentences05",
+    sentences_11 => "Sentences11",
 ];
 
 /// Section 3.4: a method that a subclass may not name is not overridden. The subclass

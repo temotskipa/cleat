@@ -1,0 +1,34 @@
+// Chapter 11 at run time: how the grammar's open choices are settled.
+// tests/spec_rules/described_11.rs names a line of this program's output for each.
+package t;
+
+public class Sentences11 {
+    static Int pick(Boolean a, Boolean b) {
+        if (a) if (b) return 1; else return 2;
+        return 3;
+    }
+
+    public static void main() {
+        Console.println("dangling else: " + pick(true, false) + " " + pick(false, false));
+
+        var two = 2;
+        var seven = 7;
+        Console.println("binding: " + (1 + two * 3) + " " + (1 + two < 4 && two * 2 == 4 || false));
+
+        var a = 0;
+        var b = 0;
+        a = b = 5;
+        @Nullable String missing = null;
+        Console.println("right: " + a + " " + b + " " + (false ? 1 : true ? 2 : 3) + " " + (missing ?? missing ?? "c"));
+        Console.println("left: " + (two - 3 - 4) + " " + (seven % 4 % 2));
+
+        var n = 5;
+        Console.println("cast or subtraction: " + ((n) - 1) + " " + (Int) (-n));
+        Console.println("array creation: " + new Int[3].length() + " " + new Int[] { 7, 8 }.length());
+
+        String s = "abc";
+        Function0<Int> through = s::length;
+        Function1<String, Int> onType = String::length;
+        Console.println("references: " + through.invoke() + " " + onType.invoke("hello"));
+    }
+}
