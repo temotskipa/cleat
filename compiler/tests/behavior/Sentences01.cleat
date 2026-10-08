@@ -1,0 +1,25 @@
+// Chapter 1 at run time: what the escapes and the text blocks of section 1.3 denote.
+// tests/spec_rules/described_01.rs names a line of this program's output for each.
+package t;
+
+public class Sentences01 {
+    public static void main() {
+        Console.println("escapes: " + '\n'.code() + " " + '\t'.code() + " " + '\r'.code());
+        Console.println("after the backslash: " + '\\'.code() + " " + '\"'.code() + " " + '\''.code());
+        Console.println("four digits: " + 'é'.code() + " " + "A");
+        Console.println("braces: " + '\u{1F600}'.code() + " " + '\u{41}'.code());
+
+        String block = """
+            first
+              second
+            """;
+        Console.println("text block: " + block.contains("first") + " " + block.contains("second"));
+        Console.println("indent: " + block.equals("first\n  second"));
+        Console.println("line breaks: " + block.length() + " " + block.toUtf8()[5]);
+
+        String tabbed = """
+            \tx
+            """;
+        Console.println("escaped block: " + tabbed.equals("\tx"));
+    }
+}

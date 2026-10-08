@@ -20,15 +20,63 @@ struct Rule {
     accept: &'static [&'static str],
     /// For a sentence no program can break: why it has no case.
     note: &'static str,
+    /// For a sentence about a running program: a program of `tests/behavior`, and the
+    /// start of the line of its output that shows the sentence.
+    ran: (&'static str, &'static str),
+    /// For a sentence another test holds: the file under `tests`, and the test's name.
+    held: (&'static str, &'static str),
 }
 
 const fn rule(chapter: &'static str, phrase: &'static str, reject: &'static [(&'static str, &'static str)], accept: &'static [&'static str]) -> Rule {
-    Rule { chapter, phrase, reject, accept, note: "" }
+    Rule { chapter, phrase, reject, accept, note: "", ran: ("", ""), held: ("", "") }
 }
 
 const fn stated(chapter: &'static str, phrase: &'static str, note: &'static str) -> Rule {
-    Rule { chapter, phrase, reject: &[], accept: &[], note }
+    Rule { chapter, phrase, reject: &[], accept: &[], note, ran: ("", ""), held: ("", "") }
 }
+
+const fn ran(chapter: &'static str, phrase: &'static str, program: &'static str, line: &'static str) -> Rule {
+    Rule { chapter, phrase, reject: &[], accept: &[], note: "", ran: (program, line), held: ("", "") }
+}
+
+const fn held(chapter: &'static str, phrase: &'static str, file: &'static str, test: &'static str) -> Rule {
+    Rule { chapter, phrase, reject: &[], accept: &[], note: "", ran: ("", ""), held: (file, test) }
+}
+
+impl Rule {
+    fn has_programs(&self) -> bool {
+        !self.reject.is_empty() || !self.accept.is_empty()
+    }
+
+    /// How many of the four ways a case can stand it uses. One is right.
+    fn ways(&self) -> usize {
+        [self.has_programs(), !self.note.is_empty(), !self.ran.0.is_empty(), !self.held.0.is_empty()].iter().filter(|x| **x).count()
+    }
+}
+
+// The sentences that define and describe, one file for each chapter.
+#[path = "spec_rules/described_01.rs"]
+mod described_01;
+
+/// Every case for a sentence that neither requires nor restricts.
+fn described() -> Vec<&'static Rule> {
+    let chapters: [&'static [Rule]; 1] = [described_01::SENTENCES];
+    chapters.iter().flat_map(|c| c.iter()).collect()
+}
+
+/// The chapters whose every sentence has a case.
+const DESCRIBED: &[&str] = &["01"];
+
+/// A table that one test holds whole: the chapter, words of its header row, the file
+/// under `tests` and the test.
+const TABLES: &[(&str, &str, &str, &str)] = &[
+    ("04", "| Spelling | Call |", "spec_tables", "each_operator_of_section_4_6_is_its_method"),
+    ("04", "| Cleat type | C type |", "spec_tables", "the_machine_types_of_section_4_11_are_accepted_on_a_foreign_method"),
+    ("06", "| From | Converts implicitly to |", "spec_tables", "the_implicit_conversions_are_exactly_the_table_of_section_6_7"),
+    ("08", "| Site | Declaration |", "spec_tables", "the_sites_of_section_8_2_are_the_constants_of_site"),
+    ("08", "| Annotation | Written on | Rule |", "spec_tables", "the_prelude_declares_the_annotations_of_section_8_10"),
+    ("09", "| Class | Raised when |", "spec_tables", "the_prelude_declares_the_exceptions_of_section_9_2"),
+];
 
 const UNREACHABLE: &str = "this statement is unreachable";
 const UNASSIGNED: &str = "is used where it may not have been assigned";
@@ -1760,8 +1808,17 @@ fn states_a_requirement(s: &str) -> bool {
     s.contains("reject") || s.contains("is not written") || s.contains("does not hide") || s.contains("may not") || has_word("must") || has_word("cannot") || has_word("legal")
 }
 
-/// Every sentence of the specification's prose, with its chapter.
-fn all_sentences() -> Vec<(String, String)> {
+/// A sentence of the specification's prose.
+struct Sentence {
+    chapter: String,
+    text: String,
+    /// The header row of the table the sentence is a row of.
+    table: Option<String>,
+}
+
+/// Every sentence of the specification's prose. The header row of a table names its
+/// columns and is not a sentence.
+fn prose_sentences() -> Vec<Sentence> {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("spec");
     let mut files: Vec<PathBuf> = std::fs::read_dir(dir).unwrap().map(|e| e.unwrap().path()).filter(|p| p.extension().and_then(|e| e.to_str()) == Some("md")).collect();
     files.sort();
@@ -1769,18 +1826,31 @@ fn all_sentences() -> Vec<(String, String)> {
     for path in files {
         let chapter = path.file_name().unwrap().to_string_lossy()[..2].to_string();
         let text = prose(&std::fs::read_to_string(&path).unwrap().replace("\r\n", "\n"));
-        for line in text.lines() {
-            let line = line.trim();
+        let lines: Vec<&str> = text.lines().map(|l| l.trim()).collect();
+        let mut table: Option<String> = None;
+        for (i, line) in lines.iter().enumerate() {
+            if !line.starts_with('|') {
+                table = None;
+            }
             if line.is_empty() || line.starts_with('#') || line.starts_with("| ---") {
+                continue;
+            }
+            if line.starts_with('|') && lines.get(i + 1).is_some_and(|next| next.starts_with("| ---")) {
+                table = Some(line.to_string());
                 continue;
             }
             let line = line.strip_prefix("- ").unwrap_or(line);
             for s in sentences(line) {
-                out.push((chapter.clone(), s));
+                out.push(Sentence { chapter: chapter.clone(), text: s, table: table.clone() });
             }
         }
     }
     out
+}
+
+/// Every sentence of the specification's prose, with its chapter.
+fn all_sentences() -> Vec<(String, String)> {
+    prose_sentences().into_iter().map(|s| (s.chapter, s.text)).collect()
 }
 
 /// A sentence that forbids or limits without the words of a requirement.
@@ -1874,6 +1944,99 @@ fn every_restriction_the_specification_states_has_a_case() {
     }
 }
 
+/// Whether a test of this name is written in this file under `tests`.
+fn test_exists(file: &str, test: &str) -> bool {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests").join(format!("{file}.rs"));
+    std::fs::read_to_string(path).is_ok_and(|text| text.contains(&format!("fn {test}()")) || text.contains(&format!("({test}, ")) || text.contains(&format!("    {test} => ")))
+}
+
+/// Every sentence of a finished chapter has a case: in one of the three tables, or as
+/// a row of a table that one test holds whole.
+#[test]
+fn every_sentence_of_the_specification_has_a_case() {
+    let cases = described();
+    let all = prose_sentences();
+    let mut missing = Vec::new();
+    let mut by_table = 0;
+    let mut others = 0;
+    for s in all.iter().filter(|s| DESCRIBED.contains(&s.chapter.as_str())) {
+        let named = RULES.iter().chain(FURTHER).chain(cases.iter().copied()).any(|r| r.chapter == s.chapter && s.text.contains(r.phrase));
+        let in_table = s.table.as_ref().is_some_and(|header| TABLES.iter().any(|t| t.0 == s.chapter && header.contains(t.1)));
+        if !states_a_requirement(&s.text) && !states_a_restriction(&s.text) {
+            others += 1;
+            if in_table && !named {
+                by_table += 1;
+            }
+        }
+        if !named && !in_table {
+            missing.push(format!("{}: {}", s.chapter, s.text));
+        }
+    }
+    assert!(missing.is_empty(), "{} sentences have no case:\n{}", missing.len(), missing.join("\n"));
+    let mut wrong = Vec::new();
+    for r in &cases {
+        let mut hits: Vec<&String> = all.iter().filter(|s| s.chapter == r.chapter && s.text.contains(r.phrase)).map(|s| &s.text).collect();
+        hits.dedup();
+        if hits.len() != 1 {
+            wrong.push(format!("chapter {}: `{}` is in {} sentences", r.chapter, r.phrase, hits.len()));
+        } else if states_a_requirement(hits[0]) || states_a_restriction(hits[0]) {
+            wrong.push(format!("chapter {}: `{}` names a sentence of another table", r.chapter, r.phrase));
+        }
+        if r.ways() != 1 {
+            wrong.push(format!("chapter {}: `{}` needs programs, a run test, another test or a reason, and one of them", r.chapter, r.phrase));
+        }
+        if !r.held.0.is_empty() && !test_exists(r.held.0, r.held.1) {
+            wrong.push(format!("chapter {}: `{}` names the test `{}` of tests/{}.rs, and there is none", r.chapter, r.phrase, r.held.1, r.held.0));
+        }
+    }
+    for t in TABLES {
+        if !test_exists(t.2, t.3) {
+            wrong.push(format!("the table `{}` names the test `{}` of tests/{}.rs, and there is none", t.1, t.3, t.2));
+        }
+        if !all.iter().any(|s| s.chapter == t.0 && s.table.as_ref().is_some_and(|h| h.contains(t.1))) {
+            wrong.push(format!("chapter {} has no table `{}`", t.0, t.1));
+        }
+    }
+    assert!(wrong.is_empty(), "{}", wrong.join("\n"));
+    let count = |f: &dyn Fn(&Rule) -> bool| cases.iter().filter(|r| f(r)).count();
+    println!(
+        "chapters {}: {} sentences define or describe. {} have programs, {} name a line of a run test, {} name another test, {} are rows of a table one test holds, {} have a reason",
+        DESCRIBED.join(", "),
+        others,
+        count(&|r| r.has_programs()),
+        count(&|r| !r.ran.0.is_empty()),
+        count(&|r| !r.held.0.is_empty()),
+        by_table,
+        count(&|r| !r.note.is_empty())
+    );
+    for r in cases.iter().filter(|r| !r.note.is_empty()) {
+        println!("  {} \"{}\": {}", r.chapter, r.phrase, r.note);
+    }
+}
+
+/// A case that names a line of a run test names a line that program prints, and
+/// `tests/behavior.rs` runs the program.
+#[test]
+fn every_line_a_case_names_is_printed_by_its_run_test() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests");
+    let driver = std::fs::read_to_string(dir.join("behavior.rs")).unwrap();
+    let mut wrong = Vec::new();
+    let mut lines = 0;
+    for r in RULES.iter().chain(FURTHER).chain(described()).filter(|r| !r.ran.0.is_empty()) {
+        lines += 1;
+        let (program, line) = r.ran;
+        if !driver.contains(&format!("\"{program}\"")) {
+            wrong.push(format!("tests/behavior.rs does not run `{program}`"));
+        }
+        let out = std::fs::read_to_string(dir.join("behavior").join(format!("{program}.out"))).unwrap_or_default();
+        if !out.lines().any(|l| l.trim_start().starts_with(line)) {
+            wrong.push(format!("{} \"{}\": tests/behavior/{program}.out has no line that begins `{line}`", r.chapter, r.phrase));
+        }
+    }
+    assert!(wrong.is_empty(), "{}", wrong.join("\n"));
+    println!("{lines} cases name a line of a run test, and each line is printed");
+}
+
 // ---- the programs ----
 
 /// A case is one file, `T.cleat`, or several, each after a line `==== name`.
@@ -1910,7 +2073,9 @@ fn run(chapter: &str) {
     let mut failures = Vec::new();
     let mut rejected = 0;
     let mut accepted = 0;
-    for r in RULES.iter().chain(FURTHER).filter(|r| r.chapter == chapter && r.note.is_empty()) {
+    let described = described();
+    let cases: Vec<&Rule> = RULES.iter().chain(FURTHER).chain(described.iter().copied()).filter(|r| r.chapter == chapter && r.has_programs()).collect();
+    for r in &cases {
         let before = failures.len();
         for (case, words) in r.reject {
             rejected += 1;
@@ -1931,8 +2096,7 @@ fn run(chapter: &str) {
         let verdict = if failures.len() == before { "ok  " } else { "FAIL" };
         println!("{chapter} {verdict} {} rejected, {} accepted: {}", r.reject.len(), r.accept.len(), r.phrase);
     }
-    let rules = RULES.iter().chain(FURTHER).filter(|r| r.chapter == chapter && r.note.is_empty()).count();
-    println!("chapter {chapter}: {rules} rules, {rejected} programs rejected each for its rule, {accepted} programs accepted");
+    println!("chapter {chapter}: {} cases with programs, {rejected} programs rejected each for its rule, {accepted} programs accepted", cases.len());
     assert!(failures.is_empty(), "{} programs of chapter {chapter} went wrong:\n\n{}", failures.len(), failures.join("\n\n"));
 }
 
@@ -1960,6 +2124,7 @@ chapters![
     chapter_10_omissions => "10",
     chapter_11_syntax => "11",
     chapter_12_flow => "12",
+    chapter_13_concurrency => "13",
 ];
 
 #[test]

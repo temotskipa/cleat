@@ -42,6 +42,7 @@ cases![
     members => "Members",
     widths => "Widths",
     rules => "Rules",
+    sentences_01 => "Sentences01",
 ];
 
 /// Section 3.4: a method that a subclass may not name is not overridden. The subclass
