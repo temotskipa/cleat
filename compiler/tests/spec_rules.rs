@@ -61,15 +61,17 @@ mod described_01;
 mod described_02;
 #[path = "spec_rules/described_03.rs"]
 mod described_03;
+#[path = "spec_rules/described_05.rs"]
+mod described_05;
 
 /// Every case for a sentence that neither requires nor restricts.
 fn described() -> Vec<&'static Rule> {
-    let chapters: &[&'static [Rule]] = &[described_01::SENTENCES, described_02::SENTENCES, described_03::SENTENCES];
+    let chapters: &[&'static [Rule]] = &[described_01::SENTENCES, described_02::SENTENCES, described_03::SENTENCES, described_05::SENTENCES];
     chapters.iter().flat_map(|c| c.iter()).collect()
 }
 
 /// The chapters whose every sentence has a case.
-const DESCRIBED: &[&str] = &["01", "02", "03"];
+const DESCRIBED: &[&str] = &["01", "02", "03", "05"];
 
 /// A table that one test holds whole: the chapter, words of its header row, the file
 /// under `tests` and the test.

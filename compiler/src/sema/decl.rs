@@ -1451,6 +1451,10 @@ fn members(p: &mut Program) {
                     let intrinsic = has_ann(p, unit, &mods.annotations, p.wk.intrinsic);
                     let mut dummy = Type::simple(p.wk.unit);
                     let anns = apply_annotations(p, &cx_inst, &mut dummy, &mods.annotations, true);
+                    // Section 8.2: a qualifier is written before the type it qualifies.
+                    if dummy != Type::simple(p.wk.unit) {
+                        p.error(unit, cd.pos, "a qualifier is written before a type, and a constructor has none");
+                    }
                     let aud = member_aud(mods, Aud::Private);
                     let only = only_list(p, &cx_inst, mods, id);
                     match (&cd.params, kind) {

@@ -422,6 +422,8 @@ impl Program {
         }
         match &t.ty {
             Ty::Null => true,
+            // Section 5.1: the one instance of `Null` is `null`.
+            Ty::Class(id, _) if *id == self.wk.null => true,
             Ty::Var(tv) => self.bounds_of(*tv).iter().all(|b| self.may_be_null(b)),
             _ => false,
         }

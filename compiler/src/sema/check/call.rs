@@ -977,6 +977,12 @@ impl<'p> Checker<'p> {
         if this.ty.is_error() {
             return this;
         }
+        // Section 5.3: in a method with a `@Nullable` receiver, `this` may be `null`
+        // until it is narrowed, and a call with no receiver is a send to `this`.
+        if self.p.may_be_null(&this.ty) && !self.p.method(c.callee).recv_nullable {
+            let s = self.show(&this.ty);
+            self.err(pos, format!("`{name}` is sent to a `{s}`, which may be `null`; only a method that declares a `@Nullable` receiver is sent to it until it is narrowed"));
+        }
         self.finish_method(Some(this), c, app, site, pre, false)
     }
 

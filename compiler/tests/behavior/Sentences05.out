@@ -1,0 +1,16 @@
+nullable field: true
+Null methods: null 0 true false
+equals null: false false false false
+coalesce, left is not null:
+coalesce, left is null:
+  evaluated the right operand
+coalesce: some the right operand
+precedence: c false true
+casts: a String is not an Int
+cast of null: raises
+nullable cast: true
+instanceof null: false false
+type arguments: true false true false cleat.List<@cleat.Nullable cleat.String>
+generic cast to String: raises
+generic cast to @Nullable String: true
+Unit: true cleat.Unit

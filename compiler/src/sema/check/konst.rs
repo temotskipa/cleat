@@ -608,6 +608,12 @@ pub fn evaluate_annotations(p: &mut Program) {
             for a in &uses {
                 // Qualifier marks and declaration annotations share the modifier position.
                 if let Some(v) = ck.eval_annotation(a, Some(site)) {
+                    // Section 8.2: a qualifier is written before the type it qualifies.
+                    if ck.p.class(v.class).qualifier != Qualifier::No {
+                        let name = ck.p.class(v.class).name.clone();
+                        ck.err(a.pos, format!("`@{name}` is a qualifier: it is written before a type, and the declaration of a type is not one"));
+                        continue;
+                    }
                     if anns.iter().any(|o: &AnnValue| o.class == v.class) {
                         ck.err(a.pos, "an annotation is written at most once in one position");
                         continue;
@@ -676,6 +682,13 @@ pub fn evaluate_annotations(p: &mut Program) {
             let mut anns: Vec<AnnValue> = Vec::new();
             for a in uses {
                 if let Some(v) = ck.eval_annotation(a, Some(site)) {
+                    // A qualifier among a member's modifiers was moved onto its type. One
+                    // that is still here stands before a constructor, which has no type.
+                    if ck.p.class(v.class).qualifier != Qualifier::No {
+                        let name = ck.p.class(v.class).name.clone();
+                        ck.err(a.pos, format!("`@{name}` is a qualifier: it is written before a type, and there is none here"));
+                        continue;
+                    }
                     if anns.iter().any(|o| o.class == v.class) {
                         ck.err(a.pos, "an annotation is written at most once in one position");
                         continue;
