@@ -1747,6 +1747,11 @@ fn hierarchy(p: &mut Program) {
                     if !special.contains(&mm.name.as_str()) && (mm.recv_nullable != nn.recv_nullable || mm.recv_quals != nn.recv_quals) {
                         p.error(unit, mm.pos, "an override has the same receiver qualifiers as the method it overrides");
                     }
+                    // Section 2.5: the three open methods of `Object` take a `@Nullable`
+                    // receiver, and an override of them does not.
+                    if special.contains(&mm.name.as_str()) && (mm.recv_nullable || !mm.recv_quals.is_empty()) {
+                        p.error(unit, mm.pos, format!("an override of `{}` declares an ordinary receiver, with no qualifier", mm.name));
+                    }
                     overrides.push(nref);
                 }
             }

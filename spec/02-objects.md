@@ -89,7 +89,7 @@ If two superinterfaces provide a body for the same signature and the class does 
 
 An interface that is not sealed may be implemented by any type that can see it, and `open` may be written to state that. A `sealed` interface names in `permits` the only types that may implement or extend it. `final interface` is rejected.
 
-**Static methods.** A static method with a body belongs to the interface's class object, like a static method of a class. A static method without a body is a requirement on implementers: every class that implements the interface and is not abstract has a public static method with that name and signature. The signature may use the interface's type parameters, which stand for the implementer's type arguments.
+**Static methods.** A static method with a body belongs to the interface's class object, like a static method of a class. A static method without a body is a requirement on implementers: every class that implements the interface and is not abstract has a public static method with that name and signature. That method carries `@Override`, as [chapter 8](08-annotations.md#88-the-preludes-declaration-annotations) asks of a method that implements an interface method. The signature may use the interface's type parameters, which stand for the implementer's type arguments.
 
 ```java
 public interface Numeric<T> {

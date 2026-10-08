@@ -1,0 +1,162 @@
+// Chapter 2 at run time. tests/spec_rules/described_02.rs names a line of this
+// program's output for each sentence it shows.
+package t;
+
+class Thing {
+}
+
+value class Point {
+    public Int x;
+    public Int y;
+}
+
+value class Pair {
+    public Int x;
+    public Int y;
+}
+
+interface Greeter {
+    String greet() {
+        return "interface body";
+    }
+
+    String name();
+}
+
+class Plain implements Greeter {
+    @Override
+    public String name() {
+        return "plain";
+    }
+}
+
+class Loud implements Greeter {
+    @Override
+    public String name() {
+        return "loud";
+    }
+
+    @Override
+    public String greet() {
+        return "class body";
+    }
+}
+
+class Counter {
+    public static Int total = 0;
+    public Int own = 0;
+
+    public void bump() {
+        total = total + 1;
+        own = own + 1;
+    }
+}
+
+class Box<T> {
+    public static Int made = 0;
+
+    public Box() {
+        made = made + 1;
+    }
+}
+
+annotation Mark;
+
+enum Planet implements Greeter {
+    MERCURY(1),
+    VENUS(2);
+
+    public final Int number;
+    public static Int seen = values().length();
+
+    Planet(Int number) {
+        this.number = number;
+    }
+}
+
+abstract class Shape {
+    public abstract String kind();
+
+    public String describe() {
+        return "a " + kind();
+    }
+}
+
+class Circle extends Shape {
+    @Override
+    public String kind() {
+        return "circle";
+    }
+}
+
+class Pick {
+    public static String of(Object o) {
+        return "Object";
+    }
+
+    public static String of(String s) {
+        return "String";
+    }
+}
+
+public class Sentences02 {
+    static Float64 f(Float64 x) {
+        return x;
+    }
+
+    static String label(Enum e) {
+        return e.name() + "#" + e.ordinal();
+    }
+
+    public static void main() {
+        Int n = 5;
+        @Nullable Object none = null;
+        Console.println("classes: " + n.getClass().getName() + " " + 'c'.getClass().getName() + " " + true.getClass().getName() + " " + "s".getClass().getName() + " " + new Int[1].getClass().getName() + " " + none.toString());
+
+        var a = new Thing();
+        var b = new Thing();
+        Console.println("identity: " + (a == b) + " " + a.identical(b) + " " + a.identical(a));
+        Console.println("reference equals: " + a.equals(a) + " " + a.equals(b) + " " + (a.hashCode() == a.hashCode()));
+
+        var p = new Point(1, 2);
+        var q = new Point(1, 2);
+        Console.println("value equals: " + p.equals(q) + " " + p.equals(new Point(1, 3)) + " " + p.equals(new Pair(1, 2)) + " " + (p.hashCode() == q.hashCode()));
+        Console.println("value identity: " + p.identical(q) + " " + (p == q));
+        Console.println("toString: " + p);
+
+        @Nullable Object alsoNone = null;
+        Float64 nan = f(0.0) / f(0.0);
+        Console.println("identical: " + none.identical(alsoNone) + " " + none.identical(a) + " " + a.identical(none) + " " + nan.identical(nan) + " " + f(0.0).identical(-f(0.0)) + " " + n.identical("5"));
+
+        Console.println("getClass: " + (a.getClass() == Thing.class) + " " + (a.getClass() == b.getClass()) + " " + (a.getClass() == p.getClass()));
+
+        Console.println("interface body: " + new Plain().greet() + ", " + new Loud().greet());
+
+        var c1 = new Counter();
+        var c2 = new Counter();
+        c1.bump();
+        c1.bump();
+        c2.bump();
+        Console.println("slots: " + c1.own + " " + c2.own + " " + Counter.total);
+        var b1 = new Box<Int>();
+        var b2 = new Box<String>();
+        Console.println("generic static: " + Box.made);
+
+        Console.println("class objects: " + Greeter.class.getName() + " " + Planet.class.getName() + " " + Mark.class.getName() + " " + Thing.class.getName());
+        Console.println("generic class objects: " + (List<Int>.class == List<String>.class) + " " + (List<Int>.class == new List<Int>().getClass()) + " " + List<String>.class.getName());
+
+        Console.println("enum: " + Planet.VENUS.name() + " " + Planet.VENUS.ordinal() + " " + Planet.values().length() + " " + Planet.values()[0].name() + " " + Planet.valueOf("MERCURY").number);
+        try {
+            var x = Planet.valueOf("PLUTO");
+            Console.println("valueOf: " + x.name());
+        } catch (IllegalArgumentException e) {
+            Console.println("valueOf raises");
+        }
+        Console.println("enum equals: " + (Planet.VENUS == Planet.VENUS) + " " + Planet.VENUS.equals(Planet.MERCURY) + " " + Planet.valueOf("VENUS").identical(Planet.VENUS));
+        Console.println("enum statics: " + Planet.seen + " " + (Planet.values() == Planet.values()));
+        Console.println("enum as Enum: " + label(Planet.VENUS) + " " + Planet.VENUS.greet());
+
+        Shape s = new Circle();
+        Console.println("dispatch: " + s.describe() + ", " + Pick.of("text") + ", " + Pick.of((Object) "text"));
+    }
+}

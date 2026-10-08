@@ -57,15 +57,17 @@ impl Rule {
 // The sentences that define and describe, one file for each chapter.
 #[path = "spec_rules/described_01.rs"]
 mod described_01;
+#[path = "spec_rules/described_02.rs"]
+mod described_02;
 
 /// Every case for a sentence that neither requires nor restricts.
 fn described() -> Vec<&'static Rule> {
-    let chapters: [&'static [Rule]; 1] = [described_01::SENTENCES];
+    let chapters: &[&'static [Rule]] = &[described_01::SENTENCES, described_02::SENTENCES];
     chapters.iter().flat_map(|c| c.iter()).collect()
 }
 
 /// The chapters whose every sentence has a case.
-const DESCRIBED: &[&str] = &["01"];
+const DESCRIBED: &[&str] = &["01", "02"];
 
 /// A table that one test holds whole: the chapter, words of its header row, the file
 /// under `tests` and the test.
@@ -1840,6 +1842,9 @@ fn prose_sentences() -> Vec<Sentence> {
                 continue;
             }
             let line = line.strip_prefix("- ").unwrap_or(line);
+            // The number of a list item is not part of its sentence.
+            let digits = line.chars().take_while(|c| c.is_ascii_digit()).count();
+            let line = if digits > 0 && line[digits..].starts_with(". ") { &line[digits + 2..] } else { line };
             for s in sentences(line) {
                 out.push(Sentence { chapter: chapter.clone(), text: s, table: table.clone() });
             }
@@ -2197,4 +2202,16 @@ fn cancellation_is_raised_only_where_section_13_6_says() {
         uses += std::fs::read_to_string(entry.unwrap().path()).unwrap().matches("X_CANCELLATION").count();
     }
     assert_eq!(uses, 1);
+}
+
+/// Section 2.2: the prelude is written in the language. The checker takes its source
+/// as it takes a program's.
+#[test]
+fn the_prelude_is_source_the_checker_accepts() {
+    let prelude = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("prelude");
+    let files = std::fs::read_dir(&prelude).unwrap().filter(|e| e.as_ref().unwrap().path().extension().and_then(|x| x.to_str()) == Some("cleat")).count();
+    assert!(files > 50, "{files} files");
+    if let Err(errors) = cleatc::analyze(&[prelude.as_path()]) {
+        panic!("{}:{}: {}", errors[0].file.display(), errors[0].line, errors[0].message);
+    }
 }
