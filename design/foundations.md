@@ -429,6 +429,9 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 - A method reference adds nothing to inference. A lambda does.
 - A use of a wildcard's unknown type as part of a larger explicit type argument is reported as not supported. Standing alone, as in `swap(items, 0, 1)`, it is the type argument of the object passed.
 - A reserved word used as a name is rejected, and the message may point at the start of the statement.
+- Section 4.2 gives an override the same type parameters as the method it overrides, and section 7.8 the same bounds. The checker also asks for the same required tags.
+- Section 3.4 lets an override keep "a list drawn from" the `only` list of the method it overrides. The overriding class may also name itself there.
+- Where a subclass declares a method with the name and signature of a superclass method it may not name, section 3.4 makes that a new method. A call through the subclass's type reaches the subclass's method, and the superclass's own calls reach its own.
 
 **The compiler.** Assumed. None of this is language.
 

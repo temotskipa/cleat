@@ -24,7 +24,7 @@ cargo test
 
 clang compiles the IR. The compiler looks for it where `CLEAT_CLANG` points, then in `C:\Program Files\LLVM\bin`, then under `%LOCALAPPDATA%\cleat-llvm`, then on the path.
 
-The tests are the specification's own examples, programs the checker must reject, programs with the output they must print, and the nine programs in [design/programs/](design/programs/). Each compiled program runs twice, the second time with the collector forced at every allocation.
+The tests are the specification's own examples, a program for each requirement the chapters state, programs the checker must reject, programs with the output they must print, and the nine programs in [design/programs/](design/programs/). Each compiled program runs twice, the second time with the collector forced at every allocation.
 
 | Chapter | Status |
 | --- | --- |

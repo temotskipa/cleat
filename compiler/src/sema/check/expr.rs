@@ -863,7 +863,7 @@ impl<'p> Checker<'p> {
         let c = self.p.class(cid);
         let name = c.name.clone();
         let problem = if cid == self.p.wk.null {
-            Some("`new Null()` is rejected: `null` is the one instance")
+            Some("`null` is the one instance")
         } else if c.is_interface() {
             Some("an interface has no instances of its own")
         } else if c.is_abstract {

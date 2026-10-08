@@ -331,8 +331,17 @@ fn imports(p: &mut Program) {
             }
             let Some(simple) = imp.path.last().cloned() else { continue };
             let pkg = imp.path[..imp.path.len() - 1].join(".");
+            if pkg.is_empty() && !p.units[unit].package.is_empty() {
+                p.error(unit, imp.pos, format!("`{path}` would be a type of the unnamed package, whose types cannot be named from another package"));
+                continue;
+            }
             match find_in_package(p, &pkg, &simple, unit) {
-                None => p.error(unit, imp.pos, format!("there is no type named `{path}`")),
+                None => {
+                    // The name is taken, then, by a type that only its own file may name.
+                    let hidden = p.by_name.get(&(pkg.clone(), simple.clone())).is_some_and(|list| !list.is_empty());
+                    let message = if hidden { format!("`{path}` is visible to its file only, so it is not imported") } else { format!("there is no type named `{path}`") };
+                    p.error(unit, imp.pos, message);
+                }
                 Some(id) if !type_visible(p, id, unit) => p.error(unit, imp.pos, format!("`{path}` is outside its audience here, so it is not imported")),
                 Some(_) => {}
             }
@@ -1629,6 +1638,21 @@ pub fn same_signature(p: &mut Program, m: MethodRef, n: MethodRef, n_class_subst
             Type::var(Tv { owner: TvOwner::Method(m), index: i as u32 }),
         );
     }
+    // Section 4.2: the same type parameters, which section 7.8 reads as the same bounds.
+    for (a, b) in mm.tparams.iter().zip(nn.tparams.iter()) {
+        let (mut at, mut bt) = (a.tags.clone(), b.tags.clone());
+        at.sort();
+        bt.sort();
+        if a.bounds.len() != b.bounds.len() || at != bt {
+            return None;
+        }
+        for (x, y) in a.bounds.iter().zip(b.bounds.iter()) {
+            let y = s.apply(y);
+            if *x != y && !p.same_type(x, &y) {
+                return None;
+            }
+        }
+    }
     for (a, b) in mm.params.iter().zip(nn.params.iter()) {
         let bt = s.apply(&b.ty);
         if a.ty != bt && !(p.same_type(&a.ty, &bt)) {
@@ -1636,6 +1660,23 @@ pub fn same_signature(p: &mut Program, m: MethodRef, n: MethodRef, n_class_subst
         }
     }
     Some(s)
+}
+
+/// Section 3.4: whether the class `me`, a subtype of `decl`, may name a member that
+/// `decl` declares with this audience. A member it may not name is not overridden.
+fn may_name_inherited(p: &Program, me: ClassId, decl: ClassId, aud: Aud, only: &Option<Vec<ClassId>>) -> bool {
+    if me == decl {
+        return true;
+    }
+    if let Some(list) = only {
+        return list.contains(&me);
+    }
+    match aud {
+        Aud::Private => false,
+        Aud::File => p.class(me).unit == p.class(decl).unit,
+        Aud::Package => p.class(me).package == p.class(decl).package,
+        Aud::Protected | Aud::Public => true,
+    }
 }
 
 fn aud_rank(a: Aud) -> u32 {
@@ -1665,7 +1706,7 @@ fn hierarchy(p: &mut Program) {
                 for ni in 0..p.class(*sid).methods.len() as u32 {
                     let nref = MethodRef { class: *sid, index: ni };
                     let nn = p.method(nref).clone();
-                    if nn.name != mm.name || nn.aud == Aud::Private {
+                    if nn.name != mm.name || !may_name_inherited(p, id, *sid, nn.aud, &nn.only) {
                         continue;
                     }
                     let Some(s) = same_signature(p, m, nref, &subst) else { continue };
@@ -1690,6 +1731,12 @@ fn hierarchy(p: &mut Program) {
                     }
                     if aud_rank(mm.aud) < aud_rank(nn.aud) {
                         p.error(unit, mm.pos, "an overriding method has the audience of the method it overrides, or a wider one");
+                    }
+                    if let Some(list) = &nn.only {
+                        let drawn = mm.only.as_ref().is_some_and(|mine| mine.iter().all(|c| *c == id || list.contains(c)));
+                        if mm.aud != nn.aud || !drawn {
+                            p.error(unit, mm.pos, "the overridden method has an `only` list, so the overriding method has the same audience keyword and a list drawn from that list");
+                        }
                     }
                     if sup_is_iface && mm.aud != Aud::Public {
                         p.error(unit, mm.pos, "a method that implements an interface method is `public`");

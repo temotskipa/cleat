@@ -83,6 +83,11 @@ context, and a call that finds the stack full ends the program.
   and the prelude, and every reference between the documents.
 - `tests/spec_consistency.rs`: the chapters against each other and against
   `design/foundations.md`, wherever two places state the same thing.
+- `tests/spec_rules.rs`: every sentence of the specification that states a requirement
+  ("must", "is rejected", "cannot", "may not", "legal"), with a program that breaks it
+  and the diagnostic it must get, and a program that keeps it. A test fails when a
+  chapter gains such a sentence and no case names it. A second table does the same for
+  rules stated with "only", "never" and "does not".
 - `tests/rejections.rs` and `tests/declarations.rs`: programs the checker must reject.
 - `tests/behavior.rs`: programs in `tests/behavior/`, each with the output it must print.
 - `tests/host.rs`: foreign structs, the ways a program ends, and warnings.

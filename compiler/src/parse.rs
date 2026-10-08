@@ -299,10 +299,23 @@ impl<'a> Parser<'a> {
                         }
                     }
                 }
+                // Modifiers of Java that the language leaves out. Each is an ordinary
+                // identifier, so it is one of them only where a type and a name follow.
+                "default" | "synchronized" | "volatile" | "transient" | "native" | "strictfp" if self.absent_modifier_here() => {
+                    return self.err(if w == "default" {
+                        "`default` is not written on an interface method: a method with a body is a default implementation".to_string()
+                    } else {
+                        format!("there is no modifier `{w}`")
+                    });
+                }
                 _ => break,
             }
         }
         Ok(m)
+    }
+
+    fn absent_modifier_here(&self) -> bool {
+        matches!(self.tok_at(1), Tok::Ident(_)) && matches!(self.tok_at(2), Tok::Ident(_) | Tok::Punct("<") | Tok::Punct("["))
     }
 
     /// `open`, `sealed` and `foreign` are identifiers unless another modifier, a type
@@ -646,7 +659,10 @@ impl<'a> Parser<'a> {
         // Constructors.
         if self.is_word(class_name) && self.is_punct_at(1, "(") {
             self.i += 2;
-            let params = self.params_after_paren()?.1;
+            let (receiver, params) = self.params_after_paren()?;
+            if let Some(r) = receiver {
+                return self.err_at(r.pos, "a constructor does not declare a receiver");
+            }
             let body = if self.eat_punct(";") { None } else { Some(self.block()?) };
             return Ok(Member::Ctor(CtorDecl { mods, params: Some(params), body, pos }));
         }
@@ -774,6 +790,7 @@ impl<'a> Parser<'a> {
         }
         if let Tok::Ident(w) = self.tok().clone() {
             match w.as_str() {
+                "class" | "interface" | "enum" => return self.err("a type is not declared inside a method"),
                 "if" => {
                     self.i += 1;
                     self.expect_punct("(")?;
