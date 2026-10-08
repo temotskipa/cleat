@@ -2,13 +2,13 @@ package cleat;
 
 // Something the holders of one lock wait for (section 13.3).
 public final class Condition {
-    final Lock lock;
     // The condition of the host, created and freed as the host lock is.
     final Pointer host;
+    final Lock lock;
 
     package Condition(Lock lock) {
-        this.lock = lock;
         this.host = create();
+        this.lock = lock;
     }
 
     @Intrinsic

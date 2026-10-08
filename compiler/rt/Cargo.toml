@@ -5,7 +5,7 @@ edition = "2021"
 
 [lib]
 path = "src/lib.rs"
-crate-type = ["rlib"]
+crate-type = ["staticlib", "rlib"]
 
 [dependencies]
 num-bigint = "0.4"
