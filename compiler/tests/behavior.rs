@@ -72,3 +72,30 @@ fn a_method_a_class_cannot_name_is_not_overridden() {
     let exe = build("behavior_not_overridden", &dir, &roots, "Main");
     expect(&exe, &[], 0, "2\n20\n11\n1\n22\n");
 }
+
+/// Section 3.6: an annotated public member of a type that is not public can be used
+/// through its mirror by code that could not name the type, and a member that is not
+/// public cannot.
+#[test]
+fn a_mirror_reaches_a_public_member_of_a_type_the_code_cannot_name() {
+    let dir = scratch("behavior_mirror_reach");
+    let files = [
+        ("Mark.cleat", "public annotation Mark;\n"),
+        (
+            "Hidden.cleat",
+            "class Secret {\n    @Mark\n    public Int code = 42;\n    @Mark\n    Int kept = 7;\n\n    @Mark\n    public Int twice() {\n        return code * 2;\n    }\n}\n\npublic class Hidden {\n    public static Object make() {\n        return new Secret();\n    }\n}\n",
+        ),
+        (
+            "Main.cleat",
+            "public class Main {\n    public static void main() {\n        Object o = Hidden.make();\n        Class c = o.getClass();\n        Console.println(c.getName());\n        Field[] fields = c.<Mark>getAnnotatedFields();\n        Console.println(fields[0].get(o));\n        try {\n            Console.println(fields[1].get(o));\n        } catch (IllegalAccessException e) {\n            Console.println(\"not public\");\n        }\n        Console.println(c.<Mark>getAnnotatedMethods()[0].invoke(o));\n    }\n}\n",
+        ),
+    ];
+    let mut roots = Vec::new();
+    for (name, text) in files {
+        let file = dir.join(name);
+        std::fs::write(&file, text).unwrap();
+        roots.push(file);
+    }
+    let exe = build("behavior_mirror_reach", &dir, &roots, "Main");
+    expect(&exe, &[], 0, "Secret\n42\nnot public\n84\n");
+}

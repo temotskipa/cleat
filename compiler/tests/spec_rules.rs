@@ -59,15 +59,17 @@ impl Rule {
 mod described_01;
 #[path = "spec_rules/described_02.rs"]
 mod described_02;
+#[path = "spec_rules/described_03.rs"]
+mod described_03;
 
 /// Every case for a sentence that neither requires nor restricts.
 fn described() -> Vec<&'static Rule> {
-    let chapters: &[&'static [Rule]] = &[described_01::SENTENCES, described_02::SENTENCES];
+    let chapters: &[&'static [Rule]] = &[described_01::SENTENCES, described_02::SENTENCES, described_03::SENTENCES];
     chapters.iter().flat_map(|c| c.iter()).collect()
 }
 
 /// The chapters whose every sentence has a case.
-const DESCRIBED: &[&str] = &["01", "02"];
+const DESCRIBED: &[&str] = &["01", "02", "03"];
 
 /// A table that one test holds whole: the chapter, words of its header row, the file
 /// under `tests` and the test.
@@ -2153,6 +2155,8 @@ fn an_entry_class_declares_exactly_one_main() {
     for (name, text) in [
         ("Both", "public class Both { public static void main() { } public static void main(String[] args) { } }"),
         ("Neither", "public class Neither { public static void start() { } }"),
+        // Section 3.5: `main` of the entry class is `public`.
+        ("Private", "public class Private { static void main() { } }"),
     ] {
         let file = dir.join(format!("{name}.cleat"));
         std::fs::write(&file, text).unwrap();
