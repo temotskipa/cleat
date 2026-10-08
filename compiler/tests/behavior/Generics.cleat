@@ -127,5 +127,9 @@ public class Generics {
         Console.println(nested[0][1]);
         List<? extends Object> view = numbers;
         Console.println(view[0]);
+        // The name of a class says its type arguments, qualifiers and wildcards included.
+        Console.println(new List<@Nullable String>().getClass().getName());
+        Console.println(new List<List<?>>().getClass().getName());
+        Console.println(new Map<String, List<? extends Source<Int>>>().getClass().getName());
     }
 }

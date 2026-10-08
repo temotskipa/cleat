@@ -14,5 +14,6 @@ x
 onetwo
 truefalse
 Unit()
+Sq(0.0)
 Sq(2.0)
 true

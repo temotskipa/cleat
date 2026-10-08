@@ -21,3 +21,6 @@ true
 false
 9
 3
+cleat.List<@cleat.Nullable cleat.String>
+cleat.List<cleat.List<?>>
+cleat.Map<cleat.String, cleat.List<? extends t.Source<cleat.Int>>>

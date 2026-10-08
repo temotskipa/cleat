@@ -225,6 +225,9 @@ public class Members {
         };
         Unit u = nothing.invoke();
         Console.println(u);
+        // `new T[n]` gives each element the default of a value class.
+        Sq[] blanks = new Sq[2];
+        Console.println(blanks[1]);
         Object o = new Sq(2.0);
         Console.println(o);
         Console.println(o.identical(new Sq(2.0)));

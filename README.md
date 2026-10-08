@@ -10,7 +10,21 @@ The specification in `spec/` is normative. This file is the map. The design conv
 
 ## Status
 
-Every chapter of the specification has been revised. The decisions behind the revision, and the programs it is tested against, are in [design/](design/foundations.md). [design/goal.md](design/goal.md) says what remains: the prelude in Cleat, tests taken from the specification's examples, and a compiler that implements both. The compiler in `compiler/` still implements only the earlier `Int32` subset.
+Every chapter of the specification has been revised. The decisions behind the revision, and the programs it is tested against, are in [design/](design/foundations.md).
+
+The prelude is Cleat source in `prelude/`. The compiler in `compiler/` implements the specification: it checks a program, emits LLVM IR, and links the result with a runtime library that holds the collector and the bodies of the prelude's `@Intrinsic` methods. [compiler/DESIGN.md](compiler/DESIGN.md) says how it is built.
+
+```
+cd compiler
+cargo build
+cargo run -- check ../design/programs
+cargo run -- build ../design/programs/Calc.cleat --entry demo.Calc -o calc.exe
+cargo test
+```
+
+clang compiles the IR. The compiler looks for it where `CLEAT_CLANG` points, then in `C:\Program Files\LLVM\bin`, then under `%LOCALAPPDATA%\cleat-llvm`, then on the path.
+
+The tests are the specification's own examples, programs the checker must reject, programs with the output they must print, and the nine programs in [design/programs/](design/programs/). Each compiled program runs twice, the second time with the collector forced at every allocation.
 
 | Chapter | Status |
 | --- | --- |

@@ -62,8 +62,28 @@ shadow stack), so the collector sees exactly the live roots. Threads stop for a
 collection at allocations, at loop back edges, and around blocking calls. `vendor/mmtk`
 is the earlier attempt on MMTk and is not linked.
 
+## Foreign calls
+
+A foreign method whose types are all scalars, or arrays of scalars, is called directly.
+One that takes or returns a value class goes through C source the compiler writes
+(`emit/mod.rs`, `foreign_shim`) and gives to clang with the module. The C code copies
+an object's fields into the struct C expects and back, so the platform's own rules for
+passing structs apply.
+
+## Limits
+
+A thread has 16 MB of stack (`rt/src/gc.rs`, `STACK`; `emit/link.rs` asks the linker for
+the same). Every compiled function compares its frame's address with a limit in the
+context, and a call that finds the stack full ends the program.
+
 ## Tests
 
 - `tests/spec_examples.rs`: one test for each fenced example in `spec/`.
-- `tests/rejections.rs`: programs the checker must reject.
+- `tests/rejections.rs` and `tests/declarations.rs`: programs the checker must reject.
+- `tests/behavior.rs`: programs in `tests/behavior/`, each with the output it must print.
+- `tests/host.rs`: foreign structs, the ways a program ends, and warnings.
 - `tests/programs.rs`: builds and runs each program in `design/programs/`.
+
+A compiled program runs twice in these tests, the second time with `CLEAT_GC_STRESS=1`,
+which collects at every allocation. A pointer the compiled code failed to keep in a
+frame slot then shows up as a wrong result or a crash.
