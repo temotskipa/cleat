@@ -550,23 +550,6 @@ pub unsafe extern "C" fn cl_Object_getClass(_ctx: *mut Ctx, a: Obj) -> Obj {
     unsafe { class_object((*a).td) }
 }
 
-// ---- Null ----
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Null_equals_Object(_ctx: *mut Ctx, _this: Obj, other: Obj) -> u8 {
-    other.is_null() as u8
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Null_hashCode(_ctx: *mut Ctx, _this: Obj) -> i64 {
-    0
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Null_toString(ctx: *mut Ctx, _this: Obj) -> Obj {
-    unsafe { new_str(ctx, "null") }
-}
-
 // ---- String ----
 
 #[unsafe(no_mangle)]
@@ -609,88 +592,8 @@ pub unsafe extern "C" fn cl_String_join_String(ctx: *mut Ctx, s: Obj, t: Obj) ->
     }
 }
 
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_plus_Object(ctx: *mut Ctx, s: Obj, other: Obj) -> Obj {
-    unsafe {
-        let t = v_to_string(ctx, other);
-        if !(*ctx).exc.is_null() || t.is_null() {
-            return std::ptr::null_mut();
-        }
-        let mut all: Vec<u32> = Vec::with_capacity(chars(s).len() + chars(t).len());
-        all.extend_from_slice(chars(s));
-        all.extend_from_slice(chars(t));
-        new_string(ctx, &all)
-    }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_indexOf_Char(_ctx: *mut Ctx, s: Obj, c: u32) -> i64 {
-    unsafe { chars(s).iter().position(|x| *x == c).map(|i| i as i64).unwrap_or(-1) }
-}
-
-fn find_sub(hay: &[u32], needle: &[u32]) -> i64 {
-    if needle.is_empty() {
-        return 0;
-    }
-    if needle.len() > hay.len() {
-        return -1;
-    }
-    (0..=hay.len() - needle.len()).find(|i| &hay[*i..*i + needle.len()] == needle).map(|i| i as i64).unwrap_or(-1)
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_indexOf_String(_ctx: *mut Ctx, s: Obj, t: Obj) -> i64 {
-    unsafe { find_sub(chars(s), chars(t)) }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_startsWith_String(_ctx: *mut Ctx, s: Obj, t: Obj) -> u8 {
-    unsafe { chars(s).starts_with(chars(t)) as u8 }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_endsWith_String(_ctx: *mut Ctx, s: Obj, t: Obj) -> u8 {
-    unsafe { chars(s).ends_with(chars(t)) as u8 }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_compare_String(_ctx: *mut Ctx, s: Obj, t: Obj) -> i64 {
-    unsafe {
-        match chars(s).cmp(chars(t)) {
-            std::cmp::Ordering::Less => -1,
-            std::cmp::Ordering::Equal => 0,
-            std::cmp::Ordering::Greater => 1,
-        }
-    }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_toUtf8(ctx: *mut Ctx, s: Obj) -> Obj {
-    unsafe {
-        let bytes = to_rust(s).into_bytes();
-        let a = cl_array_new(ctx, array_type(types::wk_type(K_U8)), bytes.len() as i64);
-        if !a.is_null() {
-            std::ptr::copy_nonoverlapping(bytes.as_ptr(), at::<u8>(a, ELEMS), bytes.len());
-        }
-        a
-    }
-}
-
 pub unsafe fn byte_slice(a: Obj) -> &'static [u8] {
     unsafe { std::slice::from_raw_parts(at::<u8>(a, ELEMS), len(a) as usize) }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_fromUtf8_UInt8Array(ctx: *mut Ctx, bytes: Obj) -> Obj {
-    unsafe {
-        match std::str::from_utf8(byte_slice(bytes)) {
-            Ok(s) => new_str(ctx, s),
-            Err(_) => {
-                raise(ctx, X_ILLEGAL_ARGUMENT, "the bytes are not well-formed UTF-8");
-                std::ptr::null_mut()
-            }
-        }
-    }
 }
 
 #[unsafe(no_mangle)]
@@ -723,7 +626,7 @@ pub unsafe extern "C" fn cl_String_toUpperCase(ctx: *mut Ctx, s: Obj) -> Obj {
     unsafe { map_chars(ctx, s, true) }
 }
 
-// ---- Char, Boolean, Pointer ----
+// ---- Char, Pointer ----
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn cl_Char_from_Int(ctx: *mut Ctx, code: i64) -> u32 {
@@ -778,26 +681,6 @@ pub unsafe extern "C" fn cl_Char_toUpperCase(_ctx: *mut Ctx, c: u32) -> u32 {
         (Some(one), None) => one as u32,
         _ => c,
     }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Boolean_and_Boolean(_ctx: *mut Ctx, a: u8, b: u8) -> u8 {
-    a & b
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Boolean_or_Boolean(_ctx: *mut Ctx, a: u8, b: u8) -> u8 {
-    a | b
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Boolean_xor_Boolean(_ctx: *mut Ctx, a: u8, b: u8) -> u8 {
-    a ^ b
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Boolean_not(_ctx: *mut Ctx, a: u8) -> u8 {
-    (a == 0) as u8
 }
 
 #[unsafe(no_mangle)]

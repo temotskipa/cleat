@@ -13,8 +13,8 @@ The prelude is ordinary source in `../prelude`, compiled with every program. A m
 marked `@Intrinsic` has no body: the backend either inlines it or calls the runtime
 symbol `cl_<Class>_<method>[_<ParamClass>...]`. A method is intrinsic only when the
 language cannot say what it does, and `tests/prelude_intrinsics.rs` lists every one with
-its reason. The runtime still exports bodies for methods that have since been written in
-source, and nothing calls them.
+its reason. The runtime exports a body for each of them and for the calls the emitter
+writes itself, and nothing else.
 
 ## Values
 

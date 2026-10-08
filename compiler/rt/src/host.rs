@@ -321,23 +321,6 @@ pub unsafe extern "C" fn cl_AtomicInt_compareAndSet_Int_Int(_ctx: *mut Ctx, o: O
     unsafe { cell(o).compare_exchange(expected, update, Ordering::SeqCst, Ordering::SeqCst).is_ok() as u8 }
 }
 
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_AtomicInt_addAndGet_Int(ctx: *mut Ctx, o: Obj, delta: i64) -> i64 {
-    unsafe {
-        let c = cell(o);
-        loop {
-            let now = c.load(Ordering::SeqCst);
-            let Some(next) = now.checked_add(delta) else {
-                raise(ctx, X_ARITHMETIC, &format!("{now} + {delta} is not a value of Int"));
-                return 0;
-            };
-            if c.compare_exchange(now, next, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
-                return next;
-            }
-        }
-    }
-}
-
 unsafe fn ref_cell(o: Obj) -> &'static AtomicPtr<Header> {
     unsafe { &*at::<AtomicPtr<Header>>(o, BODY) }
 }
