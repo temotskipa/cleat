@@ -1705,7 +1705,7 @@ public class M { public static void main(String[] args) { var n = 0; for (String
     stated("13", "Only the thread that is running the scope's `call` may fork", "Checked by tests/behavior/Rules.cleat, lines `fork from another thread raises` and `fork after the call raises`."),
     stated("13", "A `CancellationException` from a task is never reported by `call`", "Checked by tests/behavior/Rules.cleat, line `call reports`: the task forked first is cancelled, and `call` reports the second."),
     stated("13", "is never cancelled, and neither is the thread that runs `main`", "Checked by tests/behavior/Rules.cleat, lines `main is never cancelled` and `a started thread is never cancelled`."),
-    stated("13", "No exception arrives between two statements that do not ask for it", "It holds for every interleaving, which no run can enumerate. The runtime raises `CancellationException` only inside the calls section 13.6 lists."),
+    stated("13", "No exception arrives between two statements that do not ask for it", "It holds for every interleaving, which no run can enumerate. `cancellation_is_raised_only_where_section_13_6_says` checks that one method raises it and only the listed methods call that one."),
     stated("13", "On a thread that is not a cancelled task, it does nothing", "Checked by tests/behavior/Rules.cleat, line `main is never cancelled`."),
 ];
 
@@ -2001,4 +2001,35 @@ fn a_deprecated_use_is_reported_from_another_unit() {
     assert_eq!(program.warnings.len(), 1);
     let w = &program.warnings[0];
     assert!(w.file.ends_with("User.cleat") && w.message.contains("deprecated") && w.message.contains("use fresh"), "{}", w.message);
+}
+
+/// Section 13.6: a cancelled task raises `CancellationException` at a call of
+/// `Thread.checkCancelled`, `sleep`, `join`, `Task.result` or `Condition.await`, and at
+/// no others. One method of the prelude raises it, and only those call that method.
+#[test]
+fn cancellation_is_raised_only_where_section_13_6_says() {
+    let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let mut raised = Vec::new();
+    let mut callers = Vec::new();
+    for entry in std::fs::read_dir(repo.join("prelude")).unwrap() {
+        let path = entry.unwrap().path();
+        let name = path.file_name().unwrap().to_string_lossy().to_string();
+        let text = std::fs::read_to_string(&path).unwrap();
+        if text.contains("new CancellationException") {
+            raised.push(name.clone());
+        }
+        if text.contains("checkCancelled()") {
+            callers.push(name);
+        }
+    }
+    raised.sort();
+    callers.sort();
+    assert_eq!(raised, ["Thread.cleat"]);
+    assert_eq!(callers, ["Condition.cleat", "Task.cleat", "Thread.cleat"]);
+    // The runtime names the exception's kind and never raises it.
+    let mut uses = 0;
+    for entry in std::fs::read_dir(repo.join("compiler").join("rt").join("src")).unwrap() {
+        uses += std::fs::read_to_string(entry.unwrap().path()).unwrap().matches("X_CANCELLATION").count();
+    }
+    assert_eq!(uses, 1);
 }
