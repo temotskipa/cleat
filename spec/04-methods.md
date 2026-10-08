@@ -58,7 +58,7 @@ A call chooses among the visible methods of that name that the receiver's static
 
 1. A method is applicable when the call has as many arguments as the method has parameters and each argument is assignable to its parameter under [section 4.5](#45-assignability), after the inference of [chapter 7](07-generics.md) for a generic method. [Chapter 6](06-numbers.md) says when a numeric literal is applicable, and [section 4.8](#48-lambdas-and-method-references) says when a lambda is.
 2. One applicable method is more specific than another when each of its parameter types is a subtype of the other's corresponding parameter type.
-3. If one applicable method is more specific than every other, it is chosen. Otherwise the call is rejected, and the program writes a cast or explicit type arguments to choose.
+3. If one applicable method is more specific than every other, it is chosen. Otherwise the call is rejected, and the program writes a cast or explicit type arguments to choose. The one exception is a call with a numeric literal argument, where [chapter 6](06-numbers.md#63-numeric-literals) chooses the method of the literal's default class.
 
 A method with a fixed number of parameters is more specific than a varargs method.
 

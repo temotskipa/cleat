@@ -192,6 +192,7 @@ selector        = "." identifier
 
 primary         = literal
                 | identifier
+                | identifier "(" [args] ")"
                 | "this"
                 | "(" expr ")"
                 | "super" "." identifier "(" [args] ")"

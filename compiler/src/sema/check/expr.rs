@@ -391,7 +391,7 @@ impl<'p> Checker<'p> {
                 let n = self.coerce(n, &self.int(), len.pos);
                 if !et.is_error() && !self.has_default(&et, 0) {
                     let s = self.show(&et);
-                    self.err(pos, format!("`new {s}[n]` is rejected because `{s}` has no default value; write `new @Nullable {s}[n]`, list the elements, or use `Array.build`"));
+                    self.err(pos, format!("this array creation is rejected because its element type `{s}` has no default value; make the element type `@Nullable`, list the elements, or use `Array.build`"));
                 }
                 let ty = self.p.array_of(et.clone());
                 TExpr { kind: TKind::NewArray { elem: et, len: Box::new(n) }, ty }

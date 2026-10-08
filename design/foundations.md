@@ -46,7 +46,7 @@ The name is still open. It can wait.
 
 - `@Nullable T` contains every value of `T`, and `null`. `T` is a subtype of `@Nullable T`. Writing the annotation twice changes nothing.
 - `null` is the one instance of `Null`. `Null` is not a subclass of `Object`. `@Nullable Object` is the top type.
-- A method may be called on a `@Nullable` receiver only when the method declares a `@Nullable` receiver. In the prelude those are `equals`, `hashCode` and `toString`. `equals` takes `@Nullable Object`, which is what lets `x == null` typecheck.
+- A method may be called on a `@Nullable` receiver only when the method declares a `@Nullable` receiver. In the prelude those are `equals`, `hashCode`, `toString` and the final `identical`. `equals` takes `@Nullable Object`, which is what lets `x == null` typecheck.
 - Narrowing works as the spec has it now: `== null`, `!= null` and `instanceof` narrow a local or parameter that is not reassigned in the region. A cast `(T) e` from `@Nullable T` is the checked form and raises on `null`.
 - Nullability is part of a reified type argument. `List<String>` and `List<@Nullable String>` are different classes.
 - `@Nullable` is declared in the prelude with the same facility a user qualifier gets. The next section says what that takes.
@@ -121,6 +121,7 @@ public interface Numeric<T> {
     T times(T other);
     T negate();
     static T zero();
+    static T one();
 }
 ```
 
@@ -151,7 +152,7 @@ Removing the superclass also removes the need for a class tag and a width tag in
 
 1. the expected type at its position: a declared type, a parameter type, a return type;
 2. the other operand, when it is one operand of a binary operator;
-3. a default: `Int` for an integer literal, `Rational` for a decimal literal.
+3. a default: `Int` for an integer literal, `Rational` for a decimal literal. Chapter 6 states this for a whole literal expression: with no context, every literal in `1.0 / 3` is a `Rational`.
 
 ```java
 Float64 dt = 0.001;        // Float64, from the declared type
@@ -192,7 +193,7 @@ An integer literal that does not fit its type is rejected. A decimal literal in 
 
 **Why not sequential consistency.** It needs a fence or locked instruction around most shared stores. A published experiment that made every Java field volatile measured roughly 30% slowdown on x86, as I recall. Guarantee 2 keeps the part of the current rule that matters for safety.
 
-**Multi-word values.** Guarantee 1 has a cost for a value wider than a machine word, such as `Rational`, `@Nullable Int` or a user `Vec3`, when it sits in a mutable field or an array element. The implementation may box it there or copy it atomically. Locals and `final` fields are always flat. A later opt-in could let a plain-data value class accept tearing in exchange for flat arrays, which is where Java's Valhalla project ended up.
+**Multi-word values.** Guarantee 1 has a cost for a value wider than a machine word, such as `Rational`, `@Nullable Int` or a user `Vec3`, when it sits in a mutable field or an array element. The implementation may box it there or copy it atomically. Locals and `final` fields can be flat at no such cost. The present compiler boxes every value class. A later opt-in could let a plain-data value class accept tearing in exchange for flat arrays, which is where Java's Valhalla project ended up.
 
 **Cancellation.** A cancelled task should raise `CancellationException` only at blocking operations and at explicit checks, not at arbitrary safepoints. An exception that can appear between any two statements breaks invariants in the way `Thread.stop` did.
 

@@ -32,7 +32,7 @@ These may be added later. Nothing in this version depends on them, and a program
 - A null-safe member access such as `?.`, and string interpolation.
 - Properties, or separate audiences for reading and assigning a field.
 - Mirrors that describe the types of fields and parameters, construct objects, or enumerate the types of a program.
-- Repeatable annotations, and annotations on locals and type parameters.
+- Repeatable annotations, and declaration annotations on locals and type parameters. A qualifier among the modifiers of a local, and a tag that a type parameter requires, are in the language ([chapter 8](08-annotations.md)).
 - Pinning an object for longer than one foreign call, and reading memory through a `Pointer`.
 - Callbacks from C into Cleat.
 - Vector, complex and matrix classes. They are library classes over `Numeric<T>`.

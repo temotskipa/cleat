@@ -2,7 +2,7 @@
 
 Cleat is a programming language with Java's surface and one object model. Every value is an instance of a class. A class or method is final unless it is opened. A member is private unless a wider audience is written. A type is non-null unless it is marked `@Nullable`.
 
-A program compiles ahead of time to native code through LLVM. The runtime is a library: a collector, unwind, and class metadata. There is no stable ABI between compilations.
+A program compiles ahead of time to native code through LLVM. The runtime is a library: a collector, the bodies of the prelude's intrinsic methods, and the types of a program at run time. There is no stable ABI between compilations.
 
 The name is a working title. Source files use the extension `.cleat`. The prelude package is `cleat`.
 

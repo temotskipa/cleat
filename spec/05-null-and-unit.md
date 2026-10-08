@@ -37,7 +37,7 @@ public Boolean isBlank(@Nullable String this)
 
 Every other send on a `@Nullable` receiver is rejected until the receiver is narrowed.
 
-`Object` declares three methods this way: `equals`, `hashCode` and `toString`. They are `open`. `Null` declares the same three. When the receiver is `null`, the method that `Null` declares runs:
+`Object` declares four methods this way. `identical` is final, and [chapter 2](02-objects.md#25-the-root-class) says what it answers for `null`. The other three are `equals`, `hashCode` and `toString`. They are `open`, and `Null` declares the same three. When the receiver is `null`, the method that `Null` declares runs:
 
 ```java
 public final value class Null {
