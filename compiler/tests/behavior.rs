@@ -46,6 +46,7 @@ cases![
     sentences_02 => "Sentences02",
     sentences_05 => "Sentences05",
     sentences_11 => "Sentences11",
+    sentences_13 => "Sentences13",
 ];
 
 /// Section 3.4: a method that a subclass may not name is not overridden. The subclass
@@ -100,4 +101,14 @@ fn a_mirror_reaches_a_public_member_of_a_type_the_code_cannot_name() {
     }
     let exe = build("behavior_mirror_reach", &dir, &roots, "Main");
     expect(&exe, &[], 0, "Secret\n42\nnot public\n84\n");
+}
+
+/// Section 13.1: an exception that leaves a thread's body ends that thread and no
+/// other, and its `toString` is written to the host's error stream.
+#[test]
+fn an_exception_that_leaves_a_thread_is_written_to_the_error_stream() {
+    let text = "public class Loud {\n    public static void main() {\n        var t = Thread.start(() -> {\n            throw new IllegalStateException(\"the body failed\");\n        });\n        t.join();\n        Console.println(\"main goes on\");\n    }\n}\n";
+    let (_, exe) = build_text("behavior_thread_error", "Loud", text);
+    let run = expect(&exe, &[], 0, "main goes on\n");
+    assert!(run.err.contains("IllegalStateException: the body failed"), "{}", run.err);
 }

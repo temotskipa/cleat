@@ -1,0 +1,416 @@
+// Chapter 13 at run time. tests/spec_rules/described_13.rs names a line of this
+// program's output for each sentence it shows. Every wait here is for something that
+// is certain to happen, so the output does not depend on how threads are scheduled.
+package t;
+
+// Opened once, and then every thread that waits at it goes on.
+class Gate {
+    final Lock lock = new Lock();
+    final Condition opened = lock.newCondition();
+    Boolean isOpen = false;
+    public final AtomicInt waiting = new AtomicInt(0);
+
+    public void release() {
+        lock.exclusive(() -> {
+            isOpen = true;
+            opened.signalAll();
+        });
+    }
+
+    public void pass() {
+        lock.exclusive(() -> {
+            waiting.incrementAndGet();
+            while (!isOpen) {
+                opened.await();
+            }
+        });
+    }
+}
+
+// One value handed from a thread to another, with `signal`.
+class Slot {
+    final Lock lock = new Lock();
+    final Condition filled = lock.newCondition();
+    @Nullable String value;
+    public final AtomicInt waiting = new AtomicInt(0);
+
+    public void put(String text) {
+        lock.exclusive(() -> {
+            value = text;
+            filled.signal();
+        });
+    }
+
+    public String take() {
+        return lock.exclusive(() -> {
+            waiting.set(1);
+            while (value == null) {
+                filled.await();
+            }
+            return (String) value;
+        });
+    }
+}
+
+class Counter {
+    public Int n = 0;
+}
+
+class Late {
+    public static Int value = Sentences13.seven();
+}
+
+class Same {
+    @Override
+    public Boolean equals(@Nullable Object other) {
+        return true;
+    }
+
+    @Override
+    public Int hashCode() {
+        return 0;
+    }
+}
+
+value class Pt {
+    public Int x;
+}
+
+public class Sentences13 {
+    public static Int seven() {
+        return 7;
+    }
+
+    // Spins until the cell is set. It reaches no point that checks for cancellation.
+    static void until(AtomicInt cell) {
+        while (cell.get() == 0) {
+        }
+    }
+
+    // What a cancelled task sees when it does `action`.
+    static String point(Function0<Unit> action) {
+        return Scope.call((scope) -> {
+            var task = scope.fork(() -> {
+                while (!scope.isCancelled()) {
+                }
+                try {
+                    action.invoke();
+                    return "returned";
+                } catch (CancellationException e) {
+                    return "raised";
+                }
+            });
+            scope.cancel();
+            return task.result();
+        });
+    }
+
+    public static void main() {
+        var zero = new AtomicInt(0);
+        var mainThread = Thread.current();
+
+        // ---- 13.1 ----
+        var box = new AtomicInt(0);
+        var seen = new Atomic<@Nullable Thread>(null);
+        var worker = Thread.start(() -> {
+            seen.set(Thread.current());
+            box.set(7);
+        });
+        worker.join();
+        Console.println("thread: " + box.get() + " " + (seen.get() == worker) + " " + (seen.get() == mainThread) + " " + worker.isAlive() + " " + (worker.uncaught() == null));
+
+        try {
+            Thread.sleep(-1);
+            Console.println("sleep: returned");
+        } catch (IllegalArgumentException e) {
+            Console.println("sleep: a negative time raises");
+        }
+        try {
+            Thread.current().join();
+            Console.println("join: returned");
+        } catch (IllegalStateException e) {
+            Console.println("join: joining the running thread raises");
+        }
+
+        var gate = new Gate();
+        var held = Thread.start(() -> {
+            gate.pass();
+        });
+        Console.println("alive: " + held.isAlive() + " " + (held.uncaught() == null));
+        gate.release();
+        held.join();
+        Console.println("after join: " + held.isAlive());
+
+        var failed = Thread.start(() -> {
+            if (zero.get() == 0) {
+                throw new IllegalStateException("the body failed");
+            }
+        });
+        failed.join();
+        @Nullable Throwable why = failed.uncaught();
+        Console.println("uncaught: " + (why == null ? "none" : why.message()) + ", and main goes on");
+
+        // ---- 13.2 ----
+        var lock = new Lock();
+        var counted = new Counter();
+        var cell = new AtomicInt(0);
+        var workers = new List<Thread>();
+        for (var t = 0; t < 4; t++) {
+            workers.add(Thread.start(() -> {
+                for (var i = 0; i < 1000; i++) {
+                    lock.lock();
+                    counted.n = counted.n + 1;
+                    lock.unlock();
+                    cell.incrementAndGet();
+                }
+            }));
+        }
+        for (Thread w : workers) {
+            w.join();
+        }
+        Console.println("lock: " + counted.n);
+        Console.println("atomic steps: " + cell.get());
+
+        var before = new Counter();
+        before.n = 5;
+        var after = new Counter();
+        var reader = Thread.start(() -> {
+            after.n = before.n + 1;
+        });
+        reader.join();
+        Console.println("start and join: " + after.n);
+
+        var got = new AtomicInt(0);
+        var first = Thread.start(() -> {
+            got.set(Late.value);
+        });
+        first.join();
+        Console.println("class: " + got.get() + " " + Late.value);
+
+        // ---- 13.3 ----
+        var again = new Lock();
+        again.lock();
+        again.lock();
+        again.unlock();
+        again.unlock();
+        try {
+            again.unlock();
+            Console.println("reentrant: a third unlock returned");
+        } catch (IllegalStateException e) {
+            Console.println("reentrant: locked twice, unlocked twice, and then not held");
+        }
+
+        Int answer = again.exclusive(() -> 42);
+        try {
+            again.exclusive(() -> {
+                if (zero.get() == 0) {
+                    throw new IllegalArgumentException("in the body");
+                }
+            });
+        } catch (IllegalArgumentException e) {
+        }
+        var free = new AtomicInt(0);
+        var taker = Thread.start(() -> {
+            again.lock();
+            free.set(1);
+            again.unlock();
+        });
+        taker.join();
+        Console.println("exclusive: " + answer + " " + free.get());
+
+        var condition = again.newCondition();
+        var raised = 0;
+        try {
+            condition.await();
+        } catch (IllegalStateException e) {
+            raised += 1;
+        }
+        try {
+            condition.signal();
+        } catch (IllegalStateException e) {
+            raised += 1;
+        }
+        try {
+            condition.signalAll();
+        } catch (IllegalStateException e) {
+            raised += 1;
+        }
+        Console.println("condition without its lock: " + raised);
+
+        var slot = new Slot();
+        var length = new AtomicInt(0);
+        var receiver = Thread.start(() -> {
+            length.set(slot.take().length());
+        });
+        until(slot.waiting);
+        slot.put("ping");
+        receiver.join();
+        Console.println("signal: " + length.get());
+
+        var crowd = new Gate();
+        var through = new AtomicInt(0);
+        var waiters = new List<Thread>();
+        for (var t = 0; t < 3; t++) {
+            waiters.add(Thread.start(() -> {
+                crowd.pass();
+                through.incrementAndGet();
+            }));
+        }
+        while (crowd.waiting.get() < 3) {
+        }
+        crowd.release();
+        for (Thread w : waiters) {
+            w.join();
+        }
+        Console.println("signalAll: " + through.get());
+
+        // ---- 13.4 ----
+        var a = new AtomicInt(5);
+        Console.println("atomic int: " + a.get() + " " + a.compareAndSet(5, 6) + " " + a.compareAndSet(5, 7) + " " + a.get() + " " + a.addAndGet(10) + " " + a.incrementAndGet());
+        var top = new AtomicInt(9223372036854775807);
+        try {
+            top.addAndGet(1);
+            Console.println("overflow: returned");
+        } catch (ArithmeticException e) {
+            Console.println("overflow: raises, and the cell is unchanged " + (top.get() == 9223372036854775807));
+        }
+        var one = new Same();
+        var two = new Same();
+        var references = new Atomic<Same>(one);
+        var values = new Atomic<Pt>(new Pt(1));
+        Console.println("atomic cell: " + references.compareAndSet(two, two) + " " + references.compareAndSet(one, two) + " " + references.get().identical(two) + " " + values.compareAndSet(new Pt(1), new Pt(2)) + " " + values.get().x);
+
+        // ---- 13.5 ----
+        var tasks = new List<Task<Int>>();
+        Int sum = Scope.call((scope) -> {
+            var onMain = Thread.current() == mainThread;
+            for (var k = 1; k <= 3; k++) {
+                var n = k;
+                tasks.add(scope.fork(() -> {
+                    Thread.sleep(5);
+                    return n * n;
+                }));
+            }
+            return onMain ? tasks[0].result() + tasks[1].result() : -1;
+        });
+        var done = 0;
+        for (Task<Int> t : tasks) {
+            if (t.isDone()) {
+                done += 1;
+            }
+        }
+        Console.println("scope: " + sum + " " + done);
+
+        var door = new Gate();
+        var where = new Atomic<@Nullable Thread>(null);
+        var order = Scope.call((scope) -> {
+            var task = scope.fork(() -> {
+                where.set(Thread.current());
+                door.pass();
+                return 1;
+            });
+            var early = task.isDone();
+            door.release();
+            return (early ? "after" : "before") + " the task ended, result " + task.result() + ", done " + task.isDone();
+        });
+        Console.println("fork: returned " + order + ", on the main thread " + (where.get() == mainThread));
+
+        try {
+            Scope.call((scope) -> {
+                var task = scope.fork(() -> {
+                    if (zero.get() == 0) {
+                        throw new IllegalStateException("the task failed");
+                    }
+                });
+                try {
+                    task.result();
+                } catch (IllegalStateException e) {
+                    Console.println("result: raises " + e.message() + ", done " + task.isDone());
+                }
+                for (var i = 0; i < 5000 && !scope.isCancelled(); i++) {
+                    Thread.sleep(1);
+                }
+                Console.println("a failed task cancels its scope: " + scope.isCancelled());
+            });
+            Console.println("call: returned");
+        } catch (IllegalStateException e) {
+            Console.println("call: raises " + e.message());
+        }
+
+        var noticed = new AtomicInt(0);
+        try {
+            Scope.call((scope) -> {
+                scope.fork(() -> {
+                    try {
+                        while (true) {
+                            Thread.sleep(2);
+                        }
+                    } catch (CancellationException e) {
+                        noticed.set(1);
+                        throw e;
+                    }
+                });
+                if (zero.get() == 0) {
+                    throw new IllegalArgumentException("the body failed");
+                }
+            });
+        } catch (IllegalArgumentException e) {
+            Console.println("body: raises " + e.message() + ", its task was cancelled " + noticed.get() + ", suppressed " + e.suppressed().length());
+        }
+
+        var ready = new AtomicInt(0);
+        try {
+            Scope.call((scope) -> {
+                scope.fork(() -> {
+                    until(ready);
+                    if (zero.get() == 0) {
+                        throw new IllegalStateException("first in fork order");
+                    }
+                });
+                scope.fork(() -> {
+                    ready.set(1);
+                    if (zero.get() == 0) {
+                        throw new IllegalArgumentException("second in fork order");
+                    }
+                });
+            });
+            Console.println("failure: call returned");
+        } catch (IllegalStateException e) {
+            Console.println("failure: " + e.message() + ", suppressed " + e.suppressed().length() + ": " + e.suppressed()[0].message());
+        }
+
+        // ---- 13.6 ----
+        var spin = new AtomicInt(0);
+        var outcome = Scope.call((scope) -> {
+            var task = scope.fork(() -> {
+                until(spin);
+                return "ran on";
+            });
+            scope.cancel();
+            var marked = scope.isCancelled();
+            spin.set(1);
+            return "" + marked + " " + scope.isCancelled() + ", and the task " + task.result();
+        });
+        Console.println("cancel: " + outcome);
+
+        var finished = Thread.start(() -> {
+        });
+        finished.join();
+        var quiet = new Lock();
+        var never = quiet.newCondition();
+        Console.println("points: " + point(() -> Thread.checkCancelled()) + " " + point(() -> Thread.sleep(1)) + " " + point(() -> finished.join()) + " " + point(() -> {
+            var x = tasks[0].result();
+        }) + " " + point(() -> {
+            quiet.lock();
+            try {
+                never.await();
+            } finally {
+                quiet.unlock();
+            }
+        }));
+        Console.println("lock is not a point: " + point(() -> {
+            quiet.lock();
+            quiet.unlock();
+        }));
+    }
+}

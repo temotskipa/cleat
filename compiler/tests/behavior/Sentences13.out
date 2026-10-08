@@ -1,0 +1,28 @@
+thread: 7 true false false true
+sleep: a negative time raises
+join: joining the running thread raises
+alive: true true
+after join: false
+uncaught: the body failed, and main goes on
+lock: 4000
+atomic steps: 4000
+start and join: 6
+class: 7 7
+reentrant: locked twice, unlocked twice, and then not held
+exclusive: 42 1
+condition without its lock: 3
+signal: 4
+signalAll: 3
+atomic int: 5 true false 6 16 17
+overflow: raises, and the cell is unchanged true
+atomic cell: false true true true 2
+scope: 5 3
+fork: returned before the task ended, result 1, done true, on the main thread false
+result: raises the task failed, done true
+a failed task cancels its scope: true
+call: raises the task failed
+body: raises the body failed, its task was cancelled 1, suppressed 0
+failure: first in fork order, suppressed 1: second in fork order
+cancel: true true, and the task ran on
+points: raised raised raised raised raised
+lock is not a point: returned
