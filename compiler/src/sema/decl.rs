@@ -58,6 +58,7 @@ pub fn build(mut units: Vec<ast::Unit>) -> Program {
     if !well_known(&mut p) {
         return p;
     }
+    imports(&mut p);
     qualifier_kinds(&mut p);
     headers(&mut p);
     p.headers_done = true;
@@ -311,6 +312,172 @@ fn find_in_package(p: &Program, package: &str, name: &str, unit: usize) -> Optio
         .copied()
         .find(|id| p.class(*id).unit == unit && p.class(*id).aud == Aud::File)
         .or_else(|| list.iter().copied().find(|id| p.class(*id).aud != Aud::File))
+}
+
+/// Section 1.6: an import names a type the file may name, and no two imports by name
+/// give one simple name.
+fn imports(p: &mut Program) {
+    for unit in 0..p.units.len() {
+        let list = p.units[unit].imports.clone();
+        let mut named: Vec<String> = Vec::new();
+        for imp in &list {
+            let path = imp.path.join(".");
+            if imp.star {
+                let prefix = format!("{path}.");
+                if !p.packages.iter().any(|k| *k == path || k.starts_with(&prefix)) {
+                    p.error(unit, imp.pos, format!("there is no package named `{path}`"));
+                }
+                continue;
+            }
+            let Some(simple) = imp.path.last().cloned() else { continue };
+            let pkg = imp.path[..imp.path.len() - 1].join(".");
+            match find_in_package(p, &pkg, &simple, unit) {
+                None => p.error(unit, imp.pos, format!("there is no type named `{path}`")),
+                Some(id) if !type_visible(p, id, unit) => p.error(unit, imp.pos, format!("`{path}` is outside its audience here, so it is not imported")),
+                Some(_) => {}
+            }
+            if named.contains(&simple) {
+                p.error(unit, imp.pos, format!("two imports give the name `{simple}`"));
+            }
+            named.push(simple);
+        }
+    }
+}
+
+/// The type of a class over its own type parameters.
+pub fn self_type_of(p: &Program, id: ClassId) -> Type {
+    let n = p.class(id).tparams.len();
+    Type::class(id, (0..n).map(|i| Arg::Ty(Type::var(Tv { owner: TvOwner::Class(id), index: i as u32 }))).collect())
+}
+
+/// A type with every qualifier removed, at every depth: what distinguishes overloads.
+fn without_qualifiers(t: &Type) -> Type {
+    let ty = match &t.ty {
+        Ty::Class(id, args) => Ty::Class(
+            *id,
+            args.iter()
+                .map(|a| match a {
+                    Arg::Ty(x) => Arg::Ty(without_qualifiers(x)),
+                    Arg::Wild(e, s) => Arg::Wild(e.as_ref().map(|x| Box::new(without_qualifiers(x))), s.as_ref().map(|x| Box::new(without_qualifiers(x)))),
+                })
+                .collect(),
+        ),
+        other => other.clone(),
+    };
+    Type { ty, nullable: false, quals: Vec::new() }
+}
+
+/// Section 4.4: two methods of one class that share a name differ in a parameter.
+fn overloads_differ(p: &mut Program, id: ClassId) {
+    let c = p.class(id).clone();
+    for (i, a) in c.methods.iter().enumerate() {
+        for (j, b) in c.methods.iter().enumerate().skip(i + 1) {
+            if a.name != b.name || a.params.len() != b.params.len() || a.tparams.len() != b.tparams.len() {
+                continue;
+            }
+            // Read the second method's own type parameters as the first's.
+            let mut s = Subst::new();
+            for k in 0..b.tparams.len() as u32 {
+                s.bind(
+                    Tv { owner: TvOwner::Method(MethodRef { class: id, index: j as u32 }), index: k },
+                    Type::var(Tv { owner: TvOwner::Method(MethodRef { class: id, index: i as u32 }), index: k }),
+                );
+            }
+            let same = a.params.iter().zip(b.params.iter()).all(|(x, y)| without_qualifiers(&x.ty) == without_qualifiers(&s.apply(&y.ty)));
+            if same && !a.ret.is_error() {
+                p.error(c.unit, b.pos, format!("the method `{}` is declared twice with the same parameter types", b.name));
+            }
+        }
+    }
+    for (i, a) in c.ctors.iter().enumerate() {
+        for b in c.ctors.iter().skip(i + 1) {
+            let same = a.params.len() == b.params.len() && a.params.iter().zip(b.params.iter()).all(|(x, y)| without_qualifiers(&x.ty) == without_qualifiers(&y.ty));
+            if same {
+                p.error(c.unit, b.pos, "a constructor is declared twice with the same parameter types");
+            }
+        }
+    }
+}
+
+/// A method of the class or of a superclass that has the name and the signature of an
+/// interface method: the two are one method (section 7.8).
+fn class_method_like(p: &mut Program, class: ClassId, root: MethodRef) -> Option<MethodRef> {
+    let own = self_type_of(p, class);
+    let up = p.supertype_at(&own, root.class)?;
+    let rs = Subst::for_class(root.class, up.args());
+    let r = p.method(root).clone();
+    if r.is_static || !r.tparams.is_empty() {
+        return None;
+    }
+    let mut cur = Some(class);
+    while let Some(cid) = cur {
+        if !p.class(cid).is_interface() {
+            let mine = p.supertype_at(&own, cid)?;
+            let ms = Subst::for_class(cid, mine.args());
+            for i in 0..p.class(cid).methods.len() {
+                let m = p.class(cid).methods[i].clone();
+                if m.name != r.name || m.is_static || m.is_abstract || m.aud != Aud::Public || m.params.len() != r.params.len() || !m.tparams.is_empty() {
+                    continue;
+                }
+                let mut same = true;
+                for (a, b) in m.params.iter().zip(r.params.iter()) {
+                    let (x, y) = (ms.apply(&a.ty), rs.apply(&b.ty));
+                    if !p.same_type(&x, &y) {
+                        same = false;
+                        break;
+                    }
+                }
+                if same {
+                    return Some(MethodRef { class: cid, index: i as u32 });
+                }
+            }
+        }
+        cur = p.class(cid).superclass.as_ref().and_then(|t| t.class_id());
+    }
+    None
+}
+
+/// Section 2.6: two interfaces that each give a body for one signature leave the class
+/// to settle it.
+fn interface_bodies_agree(p: &mut Program, id: ClassId) {
+    let c = p.class(id).clone();
+    if c.is_interface() {
+        return;
+    }
+    let mut bodies: Vec<(MethodRef, Subst)> = Vec::new();
+    for sup in all_supertypes(p, id) {
+        let Ty::Class(sid, sargs) = &sup.ty else { continue };
+        if !p.class(*sid).is_interface() {
+            continue;
+        }
+        for (i, m) in p.class(*sid).methods.iter().enumerate() {
+            if !m.is_static && !m.is_abstract {
+                bodies.push((MethodRef { class: *sid, index: i as u32 }, Subst::for_class(*sid, sargs)));
+            }
+        }
+    }
+    for i in 0..bodies.len() {
+        for j in i + 1..bodies.len() {
+            let (a, b) = (bodies[i].0, bodies[j].0);
+            let (ma, mb) = (p.method(a).clone(), p.method(b).clone());
+            if ma.name != mb.name || ma.params.len() != mb.params.len() || ma.overrides.contains(&b) || mb.overrides.contains(&a) {
+                continue;
+            }
+            let mut same = true;
+            for (x, y) in ma.params.iter().zip(mb.params.iter()) {
+                let (x, y) = (bodies[i].1.apply(&x.ty), bodies[j].1.apply(&y.ty));
+                if !p.same_type(&x, &y) {
+                    same = false;
+                    break;
+                }
+            }
+            // A method of the class, or of a superclass, settles it.
+            let settled = matches!(impl_of(p, id, a), ImplOf::Found(f) if !p.class(f.class).is_interface());
+            if same && !settled {
+                p.error(c.unit, c.pos, format!("two interfaces provide a body for `{}`; the class must override it", ma.name));
+            }
+        }
+    }
 }
 
 /// Looks up a simple type name in the order of section 1.6, without type parameters.
@@ -1507,6 +1674,8 @@ fn hierarchy(p: &mut Program) {
             }
         }
         variance_checks(p, id);
+        overloads_differ(p, id);
+        interface_bodies_agree(p, id);
     }
 }
 
@@ -1532,6 +1701,11 @@ pub fn impl_of(p: &mut Program, class: ClassId, root: MethodRef) -> ImplOf {
             }
         }
         cur = p.class(cid).superclass.as_ref().and_then(|t| t.class_id());
+    }
+    if p.class(root.class).is_interface() {
+        if let Some(f) = class_method_like(p, class, root) {
+            return ImplOf::Found(f);
+        }
     }
     // Then the bodies that interfaces provide.
     let mut found: Vec<MethodRef> = Vec::new();

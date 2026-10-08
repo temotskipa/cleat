@@ -86,6 +86,19 @@ fn analyze_units(mut units: Vec<ast::Unit>) -> Result<sema::program::Program, Ve
         (Ok(x), Ok(y)) => x == y,
         _ => false,
     };
+    for r in &units {
+        if r.package.first().map(|s| s.as_str()) != Some("cleat") {
+            continue;
+        }
+        // A file of the prelude itself, or one that stands in place of a prelude file.
+        let known = r.package.len() == 1 && prelude.iter().any(|u| same(&r.file, &u.file) || r.file.file_name() == u.file.file_name());
+        if !known {
+            return Err(vec![Diagnostic::general(
+                &r.file,
+                "a program does not declare the package `cleat`, or a package whose name begins with `cleat.`",
+            )]);
+        }
+    }
     for u in prelude {
         let replaced = units.iter().any(|r| {
             same(&r.file, &u.file) || (r.package == ["cleat"] && r.file.file_name() == u.file.file_name())
