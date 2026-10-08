@@ -58,6 +58,46 @@ pub fn program() -> &'static Program {
 pub const STACK: usize = 16 << 20;
 
 pub fn new_ctx() -> *mut Ctx {
+    new_ctx_sized(STACK)
+}
+
+/// The stack of the thread that runs `main`. Windows gives it what the linker asked
+/// for. Linux lets it grow to the soft limit of the process, which is raised to `STACK`
+/// here when the hard limit allows; otherwise the thread has what the limit gives.
+pub fn main_stack() -> usize {
+    #[cfg(target_os = "linux")]
+    {
+        #[repr(C)]
+        struct Rlimit {
+            cur: u64,
+            max: u64,
+        }
+        unsafe extern "C" {
+            fn getrlimit(resource: i32, rlim: *mut Rlimit) -> i32;
+            fn setrlimit(resource: i32, rlim: *const Rlimit) -> i32;
+        }
+        const RLIMIT_STACK: i32 = 3;
+        let mut r = Rlimit { cur: 0, max: 0 };
+        unsafe {
+            if getrlimit(RLIMIT_STACK, &mut r) != 0 {
+                return STACK;
+            }
+            if r.cur >= STACK as u64 {
+                return STACK;
+            }
+            let want = Rlimit { cur: (STACK as u64).min(r.max), max: r.max };
+            if setrlimit(RLIMIT_STACK, &want) == 0 {
+                return want.cur as usize;
+            }
+            r.cur as usize
+        }
+    }
+    #[cfg(not(target_os = "linux"))]
+    STACK
+}
+
+/// A context for a thread whose stack holds `size` bytes.
+pub fn new_ctx_sized(size: usize) -> *mut Ctx {
     // The thread's own stack starts about here. Calls stop well before its end, so
     // the runtime always has room to report that the stack is full.
     let marker = 0u8;
@@ -68,7 +108,7 @@ pub fn new_ctx() -> *mut Ctx {
         poll: std::sync::atomic::AtomicU32::new(0),
         _pad: 0,
         thread: std::ptr::null_mut(),
-        stack_limit: top.saturating_sub(STACK - (1 << 20)),
+        stack_limit: top.saturating_sub(size.saturating_sub(1 << 20)),
         temps: Vec::new(),
         allocated: Vec::new(),
         bytes: 0,

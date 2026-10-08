@@ -887,7 +887,7 @@ pub unsafe extern "C" fn cl_start(program: *const Program) -> *mut Ctx {
             (**s).gc = GC_STATIC;
         }
         cl_unit = gc::alloc_static(types::wk_type(K_UNIT), BODY);
-        gc::new_ctx()
+        gc::new_ctx_sized(gc::main_stack())
     }
 }
 

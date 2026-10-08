@@ -68,6 +68,9 @@ is the earlier attempt on MMTk and is not linked.
 ## Foreign calls
 
 A foreign method whose types are all scalars, or arrays of scalars, is called directly.
+Every function that the runtime or C defines is declared with `signext` or `zeroext` on
+its 8- and 16-bit parameters (`Repr::ll_c`), because the C convention of Linux has the
+caller widen them and code that rustc or clang compiled relies on it.
 One that takes or returns a value class goes through C source the compiler writes
 (`emit/mod.rs`, `foreign_shim`) and gives to clang with the module. The C code copies
 an object's fields into the struct C expects and back, so the platform's own rules for
@@ -76,7 +79,8 @@ passing structs apply.
 ## Limits
 
 A thread has 16 MB of stack (`rt/src/gc.rs`, `STACK`; `emit/link.rs` asks the linker for
-the same). Every compiled function compares its frame's address with a limit in the
+the same on Windows, and on Linux `gc::main_stack` raises the soft limit that the main
+thread grows to). Every compiled function compares its frame's address with a limit in the
 context, and a call that finds the stack full ends the program.
 
 ## Tests

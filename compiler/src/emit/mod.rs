@@ -50,6 +50,20 @@ impl Repr {
         }
     }
 
+    /// The type as a function that the runtime or C defines takes or returns it. The C
+    /// convention of some platforms has the caller widen a narrow integer, and code that
+    /// clang or rustc compiled relies on that.
+    pub fn ll_c(self) -> &'static str {
+        use Repr::*;
+        match self {
+            I8 => "i8 signext",
+            I16 => "i16 signext",
+            U8 | Bool => "i8 zeroext",
+            U16 => "i16 zeroext",
+            other => other.ll(),
+        }
+    }
+
     /// The runtime's number for a machine kind; 0 for a pointer to an object.
     pub fn kind(self) -> u32 {
         use Repr::*;
@@ -110,6 +124,22 @@ impl Sig {
             parts.push(r.ll().into());
         }
         parts.extend(self.params.iter().map(|r| r.ll().to_string()));
+        parts.join(", ")
+    }
+
+    /// The parameters of a function that the runtime or C defines.
+    pub fn ll_params_c(&self) -> String {
+        let mut parts: Vec<&str> = Vec::new();
+        if !self.foreign {
+            parts.push("ptr");
+        }
+        if self.generic {
+            parts.push("ptr");
+        }
+        if let Some(r) = self.recv {
+            parts.push(r.ll_c());
+        }
+        parts.extend(self.params.iter().map(|r| r.ll_c()));
         parts.join(", ")
     }
 }
@@ -345,7 +375,7 @@ impl<'p> Emitter<'p> {
         let s = self.sig(m);
         if md.foreign {
             let name = md.symbol.clone().unwrap_or_else(|| md.name.clone());
-            self.declare(format!("declare {} @\"{}\"({})", s.ret.ll(), sym(&name), s.ll_params()));
+            self.declare(format!("declare {} @\"{}\"({})", s.ret.ll(), sym(&name), s.ll_params_c()));
             return format!("@\"{}\"", sym(&name));
         }
         if md.intrinsic {
@@ -354,7 +384,7 @@ impl<'p> Emitter<'p> {
                 name.push('_');
                 name.push_str(&self.erasure(&prm.ty));
             }
-            self.declare(format!("declare {} @{name}({})", s.ret.ll(), s.ll_params()));
+            self.declare(format!("declare {} @{name}({})", s.ret.ll(), s.ll_params_c()));
             return format!("@{name}");
         }
         format!("@\"{}.{}/{}\"", sym(&c.qname), sym(&md.name), m.index)
@@ -584,7 +614,7 @@ impl<'p> Emitter<'p> {
                 let ct = c_scalar(r);
                 c_params.push(ct.to_string());
                 shim_params.push(format!("{ct} a{i}"));
-                ll_params.push(r.ll());
+                ll_params.push(r.ll_c());
                 args.push(format!("a{i}"));
                 kinds.push(ShimParam::Scalar(r));
             }
