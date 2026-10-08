@@ -79,6 +79,10 @@ context, and a call that finds the stack full ends the program.
 ## Tests
 
 - `tests/spec_examples.rs`: one test for each fenced example in `spec/`.
+- `tests/spec_tables.rs`: the tables of the specification against the lexer, the checker
+  and the prelude, and every reference between the documents.
+- `tests/spec_consistency.rs`: the chapters against each other and against
+  `design/foundations.md`, wherever two places state the same thing.
 - `tests/rejections.rs` and `tests/declarations.rs`: programs the checker must reject.
 - `tests/behavior.rs`: programs in `tests/behavior/`, each with the output it must print.
 - `tests/host.rs`: foreign structs, the ways a program ends, and warnings.
