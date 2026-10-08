@@ -3,6 +3,7 @@
 use std::path::{Path, PathBuf};
 
 pub mod ast;
+pub mod emit;
 pub mod lex;
 pub mod parse;
 pub mod sema;
@@ -111,9 +112,26 @@ pub fn prelude_dir() -> PathBuf {
 }
 
 /// Typechecks `root` and writes a native executable for the entry class `entry`.
-pub fn build(root: &Path, _entry: &str, _output: &Path) -> Result<(), Vec<Diagnostic>> {
-    parse_project(root)?;
-    Err(vec![Diagnostic::general(root, "building is not implemented yet")])
+pub fn build(root: &Path, entry: &str, output: &Path) -> Result<(), Vec<Diagnostic>> {
+    build_roots(&[root], entry, output).map(|_| ())
+}
+
+/// Compiles the files under every root as one program. The result is the reports that
+/// do not reject the program.
+pub fn build_roots(roots: &[&Path], entry: &str, output: &Path) -> Result<Vec<Diagnostic>, Vec<Diagnostic>> {
+    let mut p = analyze(roots)?;
+    let first = roots.first().copied().unwrap_or(Path::new("."));
+    let fail = |message: String| vec![Diagnostic::general(first, message)];
+    let mut found: Vec<u32> = p.classes.iter().filter(|c| c.qname == entry).map(|c| c.id).collect();
+    if found.is_empty() {
+        found = p.classes.iter().filter(|c| c.name == entry && c.lambda.is_none()).map(|c| c.id).collect();
+    }
+    if found.len() != 1 {
+        return Err(fail(format!("the entry class `{entry}` names {} classes of the program", found.len())));
+    }
+    let ir = emit::emit(&mut p, found[0]).map_err(|errors| errors.into_iter().map(|m| Diagnostic::general(first, m)).collect::<Vec<_>>())?;
+    emit::link::link(&ir, output).map_err(fail)?;
+    Ok(std::mem::take(&mut p.warnings))
 }
 
 fn collect(root: &Path) -> Result<Vec<(PathBuf, String)>, Vec<Diagnostic>> {

@@ -308,6 +308,9 @@ pub unsafe extern "C" fn cl_type_eval(e: *const TypeExpr, env: *const Td) -> Td 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn cl_env(o: Obj, class: *const ClassInfo) -> *const Td {
     unsafe {
+        if o.is_null() {
+            return std::ptr::null();
+        }
         let td = &*(*o).td;
         match td.super_at(class) {
             Some(up) => up.args.as_ptr(),
