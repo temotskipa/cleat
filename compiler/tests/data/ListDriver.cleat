@@ -1,0 +1,41 @@
+// Uses the list of design/programs/List.cleat, which stands in place of the prelude's.
+package demo;
+
+public class ListDriver {
+    public static void main() {
+        var words = new List<String>();
+        Console.println("empty: " + words.isEmpty());
+        for (String word : "pear fig apple kiwi banana cherry date elderberry grape".split(" ")) {
+            words.add(word);
+        }
+        // Nine items: the list has grown past its first eight slots.
+        Console.println("size: " + words.size());
+        Console.println("third: " + words[2]);
+        words[2] = "apricot";
+        Console.println("last removed: " + words.removeLast());
+        words.sort((a, b) -> a.compare(b));
+        var line = new StringBuilder();
+        for (String word : words) {
+            line.append(word).append(" ");
+        }
+        Console.println(line.toString().trim());
+
+        // The type argument is part of the class.
+        Object o = words;
+        Console.println(o instanceof List<String>);
+        Console.println(o instanceof List<Int>);
+        Console.println(o.getClass().getName());
+
+        // A list of a nullable type holds null, and the cast in `get` lets it through.
+        var gaps = new List<@Nullable Int>();
+        gaps.add(1);
+        gaps.add(null);
+        Console.println("gap: " + gaps[1]);
+
+        try {
+            Console.println(words[40]);
+        } catch (IndexOutOfBoundsException e) {
+            Console.println(e.message());
+        }
+    }
+}
