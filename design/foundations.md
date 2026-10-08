@@ -453,4 +453,5 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 - Section 5.3 counts four methods of `Object` that take a `@Nullable` receiver, with `identical`, as section 2.5 declares them.
 - Section 10.2 defers declaration annotations on locals and type parameters. A qualifier on a local and a tag required by a type parameter are in the language.
 - Section 11.6: the grammar derives `name(args)`, a call with no receiver.
+- Section 11.6: in the head of a switch arm a `(` does not begin a lambda. Section 12.1 makes a parenthesized constant a constant, and the lambda rule read `case (1) -> x` as a lambda.
 - Section 2.6 says that the method a class declares for a static requirement carries `@Override`, as section 8.8 asks of every method that implements an interface method.

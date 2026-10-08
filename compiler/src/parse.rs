@@ -7,7 +7,7 @@ use std::path::Path;
 
 pub fn parse_unit(file: &Path, text: &str) -> Result<Unit, Diagnostic> {
     let toks = lex::lex(file, text)?;
-    let mut p = Parser { file, text, toks, i: 0 };
+    let mut p = Parser { file, text, toks, i: 0, in_arm_head: false };
     p.unit()
 }
 
@@ -16,6 +16,9 @@ struct Parser<'a> {
     text: &'a str,
     toks: Vec<Token>,
     i: usize,
+    /// Set while the constants of a switch arm are read: the `->` after them ends the
+    /// arm's head and begins no lambda.
+    in_arm_head: bool,
 }
 
 type R<T> = Result<T, Diagnostic>;
@@ -981,11 +984,16 @@ impl<'a> Parser<'a> {
         if let Some((ty, name)) = typed {
             return Ok(ArmHead::Type(ty, name));
         }
-        let mut list = vec![self.expr()?];
-        while self.eat_punct(",") {
-            list.push(self.expr()?);
-        }
-        Ok(ArmHead::Constants(list))
+        self.in_arm_head = true;
+        let list = (|| {
+            let mut list = vec![self.expr()?];
+            while self.eat_punct(",") {
+                list.push(self.expr()?);
+            }
+            Ok(list)
+        })();
+        self.in_arm_head = false;
+        Ok(ArmHead::Constants(list?))
     }
 
     // ---- expressions ----
@@ -1345,6 +1353,9 @@ impl<'a> Parser<'a> {
 
     /// Whether the `(` here opens the parameter list of a lambda.
     fn lambda_ahead(&self) -> bool {
+        if self.in_arm_head {
+            return false;
+        }
         let mut depth = 0usize;
         let mut n = 0usize;
         loop {

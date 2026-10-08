@@ -85,6 +85,12 @@ pub const SENTENCES: &[Rule] = &[
     ),
     rule(
         "11",
+        "The head of a switch arm is the exception",
+        &[],
+        &["class A { Int f(Int n) { return switch (n) { case (1) -> 1; case ((2)), (3) -> 2; case (true ? 4 : 5) -> 3; default -> 0; }; } Function1<Int, Int> g(Int n) { return switch (n) { case (1) -> (x) -> x; default -> (x) -> (x) + 1; }; } }"],
+    ),
+    rule(
+        "11",
         "begins type arguments when the tokens up to the matching `>` are type arguments",
         &[],
         &["class A { Class f() { return List<Int>.class; } Function1<List<Int>, Int> g() { return List<Int>::size; } Class h() { return Map<String, List<Int>>.class; } }"],

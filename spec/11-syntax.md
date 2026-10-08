@@ -214,7 +214,7 @@ arm-value       = expr ";" | "throw" expr ";"
 The grammar derives more than is legal, and these rules settle what it leaves open.
 
 - **Casts.** `(` type `)` begins a cast only when the token after `)` is not `-`, `++` or `--`. `(n) - 1` is a subtraction, and a negated operand is cast as `(Int) (-n)`.
-- **Lambdas.** A `(` begins a lambda when the token after its matching `)` is `->`.
+- **Lambdas.** A `(` begins a lambda when the token after its matching `)` is `->`. The head of a switch arm is the exception: the `->` after its constants ends the head, so `case (1) -> x` is an arm whose constant is `(1)`.
 - **Type arguments in an expression.** A `<` after a name begins type arguments when the tokens up to the matching `>` are type arguments and the next token is `::`, or `.` followed by `class`. Everywhere else it is the comparison operator. The type after `new` and after `instanceof`, and the type arguments of a call, which follow its `.`, are never mistaken for one.
 - **Names.** `a.b.c` is derived as an identifier and two selectors. [Chapter 1](01-source.md#18-scope) says which parts name a package, a type, a field or a variable.
 - **Assignment.** The left side of an assignment, and the operand of `++` and `--`, is a variable, a field or an indexed element.
