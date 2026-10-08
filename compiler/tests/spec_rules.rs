@@ -1020,9 +1020,9 @@ const RULES: &[Rule] = &[
     stated("13", "A value that must change in one step is held in an atomic cell", "It is advice to a program, and no checker decides which values those are."),
 ];
 
-/// Rules the chapters state in other words: "only", "never", "does not", "has no". The
-/// count of requirements above leaves these sentences out, and each case here still
-/// names the one sentence it tests.
+/// The sentences that forbid or limit in other words: "only", "never", "does not",
+/// "is not a", "are not", "has no", "no ... may". Every such sentence of the chapters
+/// is here too, with its programs or with the reason it has none.
 const FURTHER: &[Rule] = &[
     // ---- chapter 1 ----
     rule(
@@ -1306,6 +1306,407 @@ const FURTHER: &[Rule] = &[
         &[("class A { Int f(@Nullable String s, @Nullable String t) { if (s == null) { return 0; } var n = 0; while (n < 3) { n = n + s.length(); s = t; } return n; } }", "`length` is sent to a `@Nullable String`")],
         &["class A { Int f(@Nullable String s) { if (s == null) { return 0; } var n = 0; while (n < 3) { n = n + s.length() + 1; } return n; } }"],
     ),
+    // ---- the rest of the sentences that restrict, chapter by chapter ----
+    rule("01", "A line break does not end a statement", &[], &["class A { Int f() {\n return 1\n + 2\n ; } }"]),
+    rule("01", "These words are keywords only in one position each", &[], &["class A { Int open = 1; Int value = 2; Int only = 3; void sealed() { } Int in(Int out) { return out; } }"]),
+    rule("01", "A decimal numeral has no leading `0` unless it is exactly `0`", &[("class A { Int f() { return 007; } }", "a decimal numeral has no leading zero")], &["class A { Int f() { return 0; } Float64 g() { return 0.5; } }"]),
+    rule("01", "A numeric literal has no suffix", &[("class A { Int f() { return 1L; } }", "a numeric literal has no suffix"), ("class A { Float64 f() { return 2.5d; } }", "a numeric literal has no suffix")], &[]),
+    stated("01", "It is not an object and has no members of its own", "It says what a package is; the import cases name types through packages."),
+    rule(
+        "01",
+        "It does not import the packages inside `a.b`",
+        &[("==== a/b/c/X.cleat\npackage a.b.c; public class X { }\n==== D.cleat\nimport a.b.*; class D { void f(X x) { } }", "there is no type named `X` here")],
+        &["==== a/b/c/X.cleat\npackage a.b.c; public class X { }\n==== D.cleat\nimport a.b.c.*; class D { void f(X x) { } }"],
+    ),
+    rule("01", "and the language does not require it", &[], &["class lower { } class A { void f(lower x) { } }"]),
+    rule(
+        "02",
+        "The compiler does not rewrite an operator into a different method",
+        &[("class P { } class Q { public Q plus(P p) { return this; } } class A { void f(P p, Q q) { var x = p + q; } }", "`+` is the method `plus`, and `P` has no method `plus`")],
+        &["class P { } class Q { public Q plus(P p) { return this; } } class A { void f(P p, Q q) { var x = q + p; } }"],
+    ),
+    rule("02", "and the null test is not a method", &[("class A { Object f() { return null; } }", "`null` is not a value of `Object`")], &["class A { Boolean f(@Nullable Object o) { return o == null; } }"]),
+    stated("02", "Its instances have no identity", "Checked by tests/behavior/Rules.cleat, line `identical`: two value instances with equal fields are identical."),
+    rule(
+        "02",
+        "It extends no class other than `Object`, and no class extends it",
+        &[("open class P { } value class V extends P { public Int a; }", "a value class extends no class"), ("value class V { public Int a; } class W extends V { }", "`V` is not a class that can be extended")],
+        &["interface I { } value class V implements I { public Int a; }"],
+    ),
+    stated("02", "The language does not check these obligations", "It says what is left unchecked."),
+    stated("02", "For a prelude value class whose fields are not written in source, `identical` is `equals`", "Checked by tests/behavior/Rules.cleat, line `identical`: two `Int` values of 5 are identical."),
+    stated("02", "so the result never depends on how the implementation stored it", "Checked by tests/behavior/Rules.cleat, line `identical`, through variables of type `Object`."),
+    rule(
+        "02",
+        "a sealed interface with no methods is the usual root",
+        &[],
+        &["sealed interface S permits P, Q { } class P implements S { } class Q implements S { } class A { Int f(S s) { return switch (s) { case P p -> 1; case Q q -> 2; }; } }"],
+    ),
+    rule("02", "The private-by-default rule of classes does not apply to them", &[], &["interface I { Int f(); Int X = 1; } class D { Int g(I i) { return i.f() + I.X; } }"]),
+    rule("02", "A static method has no receiver", &[("class A { Int n = 1; static Int f() { return n; } }", "`this` is not available in a static context")], &["class A { static Int n = 1; static Int f() { return n; } }"]),
+    stated("02", "It does not override it", "Checked by tests/behavior/Rules.cleat, line `statics`: each static method answers for the type that names it."),
+    stated("02", "Evaluating it does not initialize the class", "Checked by tests/behavior/Rules.cleat, line `class literal`."),
+    stated("02", "No field is dispatched", "Checked by tests/behavior/Rules.cleat, line `fields`."),
+    stated("02", "A final method, a static method and a field are not dispatched", "Checked by tests/behavior/Rules.cleat, lines `fields` and `statics`."),
+    stated("02", "runs the superclass's method and does not dispatch", "Checked by tests/behavior/Rules.cleat, line `super`."),
+    stated("02", "lists the features of Java that Cleat does not have", "It introduces the next sentence, whose case has a program for each feature."),
+    rule(
+        "03",
+        "A field that everyone may read and only the class may assign",
+        &[("class A { private Int n = 0; public Int count() { return n; } } class B { void f(A a) { a.n = 1; } }", "the field `n` of `A` is outside its audience here")],
+        &["class A { private Int n = 0; public Int count() { return n; } } class B { Int f(A a) { return a.count(); } }"],
+    ),
+    rule(
+        "03",
+        "is callable from outside the file only through a supertype that declares the method",
+        &[(
+            "==== Shape.cleat\npublic interface Shape { Int area(); }\n==== Shapes.cleat\nclass Square implements Shape { @Override public Int area() { return 4; } public Int side() { return 2; } } public class Shapes { public static Shape make() { return new Square(); } }\n==== B.cleat\nclass B { Int f() { return Shapes.make().side(); } }",
+            "`Shape` has no method named `side`",
+        )],
+        &["==== Shape.cleat\npublic interface Shape { Int area(); }\n==== Shapes.cleat\nclass Square implements Shape { @Override public Int area() { return 4; } } public class Shapes { public static Shape make() { return new Square(); } }\n==== B.cleat\nclass B { Int f() { return Shapes.make().area(); } }"],
+    ),
+    stated("03", "It does not depend on the class of an object at run time", "It says the audience rules are decided from static types, as every case of this chapter is."),
+    stated("03", "use only members declared `public`", "Checked by tests/behavior/Annotations.cleat, where a mirror of a member that is not public raises `IllegalAccessException`."),
+    stated("03", "They are not audiences", "It points to section 2.4, whose sentences have their own cases."),
+    rule("04", "A static method has no receiver", &[("class A { void g() { } static void f() { this.g(); } }", "`this` is not available in a static context")], &["class A { static void g() { } static void f() { g(); A.g(); } }"]),
+    stated("04", "Assigning a parameter does not change a variable of the caller", "Checked by tests/behavior/Rules.cleat, line `parameter`."),
+    rule(
+        "04",
+        "therefore accepts only the methods that declare a `@Nullable` receiver, until it is narrowed",
+        &[("class A { Int f(@Nullable String s) { return s.length(); } }", "`length` is sent to a `@Nullable String`")],
+        &["class A { String f(@Nullable String s) { return s.toString(); } Int g(@Nullable String s) { return s == null ? 0 : s.length(); } }"],
+    ),
+    rule(
+        "04",
+        "Resolution first considers only the methods that are applicable without an implicit conversion",
+        &[],
+        &["class A { static Int g(Int32 a) { return 1; } static String g(Int a) { return \"\"; } static Int f(Int32 x) { return g(x); } static String h(Int x) { return g(x); } }"],
+    ),
+    rule(
+        "04",
+        "a class type and an interface type are disjoint when the class is final and is not a subtype of the interface",
+        &[("class Q { } interface I { } class C { Boolean f(Q a, I i) { return a == i; } }", "`==` between `Q` and `I` is rejected: the two types are disjoint")],
+        &["open class P { } interface I { } class Q implements I { } class C { Boolean f(P a, Q q, I i) { return a == i && q == i; } }"],
+    ),
+    rule("04", "two `@Nullable` types are never disjoint", &[], &["class C { Boolean f(@Nullable String s, @Nullable Int n) { return s == n; } }"]),
+    rule("04", "two interface types are never disjoint, and a type parameter is disjoint from nothing", &[], &["interface I { } interface J { } class C { <T> Boolean f(I i, J j, T t, String s) { return i == j && t == s; } }"]),
+    rule(
+        "04",
+        "An operator is a call of a method on its left operand, or on its only operand",
+        &[("class P { } class A { P f(P a) { return -a; } }", "`-` is the method `negate`, and `P` has no method `negate`")],
+        &["class P { public P plus(P o) { return this; } public P negate() { return this; } } class A { P f(P a, P b) { return -a + b; } }"],
+    ),
+    rule(
+        "04",
+        "These two are not methods",
+        &[("class P { public Boolean and(P o) { return true; } } class A { Boolean f(P a, P b) { return a && b; } }", "`P` is not assignable to `Boolean`")],
+        &["class P { public Boolean and(P o) { return true; } } class A { Boolean f(P a, P b) { return a & b; } }"],
+    ),
+    rule("04", "A cast never converts a value", &[("class A { Int f(Int32 x) { return (Int) x; } }", "a cast from `Int32` to `Int` is rejected: the types are disjoint, and a cast never converts a value")], &[]),
+    rule("04", "It does not change the class of a number", &[("class A { Int f(Float64 x) { return (Int) x; } }", "a cast from `Float64` to `Int` is rejected")], &["class A { Int f(Float64 x) { return Int.from(x.round()); } }"]),
+    rule("04", "It has no type of its own", &[("class A { void f() { var g = (Int x) -> x; } }", "a lambda has no type of its own")], &["class A { void f() { Function1<Int, Int> g = (Int x) -> x; } }"]),
+    rule(
+        "04",
+        "A lambda may use a local or a parameter of an enclosing method or lambda only if",
+        &[("class A { Function0<Int> f(Int n) { n = n + 1; return () -> n; } }", "a lambda may use `n` only if it is never assigned after it is initialized")],
+        &["class A { Function0<Int> f(Int n) { return () -> n; } }"],
+    ),
+    stated("04", "A lambda therefore has no identity", "Checked by tests/behavior/Rules.cleat, line `lambdas`: two evaluations that capture equal values are equal."),
+    stated("04", "It does not run after `break`, `return` or a raised exception", "Checked by tests/behavior/Rules.cleat, line `for`."),
+    rule(
+        "04",
+        "Cleat does not read or write through a `Pointer`",
+        &[("class A { Int f(Pointer p) { return p.read(); } }", "`Pointer` has no method named `read`"), ("class A { void f(Pointer p) { p.write(1); } }", "`Pointer` has no method named `write`")],
+        &["class A { Pointer f() { return Pointer.zero(); } }"],
+    ),
+    stated("04", "has no defined behavior", "It is about the C function, which is outside the language."),
+    rule("05", "`Null` is not a subclass of `Object`, and no class extends it", &[("class A { Object f(Null n) { return n; } }", "`Null` is not assignable to `Object`"), ("class B extends Null { }", "`Null` is not a class that can be extended")], &["class A { @Nullable Object f(Null n) { return n; } Null g() { return null; } @Nullable String h(Null n) { return n; } }"]),
+    rule(
+        "05",
+        "A type written without `@Nullable` does not contain `null`",
+        &[("class A { Int n = null; }", "`null` is not a value of `Int`"), ("class A { List<String> f() { return null; } }", "`null` is not a value of `List<String>`")],
+        &["class A { @Nullable Int n = null; }"],
+    ),
+    rule(
+        "05",
+        "Every other field has no default and is definitely assigned on every constructor path",
+        &[("class A { String s; public A() { } }", "the field `s` is not assigned on every path")],
+        &["class A { @Nullable String s; String t = \"t\"; public A() { } }"],
+    ),
+    rule(
+        "05",
+        "only when the method declares its receiver `@Nullable`",
+        &[("class P { public Int size() { return 1; } } class A { Int f(@Nullable P p) { return p.size(); } }", "`size` is sent to a `@Nullable P`")],
+        &["class P { public Int size(@Nullable P this) { return this == null ? 0 : 1; } } class A { Int f(@Nullable P p) { return p.size(); } }"],
+    ),
+    stated("05", "A null test is not a send of `equals`", "Checked by tests/behavior/Rules.cleat, line `null test`, on a class whose `equals` answers `true` to everything."),
+    stated("05", "Its result depends only on whether the value of `e` is `null`", "Checked by tests/behavior/Rules.cleat, line `null test`, on a class whose `equals` answers `true` to everything."),
+    rule(
+        "05",
+        "and does not assign `x` after that test",
+        &[("class A { Int f(@Nullable String s, @Nullable String t) { if (s != null) { s = t; return s.length(); } return 0; } }", "`length` is sent to a `@Nullable String`")],
+        &["class A { Int f(@Nullable String s) { if (s != null) { return s.length(); } return 0; } }"],
+    ),
+    rule(
+        "06",
+        "No numeric class extends another, and their only common superclass is `Object`",
+        &[("class A { Numeric<Int> f(Int32 x) { return x; } }", "`Int32` is not assignable to `Numeric<Int>`")],
+        &["class A { Object f(Int32 x) { return x; } Numeric<Int32> g(Int32 x) { return x; } }"],
+    ),
+    rule("06", "A numeric literal has no class of its own", &[], &["class A { Int8 a = 1; Float64 b = 1; Rational c = 1; UInt64 d = 1; Float32 e = 1.5; Rational g = 1.5; }"]),
+    rule(
+        "06",
+        "the other operand or arm is not a literal expression and has a numeric static type `C`",
+        &[("class A { UInt8 g(UInt8 u) { return u + 256; } }", "the literal is outside the range of `UInt8`")],
+        &["class A { Float64 f(Float64 x) { return x + 1; } UInt8 g(UInt8 u) { return u + 1; } Float32 h(Boolean b, Float32 y) { return b ? y : 2; } }"],
+    ),
+    rule(
+        "06",
+        "Rounding a decimal literal to a float is the only implicit rounding in the language",
+        &[("class A { Float64 f(Rational r) { return r; } }", "`Rational` is not assignable to `Float64`"), ("class A { Float32 f(Float64 x) { return x; } }", "`Float64` is not assignable to `Float32`")],
+        &["class A { Float64 f() { return 0.1; } }"],
+    ),
+    rule(
+        "06",
+        "It happens only where the program wrote a float type",
+        &[("class A { Float64 f() { var x = 0.1; return x; } }", "`Rational` is not assignable to `Float64`")],
+        &["class A { Rational f() { var x = 0.1; return x; } Float64 g() { Float64 x = 0.1; return x; } }"],
+    ),
+    stated("06", "on an integer class raise `ArithmeticException` when the mathematical result is not a value of the class", "Checked by tests/behavior/Rules.cleat, lines `plus raises` and `negate raises`."),
+    stated("06", "also raise when the quotient is not a value of the class", "Checked by tests/behavior/Rules.cleat, lines `floorDiv raises` and `truncatingDiv raises`."),
+    stated("06", "They do not raise", "Two sentences, of the wrapping methods and of float arithmetic. Checked by tests/behavior/Rules.cleat, lines `wrapping` and `floats`."),
+    rule("06", "`>>>` is not a spelling", &[("class A { Int f(Int a) { return a >>> 1; } }", "`>>>` is not an operator")], &["class A { Int f(Int a) { return a.shiftRight(1) + (a >> 1); } }"]),
+    rule(
+        "06",
+        "A conversion that could lose information is never implicit",
+        &[("class A { Int32 f(Int n) { return n; } }", "`Int` is not assignable to `Int32`"), ("class A { Float64 f(Int n) { return n; } }", "`Int` is not assignable to `Float64`")],
+        &["class A { Int32 f(Int n) { return Int32.from(n); } Float64 g(Int n) { return Float64.nearest(n); } }"],
+    ),
+    stated("06", "its plain form raises an exception when the value does not fit", "Checked by tests/behavior/Rules.cleat, line `from raises`."),
+    stated("06", "and raises `ArithmeticException` when `C` has no such value", "Checked by tests/behavior/Rules.cleat, line `from raises`."),
+    stated("06", "A NaN or an infinity has no value in an integer class or in `Rational`", "Checked by tests/behavior/Rules.cleat, lines `from NaN raises` and `from infinity raises`."),
+    rule("06", "A cast is a class test and never converts", &[("class A { Float64 f(Int n) { return (Float64) n; } }", "a cast from `Int` to `Float64` is rejected")], &["class A { Float64 f(Object o) { return (Float64) o; } }"]),
+    stated("06", "raises `IllegalArgumentException` when the bytes are not well-formed UTF-8", "Checked by tests/behavior/Rules.cleat, line `fromUtf8 raises`."),
+    rule("07", "Type arguments are not erased", &[], &["class A { Boolean f(Object o) { return o instanceof List<Int>; } List<String> g(Object o) { return (List<String>) o; } }"]),
+    rule(
+        "07",
+        "`T extends Object` admits exactly the types that do not contain `null`",
+        &[("class Box<T extends Object> { } class A { void f(Box<@Nullable String> b) { } }", "`@Nullable String` is not within the bound `Object`")],
+        &["class Box<T extends Object> { } class A { void f(Box<String> b, Box<Int> c) { } }"],
+    ),
+    rule(
+        "07",
+        "accepts only a type argument whose declaration carries `Frozen`",
+        &[("@Target(Site.TYPE) annotation Frozen; class Snapshot<@Frozen T> { } class C { void f(Snapshot<String> s) { } }", "`String` does not carry the tag `@Frozen`")],
+        &["@Target(Site.TYPE) annotation Frozen; @Frozen class Bill { } class Snapshot<@Frozen T> { } class Pair<@Frozen U> { void f(Snapshot<Bill> s, Snapshot<U> t) { } }"],
+    ),
+    rule("07", "The type parameters of a method have no variance", &[("class A { <out T> void f() { } }", "the type parameters of a method have no variance")], &["class A { <T> void f(T x) { } }"]),
+    rule("07", "`out T` promises that the type only produces values of `T`", &[("interface S<out T> { void put(T x); }", "`T` is declared `out` and is written where a value is consumed")], &["interface S<out T> { T take(); }"]),
+    rule("07", "`in T` promises that the type only consumes values of `T`", &[("interface S<in T> { T take(); }", "`T` is declared `in` and is written where a value is produced")], &["interface S<in T> { void put(T x); }"]),
+    rule(
+        "07",
+        "so only an invariant `T` may be written there",
+        &[("interface S<out T> { List<T> all(); }", "is written where a value is both produced and consumed"), ("interface S<in T> { void all(List<T> xs); }", "is written where a value is both produced and consumed")],
+        &["interface S<T> { List<T> all(); void put(List<T> xs); }"],
+    ),
+    rule("07", "The parameters of a constructor are not restricted", &[], &["class B<out T> { final T item; public B(T item, List<T> others) { this.item = item; } }"]),
+    rule("07", "A wildcard stands for a type that the program does not name", &[], &["class A { Int f(List<?> xs, Map<?, ? extends Throwable> m) { return xs.size(); } }"]),
+    rule(
+        "07",
+        "A wildcard stands only for a type that could be written as the argument",
+        &[],
+        &["class Box<T extends Throwable> { T item; public Box(T item) { this.item = item; } public T get() { return item; } } class A { Throwable f(Box<?> b) { return b.get(); } }"],
+    ),
+    rule(
+        "07",
+        "A type contains only itself",
+        &[("open class Shape { } class Circle extends Shape { } class A { List<Shape> f(List<Circle> xs) { return xs; } }", "`List<Circle>` is not assignable to `List<Shape>`")],
+        &["open class Shape { } class Circle extends Shape { } class A { List<Circle> f(List<Circle> xs) { return xs; } }"],
+    ),
+    rule(
+        "07",
+        "The program has no name for `X`",
+        &[],
+        &["class A { @Nullable Object f(List<?> xs) { var x = xs.get(0); return x; } Throwable g(List<? extends Throwable> xs) { var x = xs.get(0); return x; } }"],
+    ),
+    rule(
+        "07",
+        "Two arguments never supply the same unknown",
+        &[("class A { static <T> void copy(List<T> from, List<T> to) { } void f(List<?> a) { copy(a, a); } }", "the type arguments of `copy` cannot be inferred from this call")],
+        &["class A { static <T> Int count(List<T> xs) { return xs.size(); } Int f(List<?> a) { return count(a); } }"],
+    ),
+    rule(
+        "07",
+        "It is also not applicable when the type determined for `P` is not a supertype of one of its lower bounds",
+        &[("class A { static <T extends Throwable> void g(T x) { } static void f(String s) { g(s); } }", "the type arguments of `g` cannot be inferred from this call")],
+        &["class A { static <T extends Throwable> void g(T x) { } static void f(IllegalStateException s) { g(s); } }"],
+    ),
+    stated("07", "Inference never produces a type that the program could not have written", "It describes every result of inference; the examples of section 7.5 are held by tests/spec_examples.rs."),
+    rule("08", "An instance comes only from a use of the annotation", &[("annotation M(Int n); class A { M f() { return new M(1); } }", "`new M` is rejected: an annotation value comes only from a use of the annotation")], &[]),
+    rule(
+        "08",
+        "A value obtains a refinement only by the narrowing of",
+        &[("@Refines annotation P; class A { @P Int f(Int n) { return n; } }", "`Int` is not assignable to `@P Int`")],
+        &["@Refines annotation P; class A { @P Int f(@P Int n) { @P Int m = n; return m; } }"],
+    ),
+    rule("08", "A value does not carry its own qualifiers at run time", &[("@Refines annotation P; class C { Boolean f(Object o) { return o instanceof @P Int; } }", "a value does not carry its qualifiers at run time")], &[]),
+    rule(
+        "08",
+        "and `unitPrice` may be sent only to an `Order` known to have it",
+        &[("@Refines annotation Priced; class Order { public Int unitPrice(@Priced Order this) { return 1; } } class C { Int f(Order o) { return o.unitPrice(); } }", "`unitPrice` is sent to a `Order`")],
+        &["@Refines annotation Priced; class Order { public Int unitPrice(@Priced Order this) { return 1; } } class C { Int f(@Priced Order o) { return o.unitPrice(); } }"],
+    ),
+    rule(
+        "08",
+        "A method whose receiver type has a refinement can be sent only to a receiver known to have it",
+        &[("@Refines annotation Priced; class Order { public Int total(@Priced Order this) { return 1; } public Int twice() { return total() + total(); } }", "`total` is sent to a `Order`")],
+        &["@Refines annotation Priced; class Order { public Int total(@Priced Order this) { return 1; } public Int twice(@Priced Order this) { return total() + this.total(); } }"],
+    ),
+    rule(
+        "08",
+        "A receiver whose type has a widening accepts only the methods that declare that widening on their receiver",
+        &[("@Widens annotation Raw; class Order { public Int id() { return 1; } } class C { Int f(@Raw Order o) { return o.id(); } }", "`id` is sent to a `@Raw Order`")],
+        &["@Widens annotation Raw; class Order { public Int id(@Raw Order this) { return 1; } } class C { Int f(@Raw Order o) { return o.id(); } }"],
+    ),
+    rule(
+        "08",
+        "whose receiver has no qualifier, as",
+        &[("open class A { public open Int f() { return 1; } } class B extends A { @Override public Int f(@Nullable B this) { return 2; } }", "an override has the same receiver qualifiers as the method it overrides")],
+        &["class A { @Override public String toString() { return \"a\"; } @Override public Int hashCode() { return 1; } @Override public Boolean equals(@Nullable Object o) { return true; } }"],
+    ),
+    rule(
+        "08",
+        "passes such a call with the local as its subject",
+        &[(
+            "@Refines annotation Positive; class Counts { @Narrows(Positive.class) public static Boolean isPositive(Int n) { return n > 0; } } class A { static Int need(@Positive Int n) { return n; } static Int f(Int n, Int m) { if (Counts.isPositive(n)) { n = m; return need(n); } return 0; } }",
+            "`Int` is not assignable to `@Positive Int`",
+        )],
+        &["@Refines annotation Positive; class Counts { @Narrows(Positive.class) public static Boolean isPositive(Int n) { return n > 0; } } class A { static Int need(@Positive Int n) { return n; } static Int f(Int n) { if (Counts.isPositive(n)) { return need(n); } return 0; } }"],
+    ),
+    rule(
+        "08",
+        "A field, an array element, and any other expression that is evaluated again are not narrowed",
+        &[(
+            "@Refines annotation Positive; class Counts { @Narrows(Positive.class) public static Boolean isPositive(Int n) { return n > 0; } } class A { Int n = 1; static Int need(@Positive Int n) { return n; } Int f() { if (Counts.isPositive(n)) { return need(n); } return 0; } }",
+            "`Int` is not assignable to `@Positive Int`",
+        )],
+        &["@Refines annotation Positive; class Counts { @Narrows(Positive.class) public static Boolean isPositive(Int n) { return n > 0; } } class A { Int n = 1; static Int need(@Positive Int n) { return n; } Int f() { var held = n; if (Counts.isPositive(held)) { return need(held); } return 0; } }"],
+    ),
+    rule(
+        "08",
+        "Code outside it can gain a refinement, or shed a widening, only through those methods",
+        &[("@Refines annotation Positive; class A { static Int need(@Positive Int n) { return n; } static Int f(Int n) { if (n > 0) { return need(n); } return 0; } }", "`Int` is not assignable to `@Positive Int`")],
+        &[],
+    ),
+    stated("08", "The language does not check this", "It says what is left unchecked."),
+    rule(
+        "08",
+        "Without `@Inherited`, a subclass carries the tag only when it is written there",
+        &[("@Target(Site.TYPE) annotation Frozen; @Frozen open class Base { } class Sub extends Base { } class Snapshot<@Frozen T> { } class C { void f(Snapshot<Sub> s) { } }", "`Sub` does not carry the tag `@Frozen`")],
+        &["@Inherited @Target(Site.TYPE) annotation Frozen; @Frozen open class Base { } class Sub extends Base { } class Snapshot<@Frozen T> { } class C { void f(Snapshot<Sub> s) { } }"],
+    ),
+    stated("08", "promises that the conversion is exact", "It is a promise by the author of the method."),
+    stated("08", "The language does not check the promise", "It says what is left unchecked."),
+    stated("08", "it raises an exception when the value has no exact counterpart", "It describes a convention; tests/behavior/Rules.cleat, line `from raises`, shows the numeric classes follow it."),
+    stated("08", "A member that carries no annotation has no mirror", "Checked by tests/behavior/Rules.cleat, line `mirrors`."),
+    rule(
+        "08",
+        "A program reaches a member this way only through an annotation",
+        &[("class A { void f(Class c) { var m = c.getFields(); } }", "`Class` has no method named `getFields`")],
+        &["annotation Mark; class A { Field[] f(Class c) { return c.<Mark>getAnnotatedFields(); } }"],
+    ),
+    rule(
+        "08",
+        "They do not describe the type of a field or a parameter",
+        &[("class A { void f(Field x) { var t = x.getType(); } }", "`Field` has no method named `getType`"), ("class A { Object f(Class c) { return c.newInstance(); } }", "`Class` has no method named `newInstance`")],
+        &[],
+    ),
+    stated("09", "evaluate only the operands that", "Checked by tests/behavior/Rules.cleat, lines `and`, `or` and `choice`."),
+    rule("09", "A method does not declare what it raises, and `throws` is not a keyword", &[("class A { void f() throws Throwable { } }", "expected `{`, found `throws`")], &["class A { Int throws = 1; void f() { throw new IllegalStateException(); } }"]),
+    stated("09", "A numeric operation has no result in its class, or an array length is negative", "A row of the table of exceptions, which tests/spec_tables.rs holds to the prelude."),
+    stated("09", "An object is used in a state that does not allow the operation", "A row of the table of exceptions, which tests/spec_tables.rs holds to the prelude."),
+    rule("09", "It has no result", &[("class A { public A() { return 1; } }", "`return` with a value is rejected in a constructor")], &["class A { public A() { } }"]),
+    stated("09", "Field initializers run first, in source order, on entry to a constructor that does not call `this(...)`", "Checked by tests/behavior/Rules.cleat, the lines under `constructor`."),
+    rule("09", "The compact form has no parameter list", &[("value class V { public Int a; public V(Int a) { } }", "a value class has one constructor, whose parameters are its fields")], &["value class V { public Int a; public V { } }"]),
+    rule(
+        "09",
+        "It does not assign a field",
+        &[("value class V { public Int a; public V { a = 1; } }", "`a` is not assignable here")],
+        &["value class V { public Int a; public V { if (a < 0) { throw new IllegalArgumentException(\"negative\"); } } }"],
+    ),
+    stated("09", "A class literal does not initialize the class", "Checked by tests/behavior/Rules.cleat, line `class literal`."),
+    stated("09", "The interfaces a class implements are not initialized with it", "Checked by tests/behavior/Rules.cleat, lines `class` and `interface`."),
+    stated("09", "That can happen only during initialization", "It explains the sentence before it; tests/behavior/Statics.cleat reads a static field before it is assigned."),
+    stated("09", "No class is added to a program while it runs", "It says what the language leaves out; no program can ask for it."),
+    rule("09", "It is never `null`, and no element is `null`", &[], &["==== M.cleat
+public class M { public static void main(String[] args) { var n = 0; for (String a : args) { n += a.length(); } } }"]),
+    stated("09", "Threads that are still running do not keep the program alive", "Checked by tests/behavior/Rules.cleat, whose last thread would print after `main returns`."),
+    rule("10", "A method does not declare what it raises", &[("class A { void f() throws Throwable { } }", "expected `{`, found `throws`")], &[]),
+    rule(
+        "10",
+        "No value is rounded, truncated, or converted to a `String` unless the program calls a method that does it",
+        &[
+            ("class A { Int f(Float64 x) { return x; } }", "`Float64` is not assignable to `Int`"),
+            ("class A { Float32 f(Float64 x) { return x; } }", "`Float64` is not assignable to `Float32`"),
+            ("class A { String f(Int n) { return n; } }", "`Int` is not assignable to `String`"),
+        ],
+        &["class A { Int f(Float64 x) { return Int.from(x.truncate()); } String g(Int n) { return n.toString(); } }"],
+    ),
+    rule("10", "A program does not list the members of a class, call a method by name, or construct an object from a class object", &[("class A { void f(Class c) { var m = c.getMethods(); } }", "`Class` has no method named `getMethods`")], &[]),
+    stated("10", "It agrees with `equals` and does not change while the program runs", "It binds what an implementation chooses."),
+    rule(
+        "11",
+        "An identifier is not a keyword, a reserved word, or one of the three word literals",
+        &[("class A { Int class = 1; }", "`class` is a keyword and cannot be a name"), ("class A { Int int = 1; }", "`int` is a reserved word"), ("class A { Int true = 1; }", "`true` is a keyword and cannot be a name")],
+        &["class A { Int klass = 1; Int truth = 2; }"],
+    ),
+    rule("11", "begins a cast only when the token after `)` is not `-`, `++` or `--`", &[], &["class A { Int f(Int a, Int b) { return (a) - b; } Int g(Object o) { return (Int) o; } }"]),
+    rule(
+        "11",
+        "are never mistaken for one",
+        &[],
+        &["class A { Boolean f(Object o, Int a, Int b) { var xs = new List<Int>(); var ys = Array.<Int>build(2, (i) -> i); return o instanceof List<Int> && a < b; } }"],
+    ),
+    stated("12", "Reading one does not initialize its class", "Checked by tests/behavior/Rules.cleat, line `constant`."),
+    rule(
+        "12",
+        "`return`, `throw`, `break`, `continue` | Never",
+        &[
+            ("class A { Int f() { return 1; return 2; } }", UNREACHABLE),
+            ("class A { void f() { throw new IllegalStateException(); f(); } }", UNREACHABLE),
+            ("class A { void f() { while (true) { break; f(); } } }", UNREACHABLE),
+            ("class A { void f() { while (true) { continue; f(); } } }", UNREACHABLE),
+        ],
+        &[],
+    ),
+    rule("12", "A constructor that leaves `super()` implicit has no `return`", &[("class A { public A() { return; } }", "in a constructor, `return;` is legal only after")], &["class A { public A() { super(); return; } }"]),
+    rule(
+        "12",
+        "After the whole expression, only what `a` assigns is certain",
+        &[("class A { Int f(Boolean p) { Int n; var r = p && (n = 1) > 0; return n; } }", UNASSIGNED), ("class A { Int f(Boolean p) { Int n; if (p && (n = 1) > 0) { return n; } return 0; } }", UNASSIGNED)],
+        &["class A { Int f(Boolean p) { Int n; var r = (n = 1) > 0 && p; return n; } Int g(Boolean p) { Int n; var r = (n = 1) > 0 || p; return n; } }"],
+    ),
+    rule("12", "also requires that the local is never assigned after it is initialized", &[("class A { Function0<Int> f() { var n = 1; n = 2; return () -> n; } }", "a lambda may use `n` only if it is never assigned after it is initialized")], &[]),
+    rule(
+        "12",
+        "When `false` it has only the facts that both have when `false`",
+        &[("class A { Int f(@Nullable String s, Boolean b) { if (s != null && b) { return 0; } return s.length(); } }", "`length` is sent to a `@Nullable String`")],
+        &["class A { Int f(@Nullable String s, Boolean b) { if (s != null && b) { return s.length(); } return 0; } }"],
+    ),
+    rule(
+        "12",
+        "When `true` it has only the facts that both have when `true`",
+        &[("class A { Int f(@Nullable String s, Boolean b) { if (s != null || b) { return s.length(); } return 0; } }", "`length` is sent to a `@Nullable String`")],
+        &["class A { Int f(@Nullable String s, Boolean b) { if (s == null || b) { return 0; } return s.length(); } }"],
+    ),
+    stated("13", "A thread that is still running does not keep it alive", "Checked by tests/behavior/Rules.cleat, whose last thread would print after `main returns`."),
+    stated("13", "It never returns part of one value and part of another", "It holds for every interleaving, which no run can enumerate. The compiler keeps a value-class instance behind one pointer, so a read or an assignment moves one word."),
+    stated("13", "by a thread that does not hold the lock raises `IllegalStateException`", "Checked by tests/behavior/Threads.cleat, line `not held`."),
+    stated("13", "Only the thread that is running the scope's `call` may fork", "Checked by tests/behavior/Rules.cleat, lines `fork from another thread raises` and `fork after the call raises`."),
+    stated("13", "A `CancellationException` from a task is never reported by `call`", "Checked by tests/behavior/Rules.cleat, line `call reports`: the task forked first is cancelled, and `call` reports the second."),
+    stated("13", "is never cancelled, and neither is the thread that runs `main`", "Checked by tests/behavior/Rules.cleat, lines `main is never cancelled` and `a started thread is never cancelled`."),
+    stated("13", "No exception arrives between two statements that do not ask for it", "It holds for every interleaving, which no run can enumerate. The runtime raises `CancellationException` only inside the calls section 13.6 lists."),
+    stated("13", "On a thread that is not a cancelled task, it does nothing", "Checked by tests/behavior/Rules.cleat, line `main is never cancelled`."),
 ];
 
 // ---- the sentences ----
@@ -1382,6 +1783,28 @@ fn all_sentences() -> Vec<(String, String)> {
     out
 }
 
+/// A sentence that forbids or limits without the words of a requirement.
+fn states_a_restriction(s: &str) -> bool {
+    // Code is not prose: `only` is a keyword of the language.
+    let mut plain = String::new();
+    let mut code = false;
+    for c in s.chars() {
+        if c == '`' {
+            code = !code;
+            if code {
+                plain.push_str(" CODE ");
+            }
+        } else if !code {
+            plain.push(c);
+        }
+    }
+    let words: Vec<&str> = plain.split(|c: char| !c.is_alphabetic()).filter(|w| !w.is_empty()).collect();
+    let low: Vec<String> = words.iter().map(|w| w.to_lowercase()).collect();
+    let seq = |ws: &[&str]| low.windows(ws.len()).any(|x| x.iter().zip(ws).all(|(a, b)| a == b));
+    let no_x_may = (0..words.len().saturating_sub(2)).any(|i| low[i] == "no" && words[i + 1].chars().all(|c| c.is_lowercase()) && matches!(low[i + 2].as_str(), "may" | "is" | "are" | "extends" | "converts"));
+    low.iter().any(|w| w == "only" || w == "never") || seq(&["does", "not"]) || seq(&["do", "not"]) || seq(&["is", "not", "a"]) || seq(&["are", "not"]) || seq(&["has", "no"]) || seq(&["have", "no"]) || no_x_may
+}
+
 /// The sentences that state a requirement.
 fn requirements() -> Vec<(String, String)> {
     all_sentences().into_iter().filter(|(_, s)| states_a_requirement(s)).collect()
@@ -1418,21 +1841,37 @@ fn every_requirement_the_specification_states_has_a_case() {
 }
 
 #[test]
-fn every_further_case_names_one_sentence() {
-    let all = all_sentences();
+fn every_restriction_the_specification_states_has_a_case() {
+    let all: Vec<(String, String)> = all_sentences().into_iter().filter(|(_, s)| !states_a_requirement(s) && states_a_restriction(s)).collect();
+    let mut missing = Vec::new();
+    for (chapter, sentence) in &all {
+        if !FURTHER.iter().any(|r| r.chapter == chapter && sentence.contains(r.phrase)) {
+            missing.push(format!("{chapter}: {sentence}"));
+        }
+    }
+    assert!(missing.is_empty(), "{} sentences restrict and have no case:\n{}", missing.len(), missing.join("\n"));
+    // A case names one sentence of all the prose. Two sentences of chapter 6 have the
+    // same words, and one case stands for both.
+    let prose = all_sentences();
     let mut wrong = Vec::new();
     for r in FURTHER {
-        let hits = all.iter().filter(|(c, s)| c == r.chapter && s.contains(r.phrase)).count();
-        if hits != 1 {
-            wrong.push(format!("chapter {}: `{}` is in {hits} sentences", r.chapter, r.phrase));
+        let mut hits: Vec<&String> = prose.iter().filter(|(c, s)| c == r.chapter && s.contains(r.phrase)).map(|(_, s)| s).collect();
+        hits.dedup();
+        if hits.len() != 1 {
+            wrong.push(format!("chapter {}: `{}` is in {} sentences", r.chapter, r.phrase, hits.len()));
         }
         if RULES.iter().any(|x| x.chapter == r.chapter && x.phrase == r.phrase) {
             wrong.push(format!("chapter {}: `{}` is in both tables", r.chapter, r.phrase));
         }
-        assert!(!r.reject.is_empty() || !r.accept.is_empty(), "`{}` has no program", r.phrase);
+        let has_programs = !r.reject.is_empty() || !r.accept.is_empty();
+        assert!(has_programs == r.note.is_empty(), "`{}` needs programs or a reason, and not both", r.phrase);
     }
     assert!(wrong.is_empty(), "a case must name exactly one sentence:\n{}", wrong.join("\n"));
-    println!("{} further sentences, stated in other words, have programs", FURTHER.len());
+    let with_programs = FURTHER.iter().filter(|r| r.note.is_empty()).count();
+    println!("{} sentences restrict in other words; the table has {} cases: {} have programs, {} cannot be broken by a program", all.len(), FURTHER.len(), with_programs, FURTHER.len() - with_programs);
+    for r in FURTHER.iter().filter(|r| !r.note.is_empty()) {
+        println!("  {} \"{}\": {}", r.chapter, r.phrase, r.note);
+    }
 }
 
 // ---- the programs ----
@@ -1471,7 +1910,8 @@ fn run(chapter: &str) {
     let mut failures = Vec::new();
     let mut rejected = 0;
     let mut accepted = 0;
-    for r in RULES.iter().chain(FURTHER).filter(|r| r.chapter == chapter) {
+    for r in RULES.iter().chain(FURTHER).filter(|r| r.chapter == chapter && r.note.is_empty()) {
+        let before = failures.len();
         for (case, words) in r.reject {
             rejected += 1;
             let d = diagnostics(case);
@@ -1488,6 +1928,8 @@ fn run(chapter: &str) {
                 failures.push(format!("\"{}\"\n  must be accepted:\n  {case}\n  and the checker says:\n  {}", r.phrase, d.join("\n  ")));
             }
         }
+        let verdict = if failures.len() == before { "ok  " } else { "FAIL" };
+        println!("{chapter} {verdict} {} rejected, {} accepted: {}", r.reject.len(), r.accept.len(), r.phrase);
     }
     let rules = RULES.iter().chain(FURTHER).filter(|r| r.chapter == chapter && r.note.is_empty()).count();
     println!("chapter {chapter}: {rules} rules, {rejected} programs rejected each for its rule, {accepted} programs accepted");
@@ -1515,6 +1957,7 @@ chapters![
     chapter_07_generics => "07",
     chapter_08_annotations => "08",
     chapter_09_execution => "09",
+    chapter_10_omissions => "10",
     chapter_11_syntax => "11",
     chapter_12_flow => "12",
 ];

@@ -1,0 +1,52 @@
+fields: 1 2 1
+statics: base derived derived
+super: base
+class literal: t.Loud
+constant: 7
+  Loud is initialized
+static method: 0
+  Plain is initialized
+class: 0
+  Marked is initialized
+interface: 0
+parameter: 1 2
+for: 3 4
+and:
+  evaluated the left of &&
+or:
+  evaluated the left of ||
+choice:
+  evaluated the condition
+  evaluated the first arm
+results: false true true
+null test: false true true
+Null: true null
+plus raises
+negate raises
+floorDiv raises
+truncatingDiv raises
+wrapping: -128 127 0
+from raises
+floats: true true true
+from NaN raises
+from infinity raises
+fromUtf8 raises
+type arguments: true false
+constructor:
+  initializer of a
+  initializer of b
+  body of Steps()
+constructor that calls this(...):
+  initializer of a
+  initializer of b
+  body of Steps()
+  body of Steps(Int)
+identical: true true false false true
+lambdas: true false
+mirrors: 1
+main is never cancelled
+a started thread is never cancelled
+fork from another thread raises
+fork after the call raises
+call reports: the second task failed
+main returns

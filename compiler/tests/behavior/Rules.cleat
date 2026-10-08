@@ -1,0 +1,335 @@
+// What a running program does, for sentences of the specification that a checker
+// cannot decide. tests/spec_rules.rs names this file for each of them.
+package t;
+
+open class Base {
+    public Int tag = 1;
+
+    public static String kind() {
+        return "base";
+    }
+
+    public open String name() {
+        return "base";
+    }
+
+    public String viaField() {
+        return "" + tag;
+    }
+}
+
+class Derived extends Base {
+    public Int tag = 2;
+
+    public static String kind() {
+        return "derived";
+    }
+
+    @Override
+    public String name() {
+        return "derived";
+    }
+
+    public String superName() {
+        return super.name();
+    }
+}
+
+class Loud {
+    public static final Int LIMIT = 7;
+    public static Int started = Rules.note("Loud is initialized");
+
+    public static Int touch() {
+        return started;
+    }
+}
+
+interface Marked {
+    Int SEEN = Rules.note("Marked is initialized");
+}
+
+class Plain implements Marked {
+    public static Int count = Rules.note("Plain is initialized");
+
+    public static Int get() {
+        return count;
+    }
+}
+
+class Agreeable {
+    @Override
+    public Boolean equals(@Nullable Object other) {
+        return true;
+    }
+
+    @Override
+    public Int hashCode() {
+        return 0;
+    }
+}
+
+annotation Mark;
+
+class Marks {
+    @Mark
+    public Int seen = 1;
+    public Int unseen = 2;
+}
+
+value class Point {
+    public Int x;
+    public Int y;
+}
+
+class Steps {
+    Int a = Rules.note("initializer of a");
+    Int b = Rules.note("initializer of b");
+
+    public Steps() {
+        super();
+        Rules.note("body of Steps()");
+    }
+
+    public Steps(Int n) {
+        this();
+        Rules.note("body of Steps(Int)");
+    }
+}
+
+public class Rules {
+    @Discardable
+    public static Int note(String what) {
+        Console.println("  " + what);
+        return 0;
+    }
+
+    static Int bump(Int n) {
+        n = n + 1;
+        return n;
+    }
+
+    static Boolean loud(String what, Boolean value) {
+        Console.println("  evaluated the " + what);
+        return value;
+    }
+
+    static Boolean isNull(@Nullable Agreeable a) {
+        return a == null;
+    }
+
+    static @Nullable Object widen(Null nothing) {
+        return nothing;
+    }
+
+    static Int8 i8(Int n) {
+        return Int8.from(n);
+    }
+
+    static Float64 f(Float64 x) {
+        return x;
+    }
+
+    static Function0<Int> constant(Int n) {
+        return () -> n;
+    }
+
+    public static void main() {
+        // 2.8: no field is dispatched.
+        Base b = new Derived();
+        Console.println("fields: " + b.tag + " " + ((Derived) b).tag + " " + b.viaField());
+        // 2.7: a static member hides, and is selected by the type that names it.
+        Console.println("statics: " + Base.kind() + " " + Derived.kind() + " " + b.name());
+        // 2.10: super.name(...) does not dispatch.
+        Console.println("super: " + ((Derived) b).superName());
+
+        // 2.7, 9.7, 12.1: a class literal and a constant do not initialize a class.
+        Console.println("class literal: " + Loud.class.getName());
+        Console.println("constant: " + Loud.LIMIT);
+        Console.println("static method: " + Loud.touch());
+        // 9.7: the interfaces a class implements are not initialized with it.
+        Console.println("class: " + Plain.get());
+        Console.println("interface: " + Marked.SEEN);
+
+        // 4.1: assigning a parameter does not change a variable of the caller.
+        var v = 1;
+        var w = bump(v);
+        Console.println("parameter: " + v + " " + w);
+
+        // 4.9: the update of a `for` runs after `continue` and not after `break`.
+        var i = 0;
+        for (; ; i++) {
+            if (i == 3) {
+                break;
+            }
+        }
+        var rounds = 0;
+        for (var k = 0; k < 4; k++) {
+            rounds++;
+            if (rounds > 0) {
+                continue;
+            }
+        }
+        Console.println("for: " + i + " " + rounds);
+
+        // 9.1: `&&`, `||` and `?:` evaluate only the operands chapter 4 says.
+        Console.println("and:");
+        var r1 = loud("left of &&", false) && loud("right of &&", true);
+        Console.println("or:");
+        var r2 = loud("left of ||", true) || loud("right of ||", true);
+        Console.println("choice:");
+        var r3 = loud("condition", true) ? loud("first arm", true) : loud("second arm", true);
+        Console.println("results: " + r1 + " " + r2 + " " + r3);
+
+        // 5.4: a null test is not a send of `equals`.
+        Console.println("null test: " + isNull(new Agreeable()) + " " + isNull(null) + " " + new Agreeable().equals(null));
+
+        // 5.2: `Null` is a subtype of `@Nullable T`.
+        Console.println("Null: " + (widen(null) == null) + " " + widen(null));
+
+        // 6.4: integer arithmetic raises when the result is not a value of the class.
+        try {
+            var sum = i8(127) + i8(1);
+            Console.println("plus: " + sum);
+        } catch (ArithmeticException e) {
+            Console.println("plus raises");
+        }
+        try {
+            var neg = -i8(-128);
+            Console.println("negate: " + neg);
+        } catch (ArithmeticException e) {
+            Console.println("negate raises");
+        }
+        try {
+            var q = i8(-128).floorDiv(i8(-1));
+            Console.println("floorDiv: " + q);
+        } catch (ArithmeticException e) {
+            Console.println("floorDiv raises");
+        }
+        try {
+            var t = i8(-128).truncatingDiv(i8(-1));
+            Console.println("truncatingDiv: " + t);
+        } catch (ArithmeticException e) {
+            Console.println("truncatingDiv raises");
+        }
+        // 6.4: the wrapping methods do not raise.
+        Console.println("wrapping: " + i8(127).wrappingPlus(i8(1)) + " " + i8(-128).wrappingMinus(i8(1)) + " " + i8(64).wrappingTimes(i8(4)));
+        // 6.7: `from` raises when the value does not fit.
+        try {
+            var small = i8(200);
+            Console.println("from: " + small);
+        } catch (ArithmeticException e) {
+            Console.println("from raises");
+        }
+        // 6.5: float arithmetic does not raise.
+        var huge = f(1e308) * f(10.0);
+        var over = f(1.0) / f(0.0);
+        var none = f(0.0) / f(0.0);
+        Console.println("floats: " + huge.isInfinite() + " " + over.isInfinite() + " " + none.isNaN());
+        // 6.7: a NaN or an infinity has no value in an integer class or in `Rational`.
+        try {
+            var n = Int.from(none);
+            Console.println("from NaN: " + n);
+        } catch (ArithmeticException e) {
+            Console.println("from NaN raises");
+        }
+        try {
+            var x = Rational.from(over);
+            Console.println("from infinity: " + x);
+        } catch (ArithmeticException e) {
+            Console.println("from infinity raises");
+        }
+        // 6.9: `fromUtf8` raises on bytes that are not UTF-8.
+        try {
+            var text = String.fromUtf8(new UInt8[] { 0xFF, 0xFE });
+            Console.println("fromUtf8: " + text);
+        } catch (IllegalArgumentException e) {
+            Console.println("fromUtf8 raises");
+        }
+
+        // 7.1: type arguments are not erased.
+        Object list = new List<Int>();
+        Console.println("type arguments: " + (list instanceof List<Int>) + " " + (list instanceof List<String>));
+
+        // 9.5: field initializers run first, in source order, and once.
+        Console.println("constructor:");
+        var s1 = new Steps();
+        Console.println("constructor that calls this(...):");
+        var s2 = new Steps(1);
+
+        // 2.5: `identical` does not depend on how a value is stored.
+        Object five = 5;
+        Object alsoFive = 5;
+        Object p = new Point(1, 2);
+        Object q2 = new Point(1, 2);
+        Object r = new Point(1, 3);
+        Console.println("identical: " + five.identical(alsoFive) + " " + p.identical(q2) + " " + p.identical(r) + " " + b.identical(new Derived()) + " " + b.identical(b));
+
+        // 4.8: a lambda has no identity.
+        Console.println("lambdas: " + constant(1).equals(constant(1)) + " " + constant(1).equals(constant(2)));
+
+        // 8.9: a member that carries no annotation has no mirror.
+        var marked = 0;
+        for (Field field : Marks.class.<Mark>getAnnotatedFields()) {
+            marked++;
+        }
+        Console.println("mirrors: " + marked);
+
+        // 13.6: the thread that runs `main` and a started thread are never cancelled.
+        Thread.checkCancelled();
+        Console.println("main is never cancelled");
+        var plain = Thread.start(() -> {
+            Thread.checkCancelled();
+            Console.println("a started thread is never cancelled");
+        });
+        plain.join();
+
+        // 13.5: only the thread running the scope's `call` forks, and only during it.
+        var kept = new @Nullable Scope[1];
+        var done = Scope.call((scope) -> {
+            kept[0] = scope;
+            var other = Thread.start(() -> {
+                try {
+                    scope.fork(() -> 1);
+                    Console.println("another thread forked");
+                } catch (IllegalStateException e) {
+                    Console.println("fork from another thread raises");
+                }
+            });
+            other.join();
+            return 0;
+        });
+        try {
+            ((Scope) kept[0]).fork(() -> 1);
+            Console.println("forked after the call");
+        } catch (IllegalStateException e) {
+            Console.println("fork after the call raises");
+        }
+
+        // 13.5: `call` never reports a task's CancellationException, even from the
+        // task that was forked first.
+        try {
+            Scope.call((scope) -> {
+                scope.fork(() -> {
+                    while (true) {
+                        Thread.sleep(5);
+                    }
+                });
+                scope.fork(() -> {
+                    throw new IllegalStateException("the second task failed");
+                });
+            });
+            Console.println("call returned");
+        } catch (IllegalStateException e) {
+            Console.println("call reports: " + e.message());
+        } catch (CancellationException e) {
+            Console.println("call reports a cancellation");
+        }
+
+        // 9.10, 13.2: a thread that is still running does not keep the program alive.
+        Thread.start(() -> {
+            Thread.sleep(400);
+            Console.println("a thread outlived main");
+        });
+        Console.println("main returns");
+    }
+}

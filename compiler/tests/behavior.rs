@@ -41,6 +41,7 @@ cases![
     statics => "Statics",
     members => "Members",
     widths => "Widths",
+    rules => "Rules",
 ];
 
 /// Section 3.4: a method that a subclass may not name is not overridden. The subclass

@@ -532,10 +532,16 @@ impl Program {
             return true;
         }
         if s.is_null_literal() {
-            return t.nullable;
+            // Section 5.1: the literal `null` is the one instance of `Null`.
+            return t.nullable || t.class_id() == Some(self.wk.null);
         }
         if t.is_null_literal() {
             return false;
+        }
+        // Section 5.2: `Null` is a subtype of `@Nullable T` for every `T`, and of no
+        // other type except itself.
+        if s.class_id() == Some(self.wk.null) {
+            return t.nullable || t.class_id() == Some(self.wk.null);
         }
         if !t.nullable {
             // T does not contain null, so S must not either.
