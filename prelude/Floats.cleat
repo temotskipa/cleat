@@ -1,0 +1,116 @@
+package cleat;
+
+// What the two float classes share, written once for a class with `precision`
+// significant bits whose lowest bit is at least 2^emin, the smallest subnormal, and at
+// most 2^emax: Float64 passes 53, -1074 and 971, and Float32 passes 24, -149 and 104. A
+// Float32 is held here as the Float64 of the same value, which every Float32 has.
+package class Floats {
+    private Floats() {
+    }
+
+    // 2^60. Scaling by it keeps every step exact.
+    private static final Float64 STEP = 1152921504606846976.0;
+
+    // `value` times 2^count, exactly: the caller knows that the result is a float, so
+    // no step rounds.
+    package static Float64 scale(Float64 value, Int count) {
+        var result = value;
+        var left = count;
+        while (left > 60) {
+            result = result * STEP;
+            left -= 60;
+        }
+        while (left < -60) {
+            result = result / STEP;
+            left += 60;
+        }
+        var power = Float64.from(1 << (left < 0 ? -left : left));
+        return left < 0 ? result / power : result * power;
+    }
+
+    // The exponent of the lowest bit of a positive finite float: the value is an
+    // integer times 2 to it, and the integer is below 2^precision and, unless the
+    // exponent is emin, at least 2^(precision - 1).
+    package static Int exponent(Float64 value, Int precision, Int emin) {
+        var top = Float64.from(1 << precision);
+        var bottom = Float64.from(1 << (precision - 1));
+        var x = value;
+        var e = 0;
+        while (x >= top * STEP) {
+            x = x / STEP;
+            e += 60;
+        }
+        while (x >= top) {
+            x = x / 2;
+            e++;
+        }
+        while (x < bottom / STEP && e - 60 >= emin) {
+            x = x * STEP;
+            e -= 60;
+        }
+        while (x < bottom && e > emin) {
+            x = x * 2;
+            e--;
+        }
+        return e;
+    }
+
+    // The float nearest to `value`: of two as near, the one whose last bit is even, and
+    // past the largest float, an infinity. Zero is 0.0, and a value below zero that is
+    // too small for any float is -0.0.
+    package static Float64 nearest(Rational value, Int precision, Int emin, Int emax) {
+        if (value.num.isZero()) {
+            return 0.0;
+        }
+        var size = nearest(value.num.magnitude(), value.den.magnitude(), precision, emin, emax);
+        return value.num.isNegative() ? -size : size;
+    }
+
+    // The float nearest to n/d, both above zero, rounded as above.
+    package static Float64 nearest(Natural n, Natural d, Int precision, Int emin, Int emax) {
+        if (precision == 53 && n.bitLength() <= 53 && d.bitLength() <= 53) {
+            // Both are floats, and one division rounds once.
+            return Float64.from(n.toInt()) / Float64.from(d.toInt());
+        }
+        // n/d is at least 2^k exactly when n is at least d × 2^k, so `log` is the
+        // exponent of the highest bit of n/d.
+        var k = n.bitLength() - d.bitLength();
+        var top = n.copy();
+        var bottom = d.copy();
+        if (k >= 0) {
+            bottom.shiftLeft(k);
+        } else {
+            top.shiftLeft(-k);
+        }
+        var log = top.compare(bottom) >= 0 ? k : k - 1;
+        var e = log - precision + 1;
+        if (e < emin) {
+            e = emin;
+        }
+        if (e > emax) {
+            return 1.0 / 0.0;
+        }
+        // The integer part of n/d / 2^e is the mantissa. The rest decides the rounding.
+        top = n.copy();
+        bottom = d.copy();
+        if (e >= 0) {
+            bottom.shiftLeft(e);
+        } else {
+            top.shiftLeft(-e);
+        }
+        var mantissa = top.divide(bottom).toInt();
+        top.shiftLeft(1);
+        var half = top.compare(bottom);
+        if (half > 0 || half == 0 && mantissa % 2 == 1) {
+            mantissa++;
+        }
+        if (mantissa == 1 << precision) {
+            mantissa = 1 << (precision - 1);
+            e++;
+            if (e > emax) {
+                return 1.0 / 0.0;
+            }
+        }
+        return scale(Float64.from(mantissa), e);
+    }
+}

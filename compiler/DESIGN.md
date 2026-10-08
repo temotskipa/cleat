@@ -26,6 +26,9 @@ source, and nothing calls them.
   at call and field boundaries by the declared type of the member).
 - `Unit` is no value at all in a result; where one is needed as an object it is the
   runtime's one `Unit` object.
+- `Rational` is an ordinary value class of the prelude, over its `BigInt`. A literal of
+  it is made the first time it is evaluated, by the prelude's `Rational.literal` from the
+  text `numerator/denominator`, and kept in a global (`@rat.N`) that the collector marks.
 
 A field has the representation of its declared type, so a field of type `T` is always a
 pointer. An array is the exception: `Int[]` stores machine integers, and code that sees

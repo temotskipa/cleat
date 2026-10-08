@@ -155,8 +155,14 @@ public value class Float64 implements Divisible<Float64>, Ordered<Float64> {
         return value;
     }
 
-    @Intrinsic
-    public static Float64 from(Rational value);
+    // The float equal to `value`, or ArithmeticException when there is none.
+    public static Float64 from(Rational value) {
+        var near = nearest(value);
+        if (near.isInfinite() || Rational.from(near) != value) {
+            throw new ArithmeticException(value.toString() + " is not a value of Float64");
+        }
+        return near;
+    }
 
     public static Float64 nearest(Int8 value) {
         return nearest(Int.from(value));
@@ -195,6 +201,9 @@ public value class Float64 implements Divisible<Float64>, Ordered<Float64> {
         return value;
     }
 
-    @Intrinsic
-    public static Float64 nearest(Rational value);
+    // The float nearest to `value`. Of two as near, the one whose last bit is even;
+    // past the largest float, an infinity.
+    public static Float64 nearest(Rational value) {
+        return Floats.nearest(value, 53, -1074, 971);
+    }
 }

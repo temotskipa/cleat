@@ -1,15 +1,16 @@
 """Writes the prelude's numeric classes. They differ only in name, range and which
 conversions are implicit, so they are generated from one description.
 
-A method is `@Intrinsic` only when it is one machine operation, or needs arithmetic the
-language has no words for yet. Everything else is written in the language:
+A method is `@Intrinsic` only when it is one machine operation. Everything else is
+written in the language:
 
 - `Int` and `UInt64` have the machine's arithmetic, comparison, bit operations and
   conversions. Their other methods are written over those.
 - The narrower integer classes have no arithmetic of their own. Each computes in `Int`
   and converts back, and the conversion raises when the result does not fit.
-- The float classes have IEEE 754 arithmetic, rounding, and their conversions.
-- `Rational` has exact arithmetic on integers of any size.
+- The float classes have IEEE 754 arithmetic, rounding, and their conversions between
+  machine numbers. Their conversions from `Rational` round in `Floats`.
+- `Rational` is a numerator and a denominator of the prelude's `BigInt`.
 
 Run from the repository root: python compiler/tools/gen_numbers.py
 """
@@ -49,6 +50,50 @@ def implicit(src, dst):
     return src == "Float32" and dst == "Float64"
 
 
+# Conversions whose bodies are written out, by (class, method, source).
+WRITTEN = {
+    ("Int", "from", "Rational"): """return value.whole("Int").toInt();""",
+    ("UInt64", "from", "Rational"): """return value.whole("UInt64").toUInt64();""",
+    ("Float64", "from", "Rational"): """var near = nearest(value);
+        if (near.isInfinite() || Rational.from(near) != value) {
+            throw new ArithmeticException(value.toString() + " is not a value of Float64");
+        }
+        return near;""",
+    ("Float64", "nearest", "Rational"): """return Floats.nearest(value, 53, -1074, 971);""",
+    ("Float32", "from", "Rational"): """var wide = Float64.nearest(value);
+        if (wide.isInfinite() || Rational.from(wide) != value || Float64.from(nearest(wide)) != wide) {
+            throw new ArithmeticException(value.toString() + " is not a value of Float32");
+        }
+        return nearest(wide);""",
+    # Rounded to a Float64 first, as the compiler rounds a constant.
+    ("Float32", "nearest", "Rational"): """return nearest(Float64.nearest(value));""",
+    ("Rational", "from", "Int"): """return new Rational(BigInt.from(value), BigInt.one());""",
+    ("Rational", "from", "UInt64"): """return new Rational(BigInt.from(value), BigInt.one());""",
+    ("Rational", "from", "Float64"): """if (value.isNaN() || value.isInfinite()) {
+            throw new ArithmeticException(value.toString() + " is not a value of Rational");
+        }
+        if (value == 0) {
+            return zero();
+        }
+        // The value is an integer times 2 to the power of the exponent of its lowest bit.
+        var size = value.abs();
+        var exponent = Floats.exponent(size, 53, -1074);
+        var mantissa = BigInt.from(Int.from(Floats.scale(size, -exponent)));
+        var signed = value < 0 ? -mantissa : mantissa;
+        if (exponent >= 0) {
+            return new Rational(signed.shiftLeft(exponent), BigInt.one());
+        }
+        return reduced(signed, BigInt.one().shiftLeft(-exponent));""",
+}
+
+COMMENTS = {
+    ("Float64", "from", "Rational"): "The float equal to `value`, or ArithmeticException when there is none.",
+    ("Float64", "nearest", "Rational"): "The float nearest to `value`. Of two as near, the one whose last bit is even;\n    // past the largest float, an infinity.",
+    ("Float32", "nearest", "Rational"): "The Float32 nearest to the Float64 nearest to `value`, as the compiler rounds a\n    // constant.",
+    ("Rational", "from", "Float64"): "The exact value of a float. NaN and the infinities raise.",
+}
+
+
 def conversion(name, src, method, machine):
     """One overload of `from` or `nearest`. `machine` lists the sources the class
     converts by itself. Every other source goes through one of them."""
@@ -56,6 +101,10 @@ def conversion(name, src, method, machine):
     head = f"public static {name} {method}({src} value)"
     if src == name:
         return f"    {mark}{head} {{\n        return value;\n    }}\n"
+    if (name, method, src) in WRITTEN:
+        comment = COMMENTS.get((name, method, src))
+        comment = f"    // {comment}\n" if comment else ""
+        return f"{comment}    {mark}{head} {{\n        {WRITTEN[(name, method, src)]}\n    }}\n"
     if src in machine:
         return f"    {mark}@Intrinsic\n    {head};\n"
     if src == "Float32":
@@ -446,52 +495,108 @@ FLOAT = """    @Override
     public static @Nullable {n} parse(String text);
 """
 
-RATIONAL = """    @Override
-    @Intrinsic
-    public Rational plus(Rational other);
+RATIONAL = """    // The value in lowest terms: the denominator is above zero, and no integer above one
+    // divides both. Each value has one form, so the defaults of a value class compare
+    // values.
+    package BigInt num;
+    package BigInt den;
+
+    private Rational {
+    }
+
+    // n/d in lowest terms. The denominator is not zero.
+    private static Rational reduced(BigInt n, BigInt d) {
+        var top = d.isNegative() ? -n : n;
+        var bottom = d.isNegative() ? -d : d;
+        var common = top.gcd(bottom);
+        if (common.isOne()) {
+            return new Rational(top, bottom);
+        }
+        return new Rational(top.floorDiv(common), bottom.floorDiv(common));
+    }
 
     @Override
-    @Intrinsic
-    public Rational minus(Rational other);
+    public Rational plus(Rational other) {
+        if (den.isOne() && other.den.isOne()) {
+            return new Rational(num + other.num, den);
+        }
+        return reduced(num * other.den + other.num * den, den * other.den);
+    }
 
     @Override
-    @Intrinsic
-    public Rational times(Rational other);
+    public Rational minus(Rational other) {
+        if (den.isOne() && other.den.isOne()) {
+            return new Rational(num - other.num, den);
+        }
+        return reduced(num * other.den - other.num * den, den * other.den);
+    }
 
     @Override
-    @Intrinsic
-    public Rational div(Rational other);
+    public Rational times(Rational other) {
+        if (den.isOne() && other.den.isOne()) {
+            return new Rational(num * other.num, den);
+        }
+        return reduced(num * other.num, den * other.den);
+    }
+
+    // A zero divisor raises.
+    @Override
+    public Rational div(Rational other) {
+        if (other.num.isZero()) {
+            throw new ArithmeticException("division by zero");
+        }
+        return reduced(num * other.den, den * other.num);
+    }
 
     @Override
     public Rational negate() {
-        return zero() - this;
+        return new Rational(-num, den);
     }
 {zero_and_one}
     @Override
-    @Intrinsic
-    public Boolean lessThan(Rational other);
+    public Boolean lessThan(Rational other) {
+        if (den == other.den) {
+            return num < other.num;
+        }
+        return num * other.den < other.num * den;
+    }
 {ordered}
-    // The value in lowest terms. The denominator is positive.
-    @Intrinsic
-    public Rational numerator();
-
-    @Intrinsic
-    public Rational denominator();
-
-    public Boolean isInteger() {
-        return denominator() == one();
+    // The value in lowest terms. The denominator is above zero.
+    public Rational numerator() {
+        return new Rational(num, BigInt.one());
     }
 
-    // The quotient rounded toward negative infinity.
-    @Intrinsic
-    public Rational floorDiv(Rational other);
+    public Rational denominator() {
+        return new Rational(den, BigInt.one());
+    }
+
+    public Boolean isInteger() {
+        return den.isOne();
+    }
+
+    // The integer this is. A value with a fraction raises as a conversion to the class
+    // `target` does.
+    package BigInt whole(String target) {
+        if (!den.isOne()) {
+            throw new ArithmeticException(toString() + " is not a value of " + target);
+        }
+        return num;
+    }
+
+    // The quotient rounded toward negative infinity. A zero divisor raises.
+    public Rational floorDiv(Rational other) {
+        if (other.num.isZero()) {
+            throw new ArithmeticException("division by zero");
+        }
+        return new Rational((num * other.den).floorDiv(den * other.num), BigInt.one());
+    }
 
     public Rational mod(Rational other) {
         return this - floorDiv(other) * other;
     }
 
     public Rational floor() {
-        return floorDiv(one());
+        return new Rational(num.floorDiv(den), BigInt.one());
     }
 
     public Rational ceil() {
@@ -504,16 +609,7 @@ RATIONAL = """    @Override
 
     // The nearest integer, ties to even.
     public Rational round() {
-        var below = floor();
-        var rest = this - below;
-        Rational half = 0.5;
-        if (rest < half) {
-            return below;
-        }
-        if (rest > half) {
-            return below + one();
-        }
-        return below.mod(2) == zero() ? below : below + one();
+        return new Rational(nearestInteger(num, den), BigInt.one());
     }
 
     // The nearest multiple of ten to the power -places, ties to even.
@@ -526,17 +622,97 @@ RATIONAL = """    @Override
         return places < 0 ? (this / scale).round() * scale : (this * scale).round() / scale;
     }
 
+    // The integer nearest to n/d, where d is above zero. Ties go to the even one.
+    private static BigInt nearestInteger(BigInt n, BigInt d) {
+        var below = n.floorDiv(d);
+        var twice = n.mod(d).shiftLeft(1);
+        if (twice > d || twice == d && below.mod(BigInt.from(2)).isOne()) {
+            return below + BigInt.one();
+        }
+        return below;
+    }
+
     public Rational abs() {
         return this < zero() ? -this : this;
     }
 
-    // The digits of round(places), with exactly `places` digits after the point.
-    @Intrinsic
-    public String toDecimal(Int places);
+    // The digits of round(places), with exactly `places` digits after the point and a
+    // minus sign when they are not all zero and the value is below zero.
+    public String toDecimal(Int places) {
+        if (places < 0 || places > 100000) {
+            throw new IllegalArgumentException("" + places + " digits after the point");
+        }
+        var scaled = nearestInteger(num * BigInt.tenTo(places), den);
+        // At least one digit before the point.
+        var padded = new StringBuilder();
+        for (var pad = scaled.abs().toString().length(); pad <= places; pad++) {
+            padded.append('0');
+        }
+        padded.append(scaled.abs());
+        var digits = padded.toString();
+        var whole = digits.length() - places;
+        var text = new StringBuilder();
+        if (scaled.isNegative()) {
+            text.append('-');
+        }
+        text.append(digits.substring(0, whole));
+        if (places > 0) {
+            text.append('.');
+            text.append(digits.substring(whole, digits.length()));
+        }
+        return text.toString();
+    }
 
-    // A decimal numeral or a fraction "a/b", or null when the text is neither.
-    @Intrinsic
-    public static @Nullable Rational parse(String text);
+    // The numerator, and "/" and the denominator unless it is one.
+    @Override
+    public String toString() {
+        return den.isOne() ? num.toString() : num.toString() + "/" + den;
+    }
+
+    // A decimal numeral, such as "-12.50", or a fraction "a/b" of two integers, whose
+    // digits `_` may separate. Whitespace may stand around the text and around each
+    // integer of a fraction. Null when the text is neither, or the denominator is not
+    // above zero.
+    public static @Nullable Rational parse(String text) {
+        var trimmed = text.trim();
+        var slash = trimmed.indexOf('/');
+        if (slash >= 0) {
+            var top = BigInt.parse(trimmed.substring(0, slash).trim());
+            var bottom = BigInt.parse(trimmed.substring(slash + 1, trimmed.length()).trim());
+            if (top == null || bottom == null || bottom.sign() <= 0) {
+                return null;
+            }
+            return reduced(top, bottom);
+        }
+        var negative = trimmed.startsWith("-");
+        var body = negative || trimmed.startsWith("+") ? trimmed.substring(1, trimmed.length()) : trimmed;
+        var point = body.indexOf('.');
+        var whole = point < 0 ? body : body.substring(0, point);
+        var fraction = point < 0 ? "" : body.substring(point + 1, body.length());
+        if (whole.isEmpty() && fraction.isEmpty() || !allDigits(whole) || !allDigits(fraction)) {
+            return null;
+        }
+        var digits = (BigInt) BigInt.parse(whole + fraction);
+        return reduced(negative ? -digits : digits, BigInt.tenTo(fraction.length()));
+    }
+
+    private static Boolean allDigits(String text) {
+        for (Char c : text) {
+            if (!BigInt.isDigit(c)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // The value of a literal. The compiler writes it as "numerator/denominator" and
+    // calls this once for each literal.
+    package static Rational literal(String text) {
+        var slash = text.indexOf('/');
+        var top = (BigInt) BigInt.parse(text.substring(0, slash));
+        var bottom = (BigInt) BigInt.parse(text.substring(slash + 1, text.length()));
+        return reduced(top, bottom);
+    }
 """
 
 
@@ -558,7 +734,7 @@ def integer(name):
         body = WIDE.format(n=name, ones=ones, zero_and_one=zero_and_one, ordered=ordered)
         # Int takes every narrower integer as it is, and checks the rest. UInt64 checks
         # an Int, and has its own way from the classes an Int cannot hold.
-        machine = NARROW + ["UInt64", "Float64", "Rational"] if name == "Int" else ["Int", "Float64", "Rational"]
+        machine = NARROW + ["UInt64", "Float64"] if name == "Int" else ["Int", "Float64"]
     write(name, head + body + "\n" + conversions(name, "from", machine) + "}\n")
 
 
@@ -569,7 +745,7 @@ for name in FLOATS:
     other = "Float64" if name == "Float32" else "Float32"
     # An Int and a UInt64 are converted in one step, because going through the other
     # float class would round twice.
-    machine = ["Int", "UInt64", other, "Rational"]
+    machine = ["Int", "UInt64", other]
     write(
         name,
         f"public value class {name} implements Divisible<{name}>, Ordered<{name}> {{\n"
@@ -585,9 +761,8 @@ for name in FLOATS:
 write(
     "Rational",
     "public value class Rational implements Divisible<Rational>, Ordered<Rational> {\n"
-    "    private Rational {\n    }\n\n"
     + RATIONAL.replace("{zero_and_one}", ZERO_AND_ONE.format(n="Rational")).replace("{ordered}", ORDERED_BY_LESS_THAN.format(n="Rational"))
     + "\n"
-    + conversions("Rational", "from", ["Int", "UInt64", "Float64"])
+    + conversions("Rational", "from", [])
     + "}\n",
 )

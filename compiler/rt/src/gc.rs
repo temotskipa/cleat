@@ -191,7 +191,7 @@ pub unsafe fn object_size(o: Obj) -> usize {
         match c.kind {
             K_ARRAY => ELEMS + len() * elem_size(td.elem_kind),
             K_STRING => ELEMS + len() * 4,
-            k if is_machine(k) || k == K_RATIONAL || k == K_CLASS => 24,
+            k if is_machine(k) || k == K_CLASS => 24,
             _ => (c.size as usize).max(BODY),
         }
     }
@@ -274,7 +274,7 @@ unsafe fn trace(stack: &mut Vec<Obj>, o: Obj) {
                     }
                 }
             }
-            K_STRING | K_RATIONAL | K_CLASS | K_UNIT => {}
+            K_STRING | K_CLASS | K_UNIT => {}
             k if is_machine(k) => {}
             _ => {
                 for off in slice(c.refs, c.nrefs) {
@@ -290,11 +290,6 @@ unsafe fn finalize(o: Obj) {
         let c = &*(*(*o).td).class;
         let payload = *((o as *const u8).add(BODY) as *const *mut u8);
         match c.kind {
-            K_RATIONAL => {
-                if !payload.is_null() {
-                    drop(Box::from_raw(payload as *mut num_rational::BigRational));
-                }
-            }
             K_LOCK | K_CONDITION | K_THREAD => crate::host::free_host(c.kind, payload),
             _ => {}
         }

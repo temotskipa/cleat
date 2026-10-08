@@ -154,8 +154,13 @@ public value class Float32 implements Divisible<Float32>, Ordered<Float32> {
     @Intrinsic
     public static Float32 from(Float64 value);
 
-    @Intrinsic
-    public static Float32 from(Rational value);
+    public static Float32 from(Rational value) {
+        var wide = Float64.nearest(value);
+        if (wide.isInfinite() || Rational.from(wide) != value || Float64.from(nearest(wide)) != wide) {
+            throw new ArithmeticException(value.toString() + " is not a value of Float32");
+        }
+        return nearest(wide);
+    }
 
     public static Float32 nearest(Int8 value) {
         return nearest(Int.from(value));
@@ -194,6 +199,9 @@ public value class Float32 implements Divisible<Float32>, Ordered<Float32> {
     @Intrinsic
     public static Float32 nearest(Float64 value);
 
-    @Intrinsic
-    public static Float32 nearest(Rational value);
+    // The Float32 nearest to the Float64 nearest to `value`, as the compiler rounds a
+    // constant.
+    public static Float32 nearest(Rational value) {
+        return nearest(Float64.nearest(value));
+    }
 }

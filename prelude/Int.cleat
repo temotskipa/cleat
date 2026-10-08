@@ -199,6 +199,7 @@ public value class Int implements Numeric<Int>, Ordered<Int> {
     @Intrinsic
     public static Int from(Float64 value);
 
-    @Intrinsic
-    public static Int from(Rational value);
+    public static Int from(Rational value) {
+        return value.whole("Int").toInt();
+    }
 }

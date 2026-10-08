@@ -338,7 +338,6 @@ pub unsafe extern "C" fn cl_Object_equals_Object(ctx: *mut Ctx, a: Obj, b: Obj) 
         let same = match c.kind {
             k if is_machine(k) => machine_equal(k, bits(a), bits(b)),
             K_STRING => chars(a) == chars(b),
-            K_RATIONAL => crate::num::rat(a) == crate::num::rat(b),
             _ if c.is(F_VALUE) => {
                 let mut all = true;
                 for f in slice(c.fields, c.nfields) {
@@ -396,12 +395,6 @@ pub unsafe extern "C" fn cl_Object_hashCode(ctx: *mut Ctx, a: Obj) -> i64 {
         match c.kind {
             k if is_machine(k) => machine_hash(k, bits(a)),
             K_STRING => chars(a).iter().fold(0i64, |h, ch| h.wrapping_mul(31).wrapping_add(*ch as i64)),
-            K_RATIONAL => {
-                use std::hash::{Hash, Hasher};
-                let mut h = std::collections::hash_map::DefaultHasher::new();
-                crate::num::rat(a).hash(&mut h);
-                h.finish() as i64
-            }
             _ if c.is(F_VALUE) => {
                 let mut h = 17i64;
                 for f in slice(c.fields, c.nfields) {
@@ -465,7 +458,6 @@ pub unsafe extern "C" fn cl_Object_toString(ctx: *mut Ctx, a: Obj) -> Obj {
         match c.kind {
             k if is_machine(k) => new_str(ctx, &show_machine(k, bits(a))),
             K_STRING => a,
-            K_RATIONAL => new_str(ctx, &crate::num::show_rational(crate::num::rat(a))),
             K_CLASS => new_str(ctx, (**at::<Td>(a, BODY)).name()),
             _ if c.is(F_LAMBDA) => new_str(ctx, &format!("{}@{:x}", c.name(), a as usize >> 4)),
             _ if c.is(F_VALUE) => {
@@ -505,7 +497,6 @@ unsafe fn identical(a: Obj, b: Obj) -> bool {
         match c.kind {
             k if is_machine(k) => bits(a) == bits(b),
             K_STRING => chars(a) == chars(b),
-            K_RATIONAL => crate::num::rat(a) == crate::num::rat(b),
             _ if c.is(F_VALUE) => slice(c.fields, c.nfields).iter().all(|f| {
                 if f.kind == 0 {
                     identical(*at::<Obj>(a, f.offset as usize), *at::<Obj>(b, f.offset as usize))

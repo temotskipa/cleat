@@ -4,113 +4,7 @@
 #![allow(non_snake_case)]
 
 use crate::abi::*;
-use crate::gc;
-use crate::object::{at, new_str, raise, to_rust};
-use crate::types;
-use num_bigint::BigInt;
-use num_rational::BigRational;
-use num_traits::{One, Signed, ToPrimitive, Zero};
-
-// ---- Rational objects ----
-
-pub unsafe fn rat(o: Obj) -> &'static BigRational {
-    unsafe { &**at::<*mut BigRational>(o, BODY) }
-}
-
-pub unsafe fn new_rat(ctx: *mut Ctx, r: BigRational) -> Obj {
-    unsafe {
-        let o = gc::alloc(ctx, types::wk_type(K_RATIONAL), 24);
-        if o.is_null() {
-            raise(ctx, X_OUT_OF_MEMORY, "no storage for an allocation");
-            return o;
-        }
-        *at::<*mut BigRational>(o, BODY) = Box::into_raw(Box::new(r));
-        o
-    }
-}
-
-pub fn show_rational(r: &BigRational) -> String {
-    if r.is_integer() {
-        r.numer().to_string()
-    } else {
-        format!("{}/{}", r.numer(), r.denom())
-    }
-}
-
-/// A rational literal, made once and kept in `slot`.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_rational_const(_ctx: *mut Ctx, slot: *mut Obj, text: *const u8, n: u64) -> Obj {
-    unsafe {
-        static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-        let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
-        if !(*slot).is_null() {
-            return *slot;
-        }
-        let s = std::str::from_utf8_unchecked(std::slice::from_raw_parts(text, n as usize));
-        let (num, den) = s.split_once('/').unwrap_or((s, "1"));
-        let r = BigRational::new(num.parse().unwrap_or_else(|_| BigInt::zero()), den.parse().unwrap_or_else(|_| BigInt::one()));
-        let o = gc::alloc_static(types::wk_type(K_RATIONAL), 24);
-        *at::<*mut BigRational>(o, BODY) = Box::into_raw(Box::new(r));
-        *slot = o;
-        o
-    }
-}
-
-fn round_even(r: &BigRational) -> BigInt {
-    let floor = r.floor().to_integer();
-    let diff = r - BigRational::from_integer(floor.clone());
-    let half = BigRational::new(BigInt::one(), BigInt::from(2));
-    match diff.cmp(&half) {
-        std::cmp::Ordering::Less => floor,
-        std::cmp::Ordering::Greater => floor + 1,
-        std::cmp::Ordering::Equal => {
-            if (&floor % BigInt::from(2)).is_zero() {
-                floor
-            } else {
-                floor + 1
-            }
-        }
-    }
-}
-
-fn pow10(n: u32) -> BigInt {
-    num_traits::pow(BigInt::from(10), n as usize)
-}
-
-/// The nearest multiple of ten to the power `-places`, ties to even.
-fn round_places(r: &BigRational, places: i64) -> BigRational {
-    if places >= 0 {
-        let scale = BigRational::from_integer(pow10(places as u32));
-        BigRational::from_integer(round_even(&(r * &scale))) / scale
-    } else {
-        let scale = BigRational::from_integer(pow10((-places) as u32));
-        BigRational::from_integer(round_even(&(r / &scale))) * scale
-    }
-}
-
-fn parse_rational(s: &str) -> Option<BigRational> {
-    let s = s.trim();
-    if let Some((n, d)) = s.split_once('/') {
-        let (n, d): (BigInt, BigInt) = (n.trim().parse().ok()?, d.trim().parse().ok()?);
-        if d.is_zero() || d.is_negative() {
-            return None;
-        }
-        return Some(BigRational::new(n, d));
-    }
-    let (sign, body) = match s.strip_prefix('-') {
-        Some(rest) => (-1, rest),
-        None => (1, s.strip_prefix('+').unwrap_or(s)),
-    };
-    let (whole, frac) = body.split_once('.').unwrap_or((body, ""));
-    if whole.is_empty() && frac.is_empty() {
-        return None;
-    }
-    if !whole.chars().all(|c| c.is_ascii_digit()) || !frac.chars().all(|c| c.is_ascii_digit()) {
-        return None;
-    }
-    let digits: BigInt = format!("{whole}{frac}").parse().ok()?;
-    Some(BigRational::new(digits * sign, pow10(frac.len() as u32)))
-}
+use crate::object::{new_str, raise, to_rust};
 
 // ---- one value of any numeric class ----
 
@@ -118,7 +12,6 @@ pub enum Num {
     I(i128),
     F32(f32),
     F64(f64),
-    R(BigRational),
 }
 
 unsafe fn fail(ctx: *mut Ctx, n: &Num, class: &str) {
@@ -126,7 +19,6 @@ unsafe fn fail(ctx: *mut Ctx, n: &Num, class: &str) {
         Num::I(v) => v.to_string(),
         Num::F32(f) => crate::object::show_float(*f as f64),
         Num::F64(f) => crate::object::show_float(*f),
-        Num::R(r) => show_rational(r),
     };
     unsafe { raise(ctx, X_ARITHMETIC, &format!("{shown} is not a value of {class}")) }
 }
@@ -143,13 +35,6 @@ fn exact_int(n: &Num) -> Option<i128> {
                 None
             }
         }
-        Num::R(r) => {
-            if r.is_integer() {
-                r.numer().to_i128()
-            } else {
-                None
-            }
-        }
     }
 }
 
@@ -161,10 +46,6 @@ fn exact_f64(n: &Num) -> Option<f64> {
         }
         Num::F32(f) => Some(*f as f64),
         Num::F64(f) => Some(*f),
-        Num::R(r) => {
-            let f = r.to_f64()?;
-            if f.is_finite() && BigRational::from_float(f).as_ref() == Some(r) { Some(f) } else { None }
-        }
     }
 }
 
@@ -177,21 +58,11 @@ fn exact_f32(n: &Num) -> Option<f32> {
     if (f as f64 == d) || d.is_nan() { Some(f) } else { None }
 }
 
-fn exact_rational(n: &Num) -> Option<BigRational> {
-    match n {
-        Num::I(v) => Some(BigRational::from_integer(BigInt::from(*v))),
-        Num::F32(f) => BigRational::from_float(*f as f64),
-        Num::F64(f) => BigRational::from_float(*f),
-        Num::R(r) => Some(r.clone()),
-    }
-}
-
 fn nearest_f64(n: &Num) -> f64 {
     match n {
         Num::I(v) => *v as f64,
         Num::F32(f) => *f as f64,
         Num::F64(f) => *f,
-        Num::R(r) => r.to_f64().unwrap_or(f64::NAN),
     }
 }
 
@@ -211,11 +82,6 @@ impl Load for f32 {
 impl Load for f64 {
     unsafe fn load(self) -> Num {
         Num::F64(self)
-    }
-}
-impl Load for Obj {
-    unsafe fn load(self) -> Num {
-        unsafe { Num::R(rat(self).clone()) }
     }
 }
 
@@ -261,17 +127,6 @@ impl Exact for f64 {
         }
     }
 }
-impl Exact for Obj {
-    unsafe fn exact(ctx: *mut Ctx, n: Num) -> Obj {
-        match exact_rational(&n) {
-            Some(r) => unsafe { new_rat(ctx, r) },
-            None => {
-                unsafe { fail(ctx, &n, "Rational") };
-                std::ptr::null_mut()
-            }
-        }
-    }
-}
 
 /// `C.from(S)` for every pair of numeric classes, and `nearest` for the float classes.
 macro_rules! conversions {
@@ -279,7 +134,7 @@ macro_rules! conversions {
         pub mod $m {
             use super::*;
             conversions!(@from $C, $ct, $nearest; (Int8, i8), (Int16, i16), (Int32, i32), (Int, i64), (UInt8, u8), (UInt16, u16),
-                (UInt32, u32), (UInt64, u64), (Float32, f32), (Float64, f64), (Rational, Obj));
+                (UInt32, u32), (UInt64, u64), (Float32, f32), (Float64, f64));
         }
     };
     (@from $C:ident, $ct:ty, $nearest:expr; $(($S:ident, $st:ty)),*) => { $(
@@ -311,7 +166,6 @@ conversions!(Float32, f32, conv_f32, |n| match n {
     other => nearest_f64(other) as f32,
 });
 conversions!(Float64, f64, conv_f64, nearest_f64);
-conversions!(Rational, Obj, conv_rat, |_| std::ptr::null_mut());
 
 // ---- the integer classes ----
 
@@ -626,99 +480,3 @@ macro_rules! float_class {
 
 float_class!(Float32, f32, float32, K_F32);
 float_class!(Float64, f64, float64, K_F64);
-
-// ---- Rational ----
-
-macro_rules! rational {
-    ($name:literal, $f:ident, |$ctx:ident $(, $p:ident : $pt:ty)*| -> $r:ty $body:block) => {
-        #[unsafe(export_name = concat!("cl_Rational_", $name))]
-        pub unsafe extern "C" fn $f($ctx: *mut Ctx $(, $p: $pt)*) -> $r {
-            unsafe { $body }
-        }
-    };
-}
-
-rational!("plus_Rational", r_plus, |ctx, a: Obj, b: Obj| -> Obj { new_rat(ctx, rat(a) + rat(b)) });
-rational!("minus_Rational", r_minus, |ctx, a: Obj, b: Obj| -> Obj { new_rat(ctx, rat(a) - rat(b)) });
-rational!("times_Rational", r_times, |ctx, a: Obj, b: Obj| -> Obj { new_rat(ctx, rat(a) * rat(b)) });
-rational!("div_Rational", r_div, |ctx, a: Obj, b: Obj| -> Obj {
-    if rat(b).is_zero() {
-        raise(ctx, X_ARITHMETIC, "division by zero");
-        return std::ptr::null_mut();
-    }
-    new_rat(ctx, rat(a) / rat(b))
-});
-rational!("negate", r_negate, |ctx, a: Obj| -> Obj { new_rat(ctx, -rat(a)) });
-rational!("zero", r_zero, |ctx| -> Obj { new_rat(ctx, BigRational::zero()) });
-rational!("one", r_one, |ctx| -> Obj { new_rat(ctx, BigRational::one()) });
-rational!("lessThan_Rational", r_lt, |_ctx, a: Obj, b: Obj| -> u8 { (rat(a) < rat(b)) as u8 });
-rational!("atMost_Rational", r_le, |_ctx, a: Obj, b: Obj| -> u8 { (rat(a) <= rat(b)) as u8 });
-rational!("greaterThan_Rational", r_gt, |_ctx, a: Obj, b: Obj| -> u8 { (rat(a) > rat(b)) as u8 });
-rational!("atLeast_Rational", r_ge, |_ctx, a: Obj, b: Obj| -> u8 { (rat(a) >= rat(b)) as u8 });
-rational!("compare_Rational", r_compare, |_ctx, a: Obj, b: Obj| -> i64 {
-    match rat(a).cmp(rat(b)) {
-        std::cmp::Ordering::Less => -1,
-        std::cmp::Ordering::Equal => 0,
-        std::cmp::Ordering::Greater => 1,
-    }
-});
-rational!("isInteger", r_is_integer, |_ctx, a: Obj| -> u8 { rat(a).is_integer() as u8 });
-rational!("numerator", r_numerator, |ctx, a: Obj| -> Obj { new_rat(ctx, BigRational::from_integer(rat(a).numer().clone())) });
-rational!("denominator", r_denominator, |ctx, a: Obj| -> Obj { new_rat(ctx, BigRational::from_integer(rat(a).denom().clone())) });
-rational!("floor", r_floor, |ctx, a: Obj| -> Obj { new_rat(ctx, rat(a).floor()) });
-rational!("ceil", r_ceil, |ctx, a: Obj| -> Obj { new_rat(ctx, rat(a).ceil()) });
-rational!("truncate", r_truncate, |ctx, a: Obj| -> Obj { new_rat(ctx, rat(a).trunc()) });
-rational!("round", r_round, |ctx, a: Obj| -> Obj { new_rat(ctx, BigRational::from_integer(round_even(rat(a)))) });
-rational!("round_Int", r_round_places, |ctx, a: Obj, places: i64| -> Obj {
-    if !(-100000..=100000).contains(&places) {
-        raise(ctx, X_ILLEGAL_ARGUMENT, &format!("{places} digits after the point"));
-        return std::ptr::null_mut();
-    }
-    new_rat(ctx, round_places(rat(a), places))
-});
-rational!("floorDiv_Rational", r_floor_div, |ctx, a: Obj, b: Obj| -> Obj {
-    if rat(b).is_zero() {
-        raise(ctx, X_ARITHMETIC, "division by zero");
-        return std::ptr::null_mut();
-    }
-    new_rat(ctx, (rat(a) / rat(b)).floor())
-});
-rational!("mod_Rational", r_mod, |ctx, a: Obj, b: Obj| -> Obj {
-    if rat(b).is_zero() {
-        raise(ctx, X_ARITHMETIC, "division by zero");
-        return std::ptr::null_mut();
-    }
-    let q = (rat(a) / rat(b)).floor();
-    new_rat(ctx, rat(a) - q * rat(b))
-});
-rational!("abs", r_abs, |ctx, a: Obj| -> Obj { new_rat(ctx, rat(a).abs()) });
-rational!("toDecimal_Int", r_to_decimal, |ctx, a: Obj, places: i64| -> Obj {
-    if !(0..=100000).contains(&places) {
-        raise(ctx, X_ILLEGAL_ARGUMENT, &format!("{places} digits after the point"));
-        return std::ptr::null_mut();
-    }
-    let scaled = round_even(&(rat(a) * BigRational::from_integer(pow10(places as u32))));
-    let negative = scaled.is_negative();
-    let mut digits = scaled.abs().to_string();
-    let places = places as usize;
-    if digits.len() <= places {
-        digits = format!("{}{digits}", "0".repeat(places + 1 - digits.len()));
-    }
-    let split = digits.len() - places;
-    let mut text = String::new();
-    if negative {
-        text.push('-');
-    }
-    text.push_str(&digits[..split]);
-    if places > 0 {
-        text.push('.');
-        text.push_str(&digits[split..]);
-    }
-    new_str(ctx, &text)
-});
-rational!("parse_String", r_parse, |ctx, s: Obj| -> Obj {
-    match parse_rational(&to_rust(s)) {
-        Some(r) => new_rat(ctx, r),
-        None => std::ptr::null_mut(),
-    }
-});

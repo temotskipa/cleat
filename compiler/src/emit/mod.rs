@@ -159,8 +159,6 @@ fn special_kind(p: &Program, id: ClassId) -> u32 {
         20
     } else if id == w.array {
         21
-    } else if id == w.rational {
-        22
     } else if id == w.class {
         23
     } else if id == w.unit {
@@ -420,15 +418,17 @@ impl<'p> Emitter<'p> {
         (format!("@b.{id}"), s.len())
     }
 
-    pub fn rational_const(&mut self, text: &str) -> (String, String, usize) {
+    /// A `Rational` literal, written `numerator/denominator`: the global that keeps its
+    /// value once made, and the text `Rational.literal` makes it from.
+    pub fn rational_const(&mut self, text: &str) -> (String, String) {
         let n = self.rationals.len();
         let id = *self.rationals.entry(text.to_string()).or_insert(n);
+        let slot = format!("@rat.{id}");
         if id == n {
-            let _ = writeln!(self.globals, "@rat.{id} = internal global ptr null");
-            self.static_roots.len();
+            let _ = writeln!(self.globals, "{slot} = internal global ptr null");
+            self.static_roots.push(slot.clone());
         }
-        let (b, len) = self.byte_string(text);
-        (format!("@rat.{id}"), b, len)
+        (slot, self.string_lit(text))
     }
 
     /// A type as constant data. The result is the symbol and whether the type mentions
@@ -1099,7 +1099,6 @@ declare ptr @cl_lookup(ptr, i32)
 declare ptr @cl_static_req(ptr, i32)
 declare void @cl_class_init(ptr, ptr)
 declare void @cl_static_unassigned(ptr, ptr, i64)
-declare ptr @cl_rational_const(ptr, ptr, ptr, i64)
 declare void @cl_mirror_fail(ptr, i32, ptr, i64)
 declare void @cl_foreign_enter(ptr)
 declare void @cl_foreign_leave(ptr)

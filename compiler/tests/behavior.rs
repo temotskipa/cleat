@@ -41,6 +41,7 @@ cases![
     statics => "Statics",
     members => "Members",
     widths => "Widths",
+    rationals => "Rationals",
     rules => "Rules",
     sentences_01 => "Sentences01",
     sentences_02 => "Sentences02",
