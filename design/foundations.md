@@ -446,3 +446,7 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 
 - Sections 3.1 and 3.3: the example fields have initializers, because a field with no default must be assigned.
 - Section 8.9: the example is two examples, a declaration and a method.
+- Section 4.4 names the one case where an ambiguous call is not rejected: section 6.3 chooses the method of a numeric literal's default class.
+- Section 5.3 counts four methods of `Object` that take a `@Nullable` receiver, with `identical`, as section 2.5 declares them.
+- Section 10.2 defers declaration annotations on locals and type parameters. A qualifier on a local and a tag required by a type parameter are in the language.
+- Section 11.6: the grammar derives `name(args)`, a call with no receiver.
