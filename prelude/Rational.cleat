@@ -19,72 +19,46 @@ public value class Rational implements Divisible<Rational>, Ordered<Rational> {
 
     @Override
     @Intrinsic
-    public Rational negate();
+    public Rational div(Rational other);
 
     @Override
-    @Intrinsic
-    public static Rational zero();
+    public Rational negate() {
+        return zero() - this;
+    }
 
     @Override
-    @Intrinsic
-    public static Rational one();
+    public static Rational zero() {
+        return 0;
+    }
+
+    @Override
+    public static Rational one() {
+        return 1;
+    }
 
     @Override
     @Intrinsic
     public Boolean lessThan(Rational other);
 
     @Override
-    @Intrinsic
-    public Boolean atMost(Rational other);
+    public Boolean atMost(Rational other) {
+        return !(other < this);
+    }
 
     @Override
-    @Intrinsic
-    public Boolean greaterThan(Rational other);
+    public Boolean greaterThan(Rational other) {
+        return other < this;
+    }
 
     @Override
-    @Intrinsic
-    public Boolean atLeast(Rational other);
+    public Boolean atLeast(Rational other) {
+        return !(this < other);
+    }
 
     @Override
-    @Intrinsic
-    public Int compare(Rational other);
-
-    @Override
-    @Intrinsic
-    public Rational div(Rational other);
-
-    @Intrinsic
-    public Boolean isInteger();
-
-    @Intrinsic
-    public Rational numerator();
-
-    @Intrinsic
-    public Rational denominator();
-
-    @Intrinsic
-    public Rational floor();
-
-    @Intrinsic
-    public Rational ceil();
-
-    @Intrinsic
-    public Rational truncate();
-
-    @Intrinsic
-    public Rational round();
-
-    @Intrinsic
-    public Rational round(Int places);
-
-    @Intrinsic
-    public Rational floorDiv(Rational other);
-
-    @Intrinsic
-    public Rational mod(Rational other);
-
-    @Intrinsic
-    public Rational abs();
+    public Int compare(Rational other) {
+        return this < other ? -1 : other < this ? 1 : 0;
+    }
 
     public Rational min(Rational other) {
         return this < other ? this : other;
@@ -92,6 +66,65 @@ public value class Rational implements Divisible<Rational>, Ordered<Rational> {
 
     public Rational max(Rational other) {
         return this > other ? this : other;
+    }
+
+    // The value in lowest terms. The denominator is positive.
+    @Intrinsic
+    public Rational numerator();
+
+    @Intrinsic
+    public Rational denominator();
+
+    public Boolean isInteger() {
+        return denominator() == one();
+    }
+
+    // The quotient rounded toward negative infinity.
+    @Intrinsic
+    public Rational floorDiv(Rational other);
+
+    public Rational mod(Rational other) {
+        return this - floorDiv(other) * other;
+    }
+
+    public Rational floor() {
+        return floorDiv(one());
+    }
+
+    public Rational ceil() {
+        return -(-this).floor();
+    }
+
+    public Rational truncate() {
+        return this < zero() ? ceil() : floor();
+    }
+
+    // The nearest integer, ties to even.
+    public Rational round() {
+        var below = floor();
+        var rest = this - below;
+        Rational half = 0.5;
+        if (rest < half) {
+            return below;
+        }
+        if (rest > half) {
+            return below + one();
+        }
+        return below.mod(2) == zero() ? below : below + one();
+    }
+
+    // The nearest multiple of ten to the power -places, ties to even.
+    public Rational round(Int places) {
+        Rational scale = 1;
+        var count = places < 0 ? -places : places;
+        for (var i = 0; i < count; i++) {
+            scale = scale * 10;
+        }
+        return places < 0 ? (this / scale).round() * scale : (this * scale).round() / scale;
+    }
+
+    public Rational abs() {
+        return this < zero() ? -this : this;
     }
 
     // The digits of round(places), with exactly `places` digits after the point.
@@ -103,43 +136,51 @@ public value class Rational implements Divisible<Rational>, Ordered<Rational> {
     public static @Nullable Rational parse(String text);
 
     @Implicit
-    @Intrinsic
-    public static Rational from(Int8 value);
+    public static Rational from(Int8 value) {
+        return from(Int.from(value));
+    }
 
     @Implicit
-    @Intrinsic
-    public static Rational from(Int16 value);
+    public static Rational from(Int16 value) {
+        return from(Int.from(value));
+    }
 
     @Implicit
-    @Intrinsic
-    public static Rational from(Int32 value);
+    public static Rational from(Int32 value) {
+        return from(Int.from(value));
+    }
 
     @Implicit
     @Intrinsic
     public static Rational from(Int value);
 
     @Implicit
-    @Intrinsic
-    public static Rational from(UInt8 value);
+    public static Rational from(UInt8 value) {
+        return from(Int.from(value));
+    }
 
     @Implicit
-    @Intrinsic
-    public static Rational from(UInt16 value);
+    public static Rational from(UInt16 value) {
+        return from(Int.from(value));
+    }
 
     @Implicit
-    @Intrinsic
-    public static Rational from(UInt32 value);
+    public static Rational from(UInt32 value) {
+        return from(Int.from(value));
+    }
 
     @Implicit
     @Intrinsic
     public static Rational from(UInt64 value);
 
-    @Intrinsic
-    public static Rational from(Float32 value);
+    public static Rational from(Float32 value) {
+        return from(Float64.from(value));
+    }
 
     @Intrinsic
     public static Rational from(Float64 value);
 
-    @Intrinsic
-    public static Rational from(Rational value);
+    public static Rational from(Rational value) {
+        return value;
+    }
 }

@@ -7,14 +7,16 @@ public final value class Null {
     }
 
     // True only when `other` is null.
-    @Intrinsic
-    public Boolean equals(@Nullable Object other);
+    public Boolean equals(@Nullable Object other) {
+        return other == null;
+    }
 
     // One unchanging Int.
-    @Intrinsic
-    public Int hashCode();
+    public Int hashCode() {
+        return 0;
+    }
 
-    // The string "null".
-    @Intrinsic
-    public String toString();
+    public String toString() {
+        return "null";
+    }
 }

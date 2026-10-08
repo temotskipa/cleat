@@ -18,48 +18,72 @@ public value class Int implements Numeric<Int>, Ordered<Int> {
     public Int times(Int other);
 
     @Override
-    @Intrinsic
-    public Int negate();
+    public Int negate() {
+        return zero() - this;
+    }
 
     @Override
-    @Intrinsic
-    public static Int zero();
+    public static Int zero() {
+        return 0;
+    }
 
     @Override
-    @Intrinsic
-    public static Int one();
+    public static Int one() {
+        return 1;
+    }
 
     @Override
     @Intrinsic
     public Boolean lessThan(Int other);
 
     @Override
-    @Intrinsic
-    public Boolean atMost(Int other);
+    public Boolean atMost(Int other) {
+        return !(other < this);
+    }
 
     @Override
-    @Intrinsic
-    public Boolean greaterThan(Int other);
+    public Boolean greaterThan(Int other) {
+        return other < this;
+    }
 
     @Override
-    @Intrinsic
-    public Boolean atLeast(Int other);
+    public Boolean atLeast(Int other) {
+        return !(this < other);
+    }
 
     @Override
-    @Intrinsic
-    public Int compare(Int other);
+    public Int compare(Int other) {
+        return this < other ? -1 : other < this ? 1 : 0;
+    }
 
-    @Intrinsic
-    public Int floorDiv(Int other);
+    public Int min(Int other) {
+        return this < other ? this : other;
+    }
 
-    @Intrinsic
-    public Int mod(Int other);
+    public Int max(Int other) {
+        return this > other ? this : other;
+    }
 
+    // The quotient rounded toward zero, and what is left of the dividend.
     @Intrinsic
     public Int truncatingDiv(Int other);
 
     @Intrinsic
     public Int truncatingRem(Int other);
+
+    // The quotient rounded toward negative infinity: one less than the truncated
+    // quotient when the division is inexact and the operands differ in sign.
+    public Int floorDiv(Int other) {
+        var quotient = truncatingDiv(other);
+        var rest = truncatingRem(other);
+        return rest != 0 && (rest < 0) != (other < 0) ? quotient - 1 : quotient;
+    }
+
+    // Zero, or a value with the sign of the divisor.
+    public Int mod(Int other) {
+        var rest = truncatingRem(other);
+        return rest != 0 && (rest < 0) != (other < 0) ? rest + other : rest;
+    }
 
     @Intrinsic
     public Int wrappingPlus(Int other);
@@ -79,8 +103,9 @@ public value class Int implements Numeric<Int>, Ordered<Int> {
     @Intrinsic
     public Int xor(Int other);
 
-    @Intrinsic
-    public Int complement();
+    public Int complement() {
+        return this ^ -1;
+    }
 
     @Intrinsic
     public Int shiftLeft(Int count);
@@ -88,17 +113,53 @@ public value class Int implements Numeric<Int>, Ordered<Int> {
     @Intrinsic
     public Int shiftRight(Int count);
 
-    public Int min(Int other) {
-        return this < other ? this : other;
+    // The decimal digits, after a minus sign when the value is below zero. The digits
+    // are taken from the value as it is, because the lowest Int has no negation.
+    @Override
+    public String toString() {
+        if (this == 0) {
+            return "0";
+        }
+        var count = this < 0 ? 1 : 0;
+        for (var rest = this; rest != 0; rest = rest.truncatingDiv(10)) {
+            count += 1;
+        }
+        var chars = new Char[count];
+        var left = this;
+        for (var at = count - 1; left != 0; at--) {
+            var digit = Int.from(left.truncatingRem(10));
+            chars[at] = Char.from(48 + (digit < 0 ? -digit : digit));
+            left = left.truncatingDiv(10);
+        }
+        if (this < 0) {
+            chars[0] = '-';
+        }
+        return String.fromChars(chars, count);
     }
 
-    public Int max(Int other) {
-        return this > other ? this : other;
+    // The text of an integer in decimal, or null when the text is not one or is out of
+    // range. A sign may come first.
+    public static @Nullable Int parse(String text) {
+        var negative = text.startsWith("-");
+        var at = negative || text.startsWith("+") ? 1 : 0;
+        if (at == text.length()) {
+            return null;
+        }
+        Int value = 0;
+        try {
+            while (at < text.length()) {
+                var digit = text[at].code() - 48;
+                if (digit < 0 || digit > 9) {
+                    return null;
+                }
+                value = negative ? value * 10 - from(digit) : value * 10 + from(digit);
+                at++;
+            }
+        } catch (ArithmeticException e) {
+            return null;
+        }
+        return value;
     }
-
-    // The text of an integer in decimal, or null when the text is not one or is out of range.
-    @Intrinsic
-    public static @Nullable Int parse(String text);
 
     @Implicit
     @Intrinsic
@@ -112,8 +173,9 @@ public value class Int implements Numeric<Int>, Ordered<Int> {
     @Intrinsic
     public static Int from(Int32 value);
 
-    @Intrinsic
-    public static Int from(Int value);
+    public static Int from(Int value) {
+        return value;
+    }
 
     @Implicit
     @Intrinsic
@@ -130,8 +192,9 @@ public value class Int implements Numeric<Int>, Ordered<Int> {
     @Intrinsic
     public static Int from(UInt64 value);
 
-    @Intrinsic
-    public static Int from(Float32 value);
+    public static Int from(Float32 value) {
+        return from(Float64.from(value));
+    }
 
     @Intrinsic
     public static Int from(Float64 value);

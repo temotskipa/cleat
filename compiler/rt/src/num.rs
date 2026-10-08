@@ -325,6 +325,12 @@ macro_rules! int_class {
         pub mod $m {
             use super::*;
             const NAME: &str = stringify!($C);
+            // The value of the class with the low bits of an Int. The narrow classes
+            // compute in Int and come back through this or through `from`.
+            #[unsafe(export_name = concat!("cl_", stringify!($C), "_wrapping_Int"))]
+            pub unsafe extern "C" fn wrapping(_ctx: *mut Ctx, v: i64) -> $t {
+                v as $t
+            }
             #[unsafe(export_name = concat!("cl_", stringify!($C), "_plus_", stringify!($C)))]
             pub unsafe extern "C" fn plus(ctx: *mut Ctx, a: $t, b: $t) -> $t {
                 match a.checked_add(b) {

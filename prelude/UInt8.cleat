@@ -5,88 +5,65 @@ public value class UInt8 implements Numeric<UInt8>, Ordered<UInt8> {
     private UInt8 {
     }
 
-    @Override
+    // The value of this class with the low 8 bits of an Int. `from(Int)` is the
+    // conversion that raises when the Int is out of range, and this one never raises.
     @Intrinsic
-    public UInt8 plus(UInt8 other);
+    private static UInt8 wrapping(Int value);
 
     @Override
-    @Intrinsic
-    public UInt8 minus(UInt8 other);
+    public UInt8 plus(UInt8 other) {
+        return from(Int.from(this) + Int.from(other));
+    }
 
     @Override
-    @Intrinsic
-    public UInt8 times(UInt8 other);
+    public UInt8 minus(UInt8 other) {
+        return from(Int.from(this) - Int.from(other));
+    }
 
     @Override
-    @Intrinsic
-    public UInt8 negate();
+    public UInt8 times(UInt8 other) {
+        return from(Int.from(this) * Int.from(other));
+    }
 
     @Override
-    @Intrinsic
-    public static UInt8 zero();
+    public UInt8 negate() {
+        return from(-Int.from(this));
+    }
 
     @Override
-    @Intrinsic
-    public static UInt8 one();
+    public static UInt8 zero() {
+        return 0;
+    }
 
     @Override
-    @Intrinsic
-    public Boolean lessThan(UInt8 other);
+    public static UInt8 one() {
+        return 1;
+    }
 
     @Override
-    @Intrinsic
-    public Boolean atMost(UInt8 other);
+    public Boolean lessThan(UInt8 other) {
+        return Int.from(this) < Int.from(other);
+    }
 
     @Override
-    @Intrinsic
-    public Boolean greaterThan(UInt8 other);
+    public Boolean atMost(UInt8 other) {
+        return !(other < this);
+    }
 
     @Override
-    @Intrinsic
-    public Boolean atLeast(UInt8 other);
+    public Boolean greaterThan(UInt8 other) {
+        return other < this;
+    }
 
     @Override
-    @Intrinsic
-    public Int compare(UInt8 other);
+    public Boolean atLeast(UInt8 other) {
+        return !(this < other);
+    }
 
-    @Intrinsic
-    public UInt8 floorDiv(UInt8 other);
-
-    @Intrinsic
-    public UInt8 mod(UInt8 other);
-
-    @Intrinsic
-    public UInt8 truncatingDiv(UInt8 other);
-
-    @Intrinsic
-    public UInt8 truncatingRem(UInt8 other);
-
-    @Intrinsic
-    public UInt8 wrappingPlus(UInt8 other);
-
-    @Intrinsic
-    public UInt8 wrappingMinus(UInt8 other);
-
-    @Intrinsic
-    public UInt8 wrappingTimes(UInt8 other);
-
-    @Intrinsic
-    public UInt8 and(UInt8 other);
-
-    @Intrinsic
-    public UInt8 or(UInt8 other);
-
-    @Intrinsic
-    public UInt8 xor(UInt8 other);
-
-    @Intrinsic
-    public UInt8 complement();
-
-    @Intrinsic
-    public UInt8 shiftLeft(Int count);
-
-    @Intrinsic
-    public UInt8 shiftRight(Int count);
+    @Override
+    public Int compare(UInt8 other) {
+        return this < other ? -1 : other < this ? 1 : 0;
+    }
 
     public UInt8 min(UInt8 other) {
         return this < other ? this : other;
@@ -96,40 +73,120 @@ public value class UInt8 implements Numeric<UInt8>, Ordered<UInt8> {
         return this > other ? this : other;
     }
 
-    // The text of an integer in decimal, or null when the text is not one or is out of range.
-    @Intrinsic
-    public static @Nullable UInt8 parse(String text);
+    public UInt8 floorDiv(UInt8 other) {
+        return from(Int.from(this).floorDiv(Int.from(other)));
+    }
 
-    @Intrinsic
-    public static UInt8 from(Int8 value);
+    public UInt8 mod(UInt8 other) {
+        return from(Int.from(this).mod(Int.from(other)));
+    }
 
-    @Intrinsic
-    public static UInt8 from(Int16 value);
+    public UInt8 truncatingDiv(UInt8 other) {
+        return from(Int.from(this).truncatingDiv(Int.from(other)));
+    }
 
-    @Intrinsic
-    public static UInt8 from(Int32 value);
+    public UInt8 truncatingRem(UInt8 other) {
+        return from(Int.from(this).truncatingRem(Int.from(other)));
+    }
+
+    public UInt8 wrappingPlus(UInt8 other) {
+        return wrapping(Int.from(this) + Int.from(other));
+    }
+
+    public UInt8 wrappingMinus(UInt8 other) {
+        return wrapping(Int.from(this) - Int.from(other));
+    }
+
+    public UInt8 wrappingTimes(UInt8 other) {
+        return wrapping(Int.from(this) * Int.from(other));
+    }
+
+    public UInt8 and(UInt8 other) {
+        return wrapping(Int.from(this) & Int.from(other));
+    }
+
+    public UInt8 or(UInt8 other) {
+        return wrapping(Int.from(this) | Int.from(other));
+    }
+
+    public UInt8 xor(UInt8 other) {
+        return wrapping(Int.from(this) ^ Int.from(other));
+    }
+
+    public UInt8 complement() {
+        return wrapping(~Int.from(this));
+    }
+
+    // A count below zero, or not below the width of the class, raises.
+    public UInt8 shiftLeft(Int count) {
+        if (count < 0 || count >= 8) {
+            throw new ArithmeticException("a shift count of " + count + " is not a value of a shift of this class");
+        }
+        return wrapping(Int.from(this) << count);
+    }
+
+    public UInt8 shiftRight(Int count) {
+        if (count < 0 || count >= 8) {
+            throw new ArithmeticException("a shift count of " + count + " is not a value of a shift of this class");
+        }
+        return wrapping(Int.from(this) >> count);
+    }
+
+    @Override
+    public String toString() {
+        return Int.from(this).toString();
+    }
+
+    // The text of an integer in decimal, or null when the text is not one or is out of
+    // range. A sign may come first.
+    public static @Nullable UInt8 parse(String text) {
+        var wide = Int.parse(text);
+        if (wide == null || wide < 0 || wide > 255) {
+            return null;
+        }
+        return from(wide);
+    }
+
+    public static UInt8 from(Int8 value) {
+        return from(Int.from(value));
+    }
+
+    public static UInt8 from(Int16 value) {
+        return from(Int.from(value));
+    }
+
+    public static UInt8 from(Int32 value) {
+        return from(Int.from(value));
+    }
 
     @Intrinsic
     public static UInt8 from(Int value);
 
-    @Intrinsic
-    public static UInt8 from(UInt8 value);
+    public static UInt8 from(UInt8 value) {
+        return value;
+    }
 
-    @Intrinsic
-    public static UInt8 from(UInt16 value);
+    public static UInt8 from(UInt16 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static UInt8 from(UInt32 value);
+    public static UInt8 from(UInt32 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static UInt8 from(UInt64 value);
+    public static UInt8 from(UInt64 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static UInt8 from(Float32 value);
+    public static UInt8 from(Float32 value) {
+        return from(Float64.from(value));
+    }
 
-    @Intrinsic
-    public static UInt8 from(Float64 value);
+    public static UInt8 from(Float64 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static UInt8 from(Rational value);
+    public static UInt8 from(Rational value) {
+        return from(Int.from(value));
+    }
 }

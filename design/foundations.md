@@ -417,6 +417,10 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 - `Field`, `Method` and `Parameter` are value classes that hold a class object and a position. Their work is done by `@Intrinsic` methods of `Class` with package audience.
 - `Thread`, `Lock` and `Condition` each hold a `Pointer` to an object of the host, which the collector frees with them. A wait that is a cancellation point wakes every 20 milliseconds to look for the request, so `Condition.await` returns within that time whether or not it was signalled, which section 13.3 allows.
 - `Task<out T>` keeps its result in an `Atomic<@Nullable Object>`, because a field of type `T` that is assigned would break `out`.
+- A method of the prelude is `@Intrinsic` only when it is one machine operation, an operation on an object's identity, class or storage, a table of Unicode, a mirror's reading of a class, or a call of the host. Everything that can be written over those is source. `compiler/tests/prelude_intrinsics.rs` lists each intrinsic method with its reason: 182, where there were 498. The arithmetic of `Rational`, and printing and reading a float, are still in the runtime.
+- The integer classes narrower than 64 bits have no arithmetic of their own. Each computes in `Int` and converts back, and the conversion raises when the result does not fit.
+- `parse` of an integer class accepts one sign, and reads `-0` as zero for the unsigned classes too.
+- `text + x` is the text joined with `x.toString()`. `Boolean` and `Null` are written in the language with no intrinsic method.
 
 **The checker.** Assumed.
 

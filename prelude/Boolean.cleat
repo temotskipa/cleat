@@ -4,15 +4,24 @@ public value class Boolean {
     private Boolean {
     }
 
-    @Intrinsic
-    public Boolean and(Boolean other);
+    // `a & b`. Both operands are evaluated before the method runs, which is what tells
+    // it from `a && b`.
+    public Boolean and(Boolean other) {
+        return this ? other : false;
+    }
 
-    @Intrinsic
-    public Boolean or(Boolean other);
+    // `a | b`.
+    public Boolean or(Boolean other) {
+        return this ? true : other;
+    }
 
-    @Intrinsic
-    public Boolean xor(Boolean other);
+    // `a ^ b`: true when exactly one of the two is.
+    public Boolean xor(Boolean other) {
+        return this ? other.not() : other;
+    }
 
-    @Intrinsic
-    public Boolean not();
+    // `!a`.
+    public Boolean not() {
+        return this ? false : true;
+    }
 }

@@ -17,9 +17,18 @@ public final class AtomicInt {
     @Intrinsic
     public Boolean compareAndSet(Int expected, Int update);
 
+    // The sum is worked out before the cell changes, so a sum that is not an Int
+    // raises and leaves the cell as it was.
     @Discardable
-    @Intrinsic
-    public Int addAndGet(Int delta);
+    public Int addAndGet(Int delta) {
+        while (true) {
+            var current = get();
+            var sum = current + delta;
+            if (compareAndSet(current, sum)) {
+                return sum;
+            }
+        }
+    }
 
     @Discardable
     public Int incrementAndGet() {

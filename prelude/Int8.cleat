@@ -5,88 +5,65 @@ public value class Int8 implements Numeric<Int8>, Ordered<Int8> {
     private Int8 {
     }
 
-    @Override
+    // The value of this class with the low 8 bits of an Int. `from(Int)` is the
+    // conversion that raises when the Int is out of range, and this one never raises.
     @Intrinsic
-    public Int8 plus(Int8 other);
+    private static Int8 wrapping(Int value);
 
     @Override
-    @Intrinsic
-    public Int8 minus(Int8 other);
+    public Int8 plus(Int8 other) {
+        return from(Int.from(this) + Int.from(other));
+    }
 
     @Override
-    @Intrinsic
-    public Int8 times(Int8 other);
+    public Int8 minus(Int8 other) {
+        return from(Int.from(this) - Int.from(other));
+    }
 
     @Override
-    @Intrinsic
-    public Int8 negate();
+    public Int8 times(Int8 other) {
+        return from(Int.from(this) * Int.from(other));
+    }
 
     @Override
-    @Intrinsic
-    public static Int8 zero();
+    public Int8 negate() {
+        return from(-Int.from(this));
+    }
 
     @Override
-    @Intrinsic
-    public static Int8 one();
+    public static Int8 zero() {
+        return 0;
+    }
 
     @Override
-    @Intrinsic
-    public Boolean lessThan(Int8 other);
+    public static Int8 one() {
+        return 1;
+    }
 
     @Override
-    @Intrinsic
-    public Boolean atMost(Int8 other);
+    public Boolean lessThan(Int8 other) {
+        return Int.from(this) < Int.from(other);
+    }
 
     @Override
-    @Intrinsic
-    public Boolean greaterThan(Int8 other);
+    public Boolean atMost(Int8 other) {
+        return !(other < this);
+    }
 
     @Override
-    @Intrinsic
-    public Boolean atLeast(Int8 other);
+    public Boolean greaterThan(Int8 other) {
+        return other < this;
+    }
 
     @Override
-    @Intrinsic
-    public Int compare(Int8 other);
+    public Boolean atLeast(Int8 other) {
+        return !(this < other);
+    }
 
-    @Intrinsic
-    public Int8 floorDiv(Int8 other);
-
-    @Intrinsic
-    public Int8 mod(Int8 other);
-
-    @Intrinsic
-    public Int8 truncatingDiv(Int8 other);
-
-    @Intrinsic
-    public Int8 truncatingRem(Int8 other);
-
-    @Intrinsic
-    public Int8 wrappingPlus(Int8 other);
-
-    @Intrinsic
-    public Int8 wrappingMinus(Int8 other);
-
-    @Intrinsic
-    public Int8 wrappingTimes(Int8 other);
-
-    @Intrinsic
-    public Int8 and(Int8 other);
-
-    @Intrinsic
-    public Int8 or(Int8 other);
-
-    @Intrinsic
-    public Int8 xor(Int8 other);
-
-    @Intrinsic
-    public Int8 complement();
-
-    @Intrinsic
-    public Int8 shiftLeft(Int count);
-
-    @Intrinsic
-    public Int8 shiftRight(Int count);
+    @Override
+    public Int compare(Int8 other) {
+        return this < other ? -1 : other < this ? 1 : 0;
+    }
 
     public Int8 min(Int8 other) {
         return this < other ? this : other;
@@ -96,40 +73,120 @@ public value class Int8 implements Numeric<Int8>, Ordered<Int8> {
         return this > other ? this : other;
     }
 
-    // The text of an integer in decimal, or null when the text is not one or is out of range.
-    @Intrinsic
-    public static @Nullable Int8 parse(String text);
+    public Int8 floorDiv(Int8 other) {
+        return from(Int.from(this).floorDiv(Int.from(other)));
+    }
 
-    @Intrinsic
-    public static Int8 from(Int8 value);
+    public Int8 mod(Int8 other) {
+        return from(Int.from(this).mod(Int.from(other)));
+    }
 
-    @Intrinsic
-    public static Int8 from(Int16 value);
+    public Int8 truncatingDiv(Int8 other) {
+        return from(Int.from(this).truncatingDiv(Int.from(other)));
+    }
 
-    @Intrinsic
-    public static Int8 from(Int32 value);
+    public Int8 truncatingRem(Int8 other) {
+        return from(Int.from(this).truncatingRem(Int.from(other)));
+    }
+
+    public Int8 wrappingPlus(Int8 other) {
+        return wrapping(Int.from(this) + Int.from(other));
+    }
+
+    public Int8 wrappingMinus(Int8 other) {
+        return wrapping(Int.from(this) - Int.from(other));
+    }
+
+    public Int8 wrappingTimes(Int8 other) {
+        return wrapping(Int.from(this) * Int.from(other));
+    }
+
+    public Int8 and(Int8 other) {
+        return wrapping(Int.from(this) & Int.from(other));
+    }
+
+    public Int8 or(Int8 other) {
+        return wrapping(Int.from(this) | Int.from(other));
+    }
+
+    public Int8 xor(Int8 other) {
+        return wrapping(Int.from(this) ^ Int.from(other));
+    }
+
+    public Int8 complement() {
+        return wrapping(~Int.from(this));
+    }
+
+    // A count below zero, or not below the width of the class, raises.
+    public Int8 shiftLeft(Int count) {
+        if (count < 0 || count >= 8) {
+            throw new ArithmeticException("a shift count of " + count + " is not a value of a shift of this class");
+        }
+        return wrapping(Int.from(this) << count);
+    }
+
+    public Int8 shiftRight(Int count) {
+        if (count < 0 || count >= 8) {
+            throw new ArithmeticException("a shift count of " + count + " is not a value of a shift of this class");
+        }
+        return wrapping(Int.from(this) >> count);
+    }
+
+    @Override
+    public String toString() {
+        return Int.from(this).toString();
+    }
+
+    // The text of an integer in decimal, or null when the text is not one or is out of
+    // range. A sign may come first.
+    public static @Nullable Int8 parse(String text) {
+        var wide = Int.parse(text);
+        if (wide == null || wide < -128 || wide > 127) {
+            return null;
+        }
+        return from(wide);
+    }
+
+    public static Int8 from(Int8 value) {
+        return value;
+    }
+
+    public static Int8 from(Int16 value) {
+        return from(Int.from(value));
+    }
+
+    public static Int8 from(Int32 value) {
+        return from(Int.from(value));
+    }
 
     @Intrinsic
     public static Int8 from(Int value);
 
-    @Intrinsic
-    public static Int8 from(UInt8 value);
+    public static Int8 from(UInt8 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Int8 from(UInt16 value);
+    public static Int8 from(UInt16 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Int8 from(UInt32 value);
+    public static Int8 from(UInt32 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Int8 from(UInt64 value);
+    public static Int8 from(UInt64 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Int8 from(Float32 value);
+    public static Int8 from(Float32 value) {
+        return from(Float64.from(value));
+    }
 
-    @Intrinsic
-    public static Int8 from(Float64 value);
+    public static Int8 from(Float64 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Int8 from(Rational value);
+    public static Int8 from(Rational value) {
+        return from(Int.from(value));
+    }
 }

@@ -11,7 +11,10 @@ says how the implementation meets it, and nothing here is a language rule.
 
 The prelude is ordinary source in `../prelude`, compiled with every program. A method
 marked `@Intrinsic` has no body: the backend either inlines it or calls the runtime
-symbol `cl_<Class>_<method>[_<ParamClass>...]`.
+symbol `cl_<Class>_<method>[_<ParamClass>...]`. A method is intrinsic only when the
+language cannot say what it does, and `tests/prelude_intrinsics.rs` lists every one with
+its reason. The runtime still exports bodies for methods that have since been written in
+source, and nothing calls them.
 
 ## Values
 
@@ -90,6 +93,8 @@ context, and a call that finds the stack full ends the program.
   "is not a", "are not", "has no"). A sentence that no checker can decide names the
   run test that covers it, most often `tests/behavior/Rules.cleat`. A test fails when a
   chapter gains a sentence of either kind and no case names it.
+- `tests/prelude_intrinsics.rs`: every `@Intrinsic` method of the prelude, with the reason
+  it is not written in the language.
 - `tests/rejections.rs` and `tests/declarations.rs`: programs the checker must reject.
 - `tests/behavior.rs`: programs in `tests/behavior/`, each with the output it must print.
 - `tests/host.rs`: foreign structs, the ways a program ends, and warnings.

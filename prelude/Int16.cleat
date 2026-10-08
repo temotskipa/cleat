@@ -5,88 +5,65 @@ public value class Int16 implements Numeric<Int16>, Ordered<Int16> {
     private Int16 {
     }
 
-    @Override
+    // The value of this class with the low 16 bits of an Int. `from(Int)` is the
+    // conversion that raises when the Int is out of range, and this one never raises.
     @Intrinsic
-    public Int16 plus(Int16 other);
+    private static Int16 wrapping(Int value);
 
     @Override
-    @Intrinsic
-    public Int16 minus(Int16 other);
+    public Int16 plus(Int16 other) {
+        return from(Int.from(this) + Int.from(other));
+    }
 
     @Override
-    @Intrinsic
-    public Int16 times(Int16 other);
+    public Int16 minus(Int16 other) {
+        return from(Int.from(this) - Int.from(other));
+    }
 
     @Override
-    @Intrinsic
-    public Int16 negate();
+    public Int16 times(Int16 other) {
+        return from(Int.from(this) * Int.from(other));
+    }
 
     @Override
-    @Intrinsic
-    public static Int16 zero();
+    public Int16 negate() {
+        return from(-Int.from(this));
+    }
 
     @Override
-    @Intrinsic
-    public static Int16 one();
+    public static Int16 zero() {
+        return 0;
+    }
 
     @Override
-    @Intrinsic
-    public Boolean lessThan(Int16 other);
+    public static Int16 one() {
+        return 1;
+    }
 
     @Override
-    @Intrinsic
-    public Boolean atMost(Int16 other);
+    public Boolean lessThan(Int16 other) {
+        return Int.from(this) < Int.from(other);
+    }
 
     @Override
-    @Intrinsic
-    public Boolean greaterThan(Int16 other);
+    public Boolean atMost(Int16 other) {
+        return !(other < this);
+    }
 
     @Override
-    @Intrinsic
-    public Boolean atLeast(Int16 other);
+    public Boolean greaterThan(Int16 other) {
+        return other < this;
+    }
 
     @Override
-    @Intrinsic
-    public Int compare(Int16 other);
+    public Boolean atLeast(Int16 other) {
+        return !(this < other);
+    }
 
-    @Intrinsic
-    public Int16 floorDiv(Int16 other);
-
-    @Intrinsic
-    public Int16 mod(Int16 other);
-
-    @Intrinsic
-    public Int16 truncatingDiv(Int16 other);
-
-    @Intrinsic
-    public Int16 truncatingRem(Int16 other);
-
-    @Intrinsic
-    public Int16 wrappingPlus(Int16 other);
-
-    @Intrinsic
-    public Int16 wrappingMinus(Int16 other);
-
-    @Intrinsic
-    public Int16 wrappingTimes(Int16 other);
-
-    @Intrinsic
-    public Int16 and(Int16 other);
-
-    @Intrinsic
-    public Int16 or(Int16 other);
-
-    @Intrinsic
-    public Int16 xor(Int16 other);
-
-    @Intrinsic
-    public Int16 complement();
-
-    @Intrinsic
-    public Int16 shiftLeft(Int count);
-
-    @Intrinsic
-    public Int16 shiftRight(Int count);
+    @Override
+    public Int compare(Int16 other) {
+        return this < other ? -1 : other < this ? 1 : 0;
+    }
 
     public Int16 min(Int16 other) {
         return this < other ? this : other;
@@ -96,42 +73,122 @@ public value class Int16 implements Numeric<Int16>, Ordered<Int16> {
         return this > other ? this : other;
     }
 
-    // The text of an integer in decimal, or null when the text is not one or is out of range.
-    @Intrinsic
-    public static @Nullable Int16 parse(String text);
+    public Int16 floorDiv(Int16 other) {
+        return from(Int.from(this).floorDiv(Int.from(other)));
+    }
+
+    public Int16 mod(Int16 other) {
+        return from(Int.from(this).mod(Int.from(other)));
+    }
+
+    public Int16 truncatingDiv(Int16 other) {
+        return from(Int.from(this).truncatingDiv(Int.from(other)));
+    }
+
+    public Int16 truncatingRem(Int16 other) {
+        return from(Int.from(this).truncatingRem(Int.from(other)));
+    }
+
+    public Int16 wrappingPlus(Int16 other) {
+        return wrapping(Int.from(this) + Int.from(other));
+    }
+
+    public Int16 wrappingMinus(Int16 other) {
+        return wrapping(Int.from(this) - Int.from(other));
+    }
+
+    public Int16 wrappingTimes(Int16 other) {
+        return wrapping(Int.from(this) * Int.from(other));
+    }
+
+    public Int16 and(Int16 other) {
+        return wrapping(Int.from(this) & Int.from(other));
+    }
+
+    public Int16 or(Int16 other) {
+        return wrapping(Int.from(this) | Int.from(other));
+    }
+
+    public Int16 xor(Int16 other) {
+        return wrapping(Int.from(this) ^ Int.from(other));
+    }
+
+    public Int16 complement() {
+        return wrapping(~Int.from(this));
+    }
+
+    // A count below zero, or not below the width of the class, raises.
+    public Int16 shiftLeft(Int count) {
+        if (count < 0 || count >= 16) {
+            throw new ArithmeticException("a shift count of " + count + " is not a value of a shift of this class");
+        }
+        return wrapping(Int.from(this) << count);
+    }
+
+    public Int16 shiftRight(Int count) {
+        if (count < 0 || count >= 16) {
+            throw new ArithmeticException("a shift count of " + count + " is not a value of a shift of this class");
+        }
+        return wrapping(Int.from(this) >> count);
+    }
+
+    @Override
+    public String toString() {
+        return Int.from(this).toString();
+    }
+
+    // The text of an integer in decimal, or null when the text is not one or is out of
+    // range. A sign may come first.
+    public static @Nullable Int16 parse(String text) {
+        var wide = Int.parse(text);
+        if (wide == null || wide < -32768 || wide > 32767) {
+            return null;
+        }
+        return from(wide);
+    }
 
     @Implicit
-    @Intrinsic
-    public static Int16 from(Int8 value);
+    public static Int16 from(Int8 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Int16 from(Int16 value);
+    public static Int16 from(Int16 value) {
+        return value;
+    }
 
-    @Intrinsic
-    public static Int16 from(Int32 value);
+    public static Int16 from(Int32 value) {
+        return from(Int.from(value));
+    }
 
     @Intrinsic
     public static Int16 from(Int value);
 
     @Implicit
-    @Intrinsic
-    public static Int16 from(UInt8 value);
+    public static Int16 from(UInt8 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Int16 from(UInt16 value);
+    public static Int16 from(UInt16 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Int16 from(UInt32 value);
+    public static Int16 from(UInt32 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Int16 from(UInt64 value);
+    public static Int16 from(UInt64 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Int16 from(Float32 value);
+    public static Int16 from(Float32 value) {
+        return from(Float64.from(value));
+    }
 
-    @Intrinsic
-    public static Int16 from(Float64 value);
+    public static Int16 from(Float64 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Int16 from(Rational value);
+    public static Int16 from(Rational value) {
+        return from(Int.from(value));
+    }
 }

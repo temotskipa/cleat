@@ -19,16 +19,24 @@ public value class Float32 implements Divisible<Float32>, Ordered<Float32> {
 
     @Override
     @Intrinsic
+    public Float32 div(Float32 other);
+
+    // The value with the other sign. Subtracting from zero would lose the sign of zero.
+    @Override
+    @Intrinsic
     public Float32 negate();
 
     @Override
-    @Intrinsic
-    public static Float32 zero();
+    public static Float32 zero() {
+        return 0;
+    }
 
     @Override
-    @Intrinsic
-    public static Float32 one();
+    public static Float32 one() {
+        return 1;
+    }
 
+    // False when either side is NaN.
     @Override
     @Intrinsic
     public Boolean lessThan(Float32 other);
@@ -38,21 +46,31 @@ public value class Float32 implements Divisible<Float32>, Ordered<Float32> {
     public Boolean atMost(Float32 other);
 
     @Override
-    @Intrinsic
-    public Boolean greaterThan(Float32 other);
+    public Boolean greaterThan(Float32 other) {
+        return other < this;
+    }
 
     @Override
-    @Intrinsic
-    public Boolean atLeast(Float32 other);
+    public Boolean atLeast(Float32 other) {
+        return other <= this;
+    }
 
+    // A total order in which NaN is greatest and the two zeros are equal.
     @Override
-    @Intrinsic
-    public Int compare(Float32 other);
+    public Int compare(Float32 other) {
+        if (this < other) {
+            return -1;
+        }
+        if (other < this) {
+            return 1;
+        }
+        if (isNaN()) {
+            return other.isNaN() ? 0 : 1;
+        }
+        return other.isNaN() ? -1 : 0;
+    }
 
-    @Override
-    @Intrinsic
-    public Float32 div(Float32 other);
-
+    // The order of IEEE 754 over every value, which tells the two zeros apart.
     @Intrinsic
     public Int totalOrder(Float32 other);
 
@@ -74,11 +92,15 @@ public value class Float32 implements Divisible<Float32>, Ordered<Float32> {
     @Intrinsic
     public Float32 abs();
 
-    @Intrinsic
-    public Boolean isNaN();
+    // NaN is the one value that is not at most itself.
+    public Boolean isNaN() {
+        return !(this <= this);
+    }
 
-    @Intrinsic
-    public Boolean isInfinite();
+    // An infinity less itself is NaN, and a finite value less itself is zero.
+    public Boolean isInfinite() {
+        return !isNaN() && (this - this).isNaN();
+    }
 
     public Float32 min(Float32 other) {
         return this < other ? this : other;
@@ -95,32 +117,39 @@ public value class Float32 implements Divisible<Float32>, Ordered<Float32> {
     @Intrinsic
     public static @Nullable Float32 parse(String text);
 
-    @Intrinsic
-    public static Float32 from(Int8 value);
+    public static Float32 from(Int8 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Float32 from(Int16 value);
+    public static Float32 from(Int16 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Float32 from(Int32 value);
+    public static Float32 from(Int32 value) {
+        return from(Int.from(value));
+    }
 
     @Intrinsic
     public static Float32 from(Int value);
 
-    @Intrinsic
-    public static Float32 from(UInt8 value);
+    public static Float32 from(UInt8 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Float32 from(UInt16 value);
+    public static Float32 from(UInt16 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Float32 from(UInt32 value);
+    public static Float32 from(UInt32 value) {
+        return from(Int.from(value));
+    }
 
     @Intrinsic
     public static Float32 from(UInt64 value);
 
-    @Intrinsic
-    public static Float32 from(Float32 value);
+    public static Float32 from(Float32 value) {
+        return value;
+    }
 
     @Intrinsic
     public static Float32 from(Float64 value);
@@ -128,32 +157,39 @@ public value class Float32 implements Divisible<Float32>, Ordered<Float32> {
     @Intrinsic
     public static Float32 from(Rational value);
 
-    @Intrinsic
-    public static Float32 nearest(Int8 value);
+    public static Float32 nearest(Int8 value) {
+        return nearest(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Float32 nearest(Int16 value);
+    public static Float32 nearest(Int16 value) {
+        return nearest(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Float32 nearest(Int32 value);
+    public static Float32 nearest(Int32 value) {
+        return nearest(Int.from(value));
+    }
 
     @Intrinsic
     public static Float32 nearest(Int value);
 
-    @Intrinsic
-    public static Float32 nearest(UInt8 value);
+    public static Float32 nearest(UInt8 value) {
+        return nearest(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Float32 nearest(UInt16 value);
+    public static Float32 nearest(UInt16 value) {
+        return nearest(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Float32 nearest(UInt32 value);
+    public static Float32 nearest(UInt32 value) {
+        return nearest(Int.from(value));
+    }
 
     @Intrinsic
     public static Float32 nearest(UInt64 value);
 
-    @Intrinsic
-    public static Float32 nearest(Float32 value);
+    public static Float32 nearest(Float32 value) {
+        return value;
+    }
 
     @Intrinsic
     public static Float32 nearest(Float64 value);

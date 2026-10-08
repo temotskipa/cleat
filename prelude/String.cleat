@@ -14,20 +14,53 @@ public value class String implements Ordered<String>, Iterable<Char> {
     @Intrinsic
     public String substring(Int begin, Int end);
 
+    // The scalars of this string and then those of `other`.
     @Intrinsic
-    public String plus(@Nullable Object other);
+    private String join(String other);
 
-    @Intrinsic
-    public Int indexOf(Char c);
+    // `text + x`: the text and then the `toString` of `x`, whatever `x` is.
+    public String plus(@Nullable Object other) {
+        return join(other.toString());
+    }
 
-    @Intrinsic
-    public Int indexOf(String s);
+    // Where `c` first stands, or -1.
+    public Int indexOf(Char c) {
+        for (var i = 0; i < length(); i++) {
+            if (this[i] == c) {
+                return i;
+            }
+        }
+        return -1;
+    }
 
-    @Intrinsic
-    public Boolean startsWith(String s);
+    // Where `s` first begins, or -1.
+    public Int indexOf(String s) {
+        for (var start = 0; start + s.length() <= length(); start++) {
+            if (matches(s, start)) {
+                return start;
+            }
+        }
+        return -1;
+    }
 
-    @Intrinsic
-    public Boolean endsWith(String s);
+    public Boolean startsWith(String s) {
+        return s.length() <= length() && matches(s, 0);
+    }
+
+    public Boolean endsWith(String s) {
+        return s.length() <= length() && matches(s, length() - s.length());
+    }
+
+    // Whether the scalars of `s` stand here from `start` on. The caller has seen that
+    // they fit.
+    private Boolean matches(String s, Int start) {
+        for (var i = 0; i < s.length(); i++) {
+            if (this[start + i] != s[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     public Boolean isEmpty() {
         return length() == 0;
@@ -37,16 +70,82 @@ public value class String implements Ordered<String>, Iterable<Char> {
         return indexOf(s) >= 0;
     }
 
-    @Intrinsic
-    public UInt8[] toUtf8();
+    // The UTF-8 encoding, as a new array: one to four bytes for each scalar.
+    public UInt8[] toUtf8() {
+        var count = 0;
+        for (var i = 0; i < length(); i++) {
+            var code = this[i].code();
+            count += code < 128 ? 1 : code < 2048 ? 2 : code < 65536 ? 3 : 4;
+        }
+        var bytes = new UInt8[count];
+        var at = 0;
+        for (var i = 0; i < length(); i++) {
+            var code = this[i].code();
+            if (code < 128) {
+                bytes[at] = UInt8.from(code);
+                at += 1;
+            } else if (code < 2048) {
+                bytes[at] = UInt8.from(192 + (code >> 6));
+                bytes[at + 1] = UInt8.from(128 + (code & 63));
+                at += 2;
+            } else if (code < 65536) {
+                bytes[at] = UInt8.from(224 + (code >> 12));
+                bytes[at + 1] = UInt8.from(128 + ((code >> 6) & 63));
+                bytes[at + 2] = UInt8.from(128 + (code & 63));
+                at += 3;
+            } else {
+                bytes[at] = UInt8.from(240 + (code >> 18));
+                bytes[at + 1] = UInt8.from(128 + ((code >> 12) & 63));
+                bytes[at + 2] = UInt8.from(128 + ((code >> 6) & 63));
+                bytes[at + 3] = UInt8.from(128 + (code & 63));
+                at += 4;
+            }
+        }
+        return bytes;
+    }
 
-    @Intrinsic
-    public static String fromUtf8(UInt8[] bytes);
+    // The string these bytes encode. Bytes that are not well-formed UTF-8 raise.
+    public static String fromUtf8(UInt8[] bytes) {
+        var chars = new Char[bytes.length()];
+        var count = 0;
+        var at = 0;
+        while (at < bytes.length()) {
+            var first = Int.from(bytes[at]);
+            // How many bytes follow the first. 192 and 193 could only begin a form that
+            // is longer than it needs to be, and nothing begins above 244.
+            var more = first < 128 ? 0 : first >= 194 && first < 224 ? 1 : first >= 224 && first < 240 ? 2 : first >= 240 && first < 245 ? 3 : -1;
+            if (more < 0 || at + more >= bytes.length()) {
+                throw malformed();
+            }
+            var code = more == 0 ? first : more == 1 ? first & 31 : more == 2 ? first & 15 : first & 7;
+            for (var k = 1; k <= more; k++) {
+                var next = Int.from(bytes[at + k]);
+                if (next < 128 || next >= 192) {
+                    throw malformed();
+                }
+                code = (code << 6) | (next & 63);
+            }
+            // The shortest form only, no surrogate, and nothing above U+10FFFF.
+            if (more == 2 && code < 2048 || more == 3 && code < 65536 || code > 1114111 || code >= 55296 && code < 57344) {
+                throw malformed();
+            }
+            chars[count] = Char.from(code);
+            count += 1;
+            at += more + 1;
+        }
+        return fromChars(chars, count);
+    }
+
+    private static IllegalArgumentException malformed() {
+        return new IllegalArgumentException("the bytes are not well-formed UTF-8");
+    }
 
     // The first `count` scalars of `chars`.
     @Intrinsic
     public static String fromChars(Char[] chars, Int count);
 
+    // The full case mapping of Unicode, in which one scalar can become several. It
+    // needs the tables of the host.
     @Intrinsic
     public String toLowerCase();
 
@@ -84,9 +183,19 @@ public value class String implements Ordered<String>, Iterable<Char> {
         }
     }
 
+    // The order of the first scalar that differs, and then of the lengths.
     @Override
-    @Intrinsic
-    public Int compare(String other);
+    public Int compare(String other) {
+        var shared = length() < other.length() ? length() : other.length();
+        for (var i = 0; i < shared; i++) {
+            var mine = this[i].code();
+            var theirs = other[i].code();
+            if (mine != theirs) {
+                return mine < theirs ? -1 : 1;
+            }
+        }
+        return length().compare(other.length());
+    }
 
     @Override
     public Boolean lessThan(String other) {

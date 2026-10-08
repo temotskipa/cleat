@@ -5,88 +5,65 @@ public value class Int32 implements Numeric<Int32>, Ordered<Int32> {
     private Int32 {
     }
 
-    @Override
+    // The value of this class with the low 32 bits of an Int. `from(Int)` is the
+    // conversion that raises when the Int is out of range, and this one never raises.
     @Intrinsic
-    public Int32 plus(Int32 other);
+    private static Int32 wrapping(Int value);
 
     @Override
-    @Intrinsic
-    public Int32 minus(Int32 other);
+    public Int32 plus(Int32 other) {
+        return from(Int.from(this) + Int.from(other));
+    }
 
     @Override
-    @Intrinsic
-    public Int32 times(Int32 other);
+    public Int32 minus(Int32 other) {
+        return from(Int.from(this) - Int.from(other));
+    }
 
     @Override
-    @Intrinsic
-    public Int32 negate();
+    public Int32 times(Int32 other) {
+        return from(Int.from(this) * Int.from(other));
+    }
 
     @Override
-    @Intrinsic
-    public static Int32 zero();
+    public Int32 negate() {
+        return from(-Int.from(this));
+    }
 
     @Override
-    @Intrinsic
-    public static Int32 one();
+    public static Int32 zero() {
+        return 0;
+    }
 
     @Override
-    @Intrinsic
-    public Boolean lessThan(Int32 other);
+    public static Int32 one() {
+        return 1;
+    }
 
     @Override
-    @Intrinsic
-    public Boolean atMost(Int32 other);
+    public Boolean lessThan(Int32 other) {
+        return Int.from(this) < Int.from(other);
+    }
 
     @Override
-    @Intrinsic
-    public Boolean greaterThan(Int32 other);
+    public Boolean atMost(Int32 other) {
+        return !(other < this);
+    }
 
     @Override
-    @Intrinsic
-    public Boolean atLeast(Int32 other);
+    public Boolean greaterThan(Int32 other) {
+        return other < this;
+    }
 
     @Override
-    @Intrinsic
-    public Int compare(Int32 other);
+    public Boolean atLeast(Int32 other) {
+        return !(this < other);
+    }
 
-    @Intrinsic
-    public Int32 floorDiv(Int32 other);
-
-    @Intrinsic
-    public Int32 mod(Int32 other);
-
-    @Intrinsic
-    public Int32 truncatingDiv(Int32 other);
-
-    @Intrinsic
-    public Int32 truncatingRem(Int32 other);
-
-    @Intrinsic
-    public Int32 wrappingPlus(Int32 other);
-
-    @Intrinsic
-    public Int32 wrappingMinus(Int32 other);
-
-    @Intrinsic
-    public Int32 wrappingTimes(Int32 other);
-
-    @Intrinsic
-    public Int32 and(Int32 other);
-
-    @Intrinsic
-    public Int32 or(Int32 other);
-
-    @Intrinsic
-    public Int32 xor(Int32 other);
-
-    @Intrinsic
-    public Int32 complement();
-
-    @Intrinsic
-    public Int32 shiftLeft(Int count);
-
-    @Intrinsic
-    public Int32 shiftRight(Int count);
+    @Override
+    public Int compare(Int32 other) {
+        return this < other ? -1 : other < this ? 1 : 0;
+    }
 
     public Int32 min(Int32 other) {
         return this < other ? this : other;
@@ -96,44 +73,124 @@ public value class Int32 implements Numeric<Int32>, Ordered<Int32> {
         return this > other ? this : other;
     }
 
-    // The text of an integer in decimal, or null when the text is not one or is out of range.
-    @Intrinsic
-    public static @Nullable Int32 parse(String text);
+    public Int32 floorDiv(Int32 other) {
+        return from(Int.from(this).floorDiv(Int.from(other)));
+    }
+
+    public Int32 mod(Int32 other) {
+        return from(Int.from(this).mod(Int.from(other)));
+    }
+
+    public Int32 truncatingDiv(Int32 other) {
+        return from(Int.from(this).truncatingDiv(Int.from(other)));
+    }
+
+    public Int32 truncatingRem(Int32 other) {
+        return from(Int.from(this).truncatingRem(Int.from(other)));
+    }
+
+    public Int32 wrappingPlus(Int32 other) {
+        return wrapping(Int.from(this) + Int.from(other));
+    }
+
+    public Int32 wrappingMinus(Int32 other) {
+        return wrapping(Int.from(this) - Int.from(other));
+    }
+
+    public Int32 wrappingTimes(Int32 other) {
+        return wrapping(Int.from(this) * Int.from(other));
+    }
+
+    public Int32 and(Int32 other) {
+        return wrapping(Int.from(this) & Int.from(other));
+    }
+
+    public Int32 or(Int32 other) {
+        return wrapping(Int.from(this) | Int.from(other));
+    }
+
+    public Int32 xor(Int32 other) {
+        return wrapping(Int.from(this) ^ Int.from(other));
+    }
+
+    public Int32 complement() {
+        return wrapping(~Int.from(this));
+    }
+
+    // A count below zero, or not below the width of the class, raises.
+    public Int32 shiftLeft(Int count) {
+        if (count < 0 || count >= 32) {
+            throw new ArithmeticException("a shift count of " + count + " is not a value of a shift of this class");
+        }
+        return wrapping(Int.from(this) << count);
+    }
+
+    public Int32 shiftRight(Int count) {
+        if (count < 0 || count >= 32) {
+            throw new ArithmeticException("a shift count of " + count + " is not a value of a shift of this class");
+        }
+        return wrapping(Int.from(this) >> count);
+    }
+
+    @Override
+    public String toString() {
+        return Int.from(this).toString();
+    }
+
+    // The text of an integer in decimal, or null when the text is not one or is out of
+    // range. A sign may come first.
+    public static @Nullable Int32 parse(String text) {
+        var wide = Int.parse(text);
+        if (wide == null || wide < -2147483648 || wide > 2147483647) {
+            return null;
+        }
+        return from(wide);
+    }
 
     @Implicit
-    @Intrinsic
-    public static Int32 from(Int8 value);
+    public static Int32 from(Int8 value) {
+        return from(Int.from(value));
+    }
 
     @Implicit
-    @Intrinsic
-    public static Int32 from(Int16 value);
+    public static Int32 from(Int16 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Int32 from(Int32 value);
+    public static Int32 from(Int32 value) {
+        return value;
+    }
 
     @Intrinsic
     public static Int32 from(Int value);
 
     @Implicit
-    @Intrinsic
-    public static Int32 from(UInt8 value);
+    public static Int32 from(UInt8 value) {
+        return from(Int.from(value));
+    }
 
     @Implicit
-    @Intrinsic
-    public static Int32 from(UInt16 value);
+    public static Int32 from(UInt16 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Int32 from(UInt32 value);
+    public static Int32 from(UInt32 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Int32 from(UInt64 value);
+    public static Int32 from(UInt64 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Int32 from(Float32 value);
+    public static Int32 from(Float32 value) {
+        return from(Float64.from(value));
+    }
 
-    @Intrinsic
-    public static Int32 from(Float64 value);
+    public static Int32 from(Float64 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Int32 from(Rational value);
+    public static Int32 from(Rational value) {
+        return from(Int.from(value));
+    }
 }

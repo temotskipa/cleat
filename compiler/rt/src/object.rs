@@ -609,6 +609,16 @@ pub unsafe extern "C" fn cl_String_substring_Int_Int(ctx: *mut Ctx, s: Obj, begi
 }
 
 #[unsafe(no_mangle)]
+pub unsafe extern "C" fn cl_String_join_String(ctx: *mut Ctx, s: Obj, t: Obj) -> Obj {
+    unsafe {
+        let mut all: Vec<u32> = Vec::with_capacity(chars(s).len() + chars(t).len());
+        all.extend_from_slice(chars(s));
+        all.extend_from_slice(chars(t));
+        new_string(ctx, &all)
+    }
+}
+
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn cl_String_plus_Object(ctx: *mut Ctx, s: Obj, other: Obj) -> Obj {
     unsafe {
         let t = v_to_string(ctx, other);

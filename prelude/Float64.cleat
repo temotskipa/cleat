@@ -19,16 +19,24 @@ public value class Float64 implements Divisible<Float64>, Ordered<Float64> {
 
     @Override
     @Intrinsic
+    public Float64 div(Float64 other);
+
+    // The value with the other sign. Subtracting from zero would lose the sign of zero.
+    @Override
+    @Intrinsic
     public Float64 negate();
 
     @Override
-    @Intrinsic
-    public static Float64 zero();
+    public static Float64 zero() {
+        return 0;
+    }
 
     @Override
-    @Intrinsic
-    public static Float64 one();
+    public static Float64 one() {
+        return 1;
+    }
 
+    // False when either side is NaN.
     @Override
     @Intrinsic
     public Boolean lessThan(Float64 other);
@@ -38,21 +46,31 @@ public value class Float64 implements Divisible<Float64>, Ordered<Float64> {
     public Boolean atMost(Float64 other);
 
     @Override
-    @Intrinsic
-    public Boolean greaterThan(Float64 other);
+    public Boolean greaterThan(Float64 other) {
+        return other < this;
+    }
 
     @Override
-    @Intrinsic
-    public Boolean atLeast(Float64 other);
+    public Boolean atLeast(Float64 other) {
+        return other <= this;
+    }
 
+    // A total order in which NaN is greatest and the two zeros are equal.
     @Override
-    @Intrinsic
-    public Int compare(Float64 other);
+    public Int compare(Float64 other) {
+        if (this < other) {
+            return -1;
+        }
+        if (other < this) {
+            return 1;
+        }
+        if (isNaN()) {
+            return other.isNaN() ? 0 : 1;
+        }
+        return other.isNaN() ? -1 : 0;
+    }
 
-    @Override
-    @Intrinsic
-    public Float64 div(Float64 other);
-
+    // The order of IEEE 754 over every value, which tells the two zeros apart.
     @Intrinsic
     public Int totalOrder(Float64 other);
 
@@ -74,11 +92,15 @@ public value class Float64 implements Divisible<Float64>, Ordered<Float64> {
     @Intrinsic
     public Float64 abs();
 
-    @Intrinsic
-    public Boolean isNaN();
+    // NaN is the one value that is not at most itself.
+    public Boolean isNaN() {
+        return !(this <= this);
+    }
 
-    @Intrinsic
-    public Boolean isInfinite();
+    // An infinity less itself is NaN, and a finite value less itself is zero.
+    public Boolean isInfinite() {
+        return !isNaN() && (this - this).isNaN();
+    }
 
     public Float64 min(Float64 other) {
         return this < other ? this : other;
@@ -95,26 +117,32 @@ public value class Float64 implements Divisible<Float64>, Ordered<Float64> {
     @Intrinsic
     public static @Nullable Float64 parse(String text);
 
-    @Intrinsic
-    public static Float64 from(Int8 value);
+    public static Float64 from(Int8 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Float64 from(Int16 value);
+    public static Float64 from(Int16 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Float64 from(Int32 value);
+    public static Float64 from(Int32 value) {
+        return from(Int.from(value));
+    }
 
     @Intrinsic
     public static Float64 from(Int value);
 
-    @Intrinsic
-    public static Float64 from(UInt8 value);
+    public static Float64 from(UInt8 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Float64 from(UInt16 value);
+    public static Float64 from(UInt16 value) {
+        return from(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Float64 from(UInt32 value);
+    public static Float64 from(UInt32 value) {
+        return from(Int.from(value));
+    }
 
     @Intrinsic
     public static Float64 from(UInt64 value);
@@ -123,32 +151,39 @@ public value class Float64 implements Divisible<Float64>, Ordered<Float64> {
     @Intrinsic
     public static Float64 from(Float32 value);
 
-    @Intrinsic
-    public static Float64 from(Float64 value);
+    public static Float64 from(Float64 value) {
+        return value;
+    }
 
     @Intrinsic
     public static Float64 from(Rational value);
 
-    @Intrinsic
-    public static Float64 nearest(Int8 value);
+    public static Float64 nearest(Int8 value) {
+        return nearest(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Float64 nearest(Int16 value);
+    public static Float64 nearest(Int16 value) {
+        return nearest(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Float64 nearest(Int32 value);
+    public static Float64 nearest(Int32 value) {
+        return nearest(Int.from(value));
+    }
 
     @Intrinsic
     public static Float64 nearest(Int value);
 
-    @Intrinsic
-    public static Float64 nearest(UInt8 value);
+    public static Float64 nearest(UInt8 value) {
+        return nearest(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Float64 nearest(UInt16 value);
+    public static Float64 nearest(UInt16 value) {
+        return nearest(Int.from(value));
+    }
 
-    @Intrinsic
-    public static Float64 nearest(UInt32 value);
+    public static Float64 nearest(UInt32 value) {
+        return nearest(Int.from(value));
+    }
 
     @Intrinsic
     public static Float64 nearest(UInt64 value);
@@ -156,8 +191,9 @@ public value class Float64 implements Divisible<Float64>, Ordered<Float64> {
     @Intrinsic
     public static Float64 nearest(Float32 value);
 
-    @Intrinsic
-    public static Float64 nearest(Float64 value);
+    public static Float64 nearest(Float64 value) {
+        return value;
+    }
 
     @Intrinsic
     public static Float64 nearest(Rational value);
