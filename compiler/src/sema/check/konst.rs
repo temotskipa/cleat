@@ -59,18 +59,12 @@ pub fn rational_to_string(r: &BigRational) -> String {
     }
 }
 
+/// The `Float64` nearest to `r`, ties to the even one: past the largest float an
+/// infinity, and below zero but too small for any float, -0.0. This is the value
+/// `Float64.nearest` of the prelude gives the same rational at run time.
 fn rational_to_f64(r: &BigRational) -> f64 {
-    // Correctly rounded: format exactly enough digits and let the standard parser round.
-    let n = r.numer();
-    let d = r.denom();
-    if let (Some(a), Some(b)) = (n.to_i64(), d.to_i64()) {
-        if a.unsigned_abs() < (1u64 << 53) && (b as u64) < (1u64 << 53) {
-            return a as f64 / b as f64;
-        }
-    }
-    let scale = num_traits::pow(BigInt::from(10), 40);
-    let q: BigInt = (n * &scale) / d;
-    format!("{q}e-40").parse::<f64>().unwrap_or(f64::NAN)
+    // A rational's denominator is never zero, so the conversion always has a value.
+    r.to_f64().unwrap_or(f64::NAN)
 }
 
 fn f64_to_rational(f: f64) -> Option<BigRational> {

@@ -1,6 +1,7 @@
 // The digits of the float classes, written in the language (chapter 6, and the
 // prelude's list in design/foundations.md): the shortest digits that read back as the
-// value, toFixed, and reading a numeral.
+// value, toFixed, and reading a numeral. A literal in a float position, which the
+// compiler rounds, is the float that reading its digits gives.
 package t;
 
 value class Reading {
@@ -25,6 +26,18 @@ public class Floats {
 
     static Float32 narrow(String text) {
         return (Float32) Float32.parse(text);
+    }
+
+    // A literal the compiler rounded, beside the same digits read at run time. The
+    // total order tells -0.0 from 0.0.
+    static void folded(String text, Float64 literal) {
+        Console.println(text + ": " + literal + " " + (literal.totalOrder(wide(text)) == 0));
+    }
+
+    // A Float32 literal is rounded to a Float64 first, as `Float32.nearest` of a
+    // Rational is.
+    static void foldedNarrow(String text, Float32 literal) {
+        Console.println(text + ": " + literal + " " + (literal.totalOrder(Float32.nearest(wide(text))) == 0));
     }
 
     public static void main() {
@@ -53,6 +66,32 @@ public class Floats {
         for (String text : "1.5 .5 5. -0 +2e3 1E-3 6.02e23 1e400 -1e400 1e-400 -1e-400 2.4703282292062328e-324 2.4703282292062327e-324 . e5 1e 1e+ 1.2.3 --1 inf NaN 1_0".split(" ")) {
             Console.println("[" + text + "] " + Float64.parse(text) + " " + Float32.parse(text));
         }
+
+        // Literals the compiler rounds: tiny, subnormal, huge, long, and halfway between
+        // two floats, where the even one is taken.
+        folded("1e-50", 1e-50);
+        folded("-1e-50", -1e-50);
+        folded("1e-320", 1e-320);
+        folded("2.4703282292062328e-324", 2.4703282292062328e-324);
+        folded("2.4703282292062327e-324", 2.4703282292062327e-324);
+        folded("-2.4703282292062327e-324", -2.4703282292062327e-324);
+        folded("1.7976931348623157e308", 1.7976931348623157e308);
+        folded("123456789012345678901234567890.123456789", 123456789012345678901234567890.123456789);
+        folded("0.1000000000000000055511151231257827021181583404541015625", 0.1000000000000000055511151231257827021181583404541015625);
+        folded("9007199254740993", 9007199254740993.0);
+        folded("9007199254740995", 9007199254740995.0);
+        folded("1.00000000000000011102230246251565404236316680908203125", 1.00000000000000011102230246251565404236316680908203125);
+        folded("1.000000000000000111022302462515654042363166809082031250001", 1.000000000000000111022302462515654042363166809082031250001);
+        Float32 subnormal = 1e-40;
+        Float32 least = 1e-45;
+        Float32 most = 3.4028235e38;
+        foldedNarrow("1e-40", subnormal);
+        foldedNarrow("1e-45", least);
+        foldedNarrow("3.4028235e38", most);
+        // `nearest` of a constant is folded too.
+        Float64 third = Float64.nearest(1.0 / 3e50);
+        var computed = Float64.nearest((Rational) Rational.parse("1/300000000000000000000000000000000000000000000000000"));
+        Console.println("" + third + " " + (third == computed));
 
         // A value class's float fields, and an exception's message, use the same digits.
         Console.println(new Reading(wide("1152921504606846976"), narrow("0.1")));
