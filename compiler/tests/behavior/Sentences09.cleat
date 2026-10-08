@@ -1,0 +1,410 @@
+// Chapter 9 at run time. tests/spec_rules/described_09.rs names a line of this
+// program's output for each sentence it shows.
+package t;
+
+class Trace {
+    public static String log = "";
+
+    @Discardable
+    public static Int note(String what) {
+        log = log + what + " ";
+        return 1;
+    }
+
+    public static String take() {
+        var all = log;
+        log = "";
+        return all;
+    }
+
+    public static Int fail(String what) {
+        throw new IllegalStateException(what);
+    }
+}
+
+class Receiver {
+    public Int take(Int a, Int b) {
+        Trace.note("method");
+        return a + b;
+    }
+
+    public static Receiver made() {
+        Trace.note("receiver");
+        return new Receiver();
+    }
+}
+
+class MyError extends Throwable {
+    public MyError() {
+        super();
+    }
+
+    public MyError(String message) {
+        super(message);
+    }
+
+    public MyError(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
+
+class Resource {
+    final String name;
+    final Boolean failsOnClose;
+
+    public Resource(String name, Boolean failsOnClose) {
+        this.name = name;
+        this.failsOnClose = failsOnClose;
+        super();
+        Trace.note("open-" + name);
+    }
+
+    public void close() {
+        Trace.note("close-" + name);
+        if (failsOnClose) {
+            throw new MyError("close of " + name);
+        }
+    }
+
+    public static Resource broken(String name) {
+        throw new MyError("no " + name);
+    }
+}
+
+open class Base {
+    public Base() {
+        super();
+        Trace.note("Base sees " + describe());
+    }
+
+    public open String describe() {
+        return "base";
+    }
+}
+
+class Derived extends Base {
+    final Int size;
+
+    public Derived(Int size) {
+        this.size = size;
+        super();
+        Trace.note("Derived done");
+    }
+
+    @Override
+    public String describe() {
+        return "size " + size;
+    }
+}
+
+value class Vec3 {
+    public Int x;
+    public Int y;
+    public Int z;
+}
+
+value class Range {
+    public Int low;
+    public Int high;
+
+    public Range {
+        if (low > high) {
+            throw new IllegalArgumentException("low is above high");
+        }
+        Trace.note("range " + this.low + ".." + width());
+    }
+
+    public Int width() {
+        return high - low;
+    }
+}
+
+value class Empty {
+}
+
+class ByNew {
+    static Int ready = Trace.note("ByNew");
+}
+
+class ByCall {
+    static Int ready = Trace.note("ByCall");
+
+    public static Int get() {
+        return 1;
+    }
+}
+
+class ByField {
+    public static Int ready = Trace.note("ByField");
+    public static final Int CONSTANT = 3;
+}
+
+open class Above {
+    static Int ready = Trace.note("Above");
+}
+
+class Below extends Above {
+    static Int first = Trace.note("first");
+
+    static {
+        Trace.note("block");
+    }
+
+    static Int second = Trace.note("second") + own();
+
+    static Int own() {
+        Trace.note("own-method");
+        return 1;
+    }
+
+    public static Int get() {
+        return second;
+    }
+}
+
+class Slow {
+    public static Int value = Slow.make();
+
+    static Int make() {
+        Sentences09.started.incrementAndGet();
+        Thread.sleep(40);
+        return 7;
+    }
+}
+
+class Early {
+    public static Int a = Early.peek();
+    public static Int b = 5;
+
+    static Int peek() {
+        return b;
+    }
+}
+
+class Broken {
+    public static Int value = Trace.fail("the initializer failed");
+}
+
+public class Sentences09 {
+    public static final AtomicInt started = new AtomicInt(0);
+
+    static Int add(Int a, Int b) {
+        Trace.note("method");
+        return a + b;
+    }
+
+    static String finallyWays(Int way) {
+        var count = 0;
+        while (count < 2) {
+            count += 1;
+            try {
+                if (way == 1) {
+                    return "returned";
+                }
+                if (way == 2) {
+                    break;
+                }
+                if (way == 3) {
+                    continue;
+                }
+                if (way == 4) {
+                    throw new MyError("raised");
+                }
+            } finally {
+                Trace.note("finally");
+            }
+        }
+        return "left the loop";
+    }
+
+    static Int thrower() {
+        throw new MyError("from the callee");
+    }
+
+    public static void main() {
+        // ---- 9.1 ----
+        var sum = Trace.note("left") + Trace.note("right");
+        Console.println("operands: " + Trace.take());
+        var total = Receiver.made().take(Trace.note("first"), Trace.note("second"));
+        Console.println("call: " + Trace.take());
+        try {
+            var never = Trace.note("before") + Trace.fail("stop") + Trace.note("after");
+        } catch (IllegalStateException e) {
+            Console.println("raised in an expression: " + Trace.take());
+        }
+
+        // ---- 9.2 ----
+        var plain = new MyError();
+        var caused = new MyError("why", plain);
+        Console.println("message: [" + caused.message() + "] [" + plain.message() + "]");
+        Console.println("cause: " + (caused.cause() == plain) + " " + (plain.cause() == null));
+        Console.println("toString: " + plain + " | " + caused);
+        try {
+            for (var i = 0; i < 3; i++) {
+                {
+                    Trace.note("loop-" + i);
+                    if (i == 1) {
+                        throw new MyError("out");
+                    }
+                    Trace.note("after-" + i);
+                }
+            }
+            Trace.note("after the loop");
+        } catch (MyError e) {
+            Console.println("propagates: " + Trace.take() + "caught " + e.message());
+        }
+        try {
+            var x = thrower();
+        } catch (MyError e) {
+            Console.println("from a call: " + e.message());
+        }
+
+        // ---- 9.3 ----
+        try {
+            Trace.note("try");
+            throw new IllegalStateException("thrown");
+        } catch (ArithmeticException e) {
+            Trace.note("wrong clause");
+        } catch (IllegalStateException e) {
+            Trace.note("clause for " + e.message());
+        } catch (Throwable e) {
+            Trace.note("later clause");
+        } finally {
+            Trace.note("finally");
+        }
+        Console.println("try: " + Trace.take());
+        try {
+            try {
+                throw new MyError("inner");
+            } catch (ArithmeticException e) {
+                Trace.note("not this one");
+            }
+        } catch (MyError e) {
+            Console.println("no clause: goes on to the outer, " + e.message());
+        }
+        try {
+            try {
+                throw new IllegalStateException("first");
+            } catch (IllegalStateException e) {
+                throw new MyError("raised in a catch block");
+            } catch (Throwable e) {
+                Trace.note("a sibling clause");
+            }
+        } catch (MyError e) {
+            Console.println("in a catch block: " + e.message() + " [" + Trace.take() + "]");
+        }
+        Console.println("finally after return: " + finallyWays(1) + " " + Trace.take());
+        Console.println("finally after break: " + finallyWays(2) + " " + Trace.take());
+        Console.println("finally after continue: " + finallyWays(3) + " " + Trace.take());
+        try {
+            var w = finallyWays(4);
+        } catch (MyError e) {
+            Console.println("finally after an exception: " + e.message() + " " + Trace.take());
+        }
+        try {
+            try {
+                throw new MyError("earlier");
+            } finally {
+                var z = Trace.fail("from finally");
+            }
+        } catch (IllegalStateException e) {
+            Console.println("finally raises: " + e.message() + ", suppressed " + e.suppressed().length() + ": " + e.suppressed()[0].message());
+        }
+
+        // ---- 9.4 ----
+        using (Resource r = new Resource("a", false)) {
+            Trace.note("block");
+        }
+        Console.println("using: " + Trace.take());
+        try {
+            using (Resource r = new Resource("b", true)) {
+                throw new IllegalStateException("from the block");
+            }
+        } catch (IllegalStateException e) {
+            Console.println("block and close raise: " + e.message() + ", suppressed " + e.suppressed().length() + ": " + e.suppressed()[0].message() + " [" + Trace.take() + "]");
+        }
+        try {
+            using (Resource r = new Resource("c", true)) {
+                Trace.note("block");
+            }
+        } catch (MyError e) {
+            Console.println("close raises: " + e.message() + " [" + Trace.take() + "]");
+        }
+        using (Resource one = new Resource("1", false), var two = new Resource("2", false)) {
+            Trace.note("block");
+        }
+        Console.println("two resources: " + Trace.take());
+        try {
+            using (Resource one = new Resource("1", false), Resource two = Resource.broken("2")) {
+                Trace.note("block");
+            }
+        } catch (MyError e) {
+            Console.println("an initializer raises: " + e.message() + " [" + Trace.take() + "]");
+        }
+
+        // ---- 9.5 ----
+        var d = new Derived(5);
+        Console.println("construction: " + Trace.take());
+
+        // ---- 9.6 ----
+        var v = new Vec3(Trace.note("x"), Trace.note("y") + 1, Trace.note("z") + 2);
+        Console.println("value constructor: " + Trace.take() + v);
+        var range = new Range(2, 9);
+        Console.println("compact form: " + Trace.take());
+        try {
+            var bad = new Range(9, 2);
+        } catch (IllegalArgumentException e) {
+            Console.println("compact form raises: " + e.message());
+        }
+        Console.println("no fields: " + new Empty().identical(new Empty()) + " " + new Unit().identical(new Unit()));
+
+        // ---- 9.7 ----
+        var constant = ByField.CONSTANT;
+        Console.println("before any use: [" + Trace.take() + "]");
+        var made = new ByNew();
+        var called = ByCall.get();
+        var read = ByField.ready;
+        var again = new ByNew();
+        var calledAgain = ByCall.get() + ByField.ready;
+        Console.println("first uses: " + Trace.take());
+        var below = Below.get();
+        Console.println("order: " + Trace.take());
+
+        var seenA = new AtomicInt(0);
+        var seenB = new AtomicInt(0);
+        var a = Thread.start(() -> {
+            seenA.set(Slow.value);
+        });
+        var b = Thread.start(() -> {
+            seenB.set(Slow.value);
+        });
+        a.join();
+        b.join();
+        Console.println("two threads: " + started.get() + " " + seenA.get() + " " + seenB.get());
+
+        try {
+            var early = Early.a;
+            Console.println("read too early: " + early);
+        } catch (ClassInitializationException e) {
+            Console.println("read too early: raises");
+        }
+        try {
+            var broken = Broken.value;
+        } catch (IllegalStateException e) {
+            Console.println("failed initialization: " + e.message());
+        }
+        try {
+            var broken = Broken.value;
+        } catch (ClassInitializationException e) {
+            @Nullable Throwable cause = e.cause();
+            Console.println("a failed class: " + (cause == null ? "no cause" : cause.message()));
+        }
+
+        // ---- 9.10 ----
+        try {
+            Process.exit(256);
+        } catch (IllegalArgumentException e) {
+            Console.println("exit status: 256 raises");
+        }
+    }
+}

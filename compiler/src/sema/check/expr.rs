@@ -1,10 +1,15 @@
 //! Expressions: chapters 4, 5 and 6, with the narrowing facts of section 12.4.
 
-use super::call::{ArgIn, CallSite};
-use super::konst::{parse_decimal, parse_int, Fold};
-use super::*;
+use crate::ast;
 use crate::ast::{BinOp, ExprKind, UnOp};
+use crate::lex::Pos;
+use crate::sema::check::call::{ArgIn, CallSite};
+use crate::sema::check::konst::{Fold, parse_decimal, parse_int};
+use crate::sema::check::{CapSource, Capture, Checker, CtorPhase, Facts, Flow, THIS};
 use crate::sema::decl;
+use crate::sema::program::{Aud, NumKind, Qualifier};
+use crate::sema::tir::{Call, Dispatch, LocalId, TExpr, TKind};
+use crate::sema::types::{Arg, ClassId, FieldRef, MethodRef, Subst, Tv, TvOwner, Ty, Type};
 use num_rational::BigRational;
 
 /// A checked condition with what it tells about locals on each outcome.
@@ -37,8 +42,10 @@ pub fn is_literal_expr(e: &ast::Expr) -> bool {
         ExprKind::Int(..) | ExprKind::Dec(_) => true,
         ExprKind::Paren(x) | ExprKind::Unary(UnOp::Neg, x) => is_literal_expr(x),
         ExprKind::Binary(op, a, b) => {
-            matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Rem)
-                && is_literal_expr(a)
+            matches!(
+                op,
+                BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Rem
+            ) && is_literal_expr(a)
                 && is_literal_expr(b)
         }
         _ => false,
@@ -90,14 +97,22 @@ impl<'p> Checker<'p> {
     }
 
     pub fn bool_expr(&self, b: bool) -> TExpr {
-        TExpr { kind: TKind::Bool(b), ty: self.boolean() }
+        TExpr {
+            kind: TKind::Bool(b),
+            ty: self.boolean(),
+        }
     }
 
     /// The type of the enclosing class as its own code sees it.
     pub fn self_type(&self) -> Type {
         let c = self.p.class(self.class);
         let args = (0..c.tparams.len())
-            .map(|i| Arg::Ty(Type::var(Tv { owner: TvOwner::Class(self.class), index: i as u32 })))
+            .map(|i| {
+                Arg::Ty(Type::var(Tv {
+                    owner: TvOwner::Class(self.class),
+                    index: i as u32,
+                }))
+            })
             .collect();
         Type::class(self.class, args)
     }
@@ -116,36 +131,71 @@ impl<'p> Checker<'p> {
             );
         }
         let declared = self.frames[0].this_ty.clone().unwrap();
-        let ty = self.frames[0].flow.facts.get(&THIS).cloned().unwrap_or_else(|| declared.clone());
+        let ty = self.frames[0]
+            .flow
+            .facts
+            .get(&THIS)
+            .cloned()
+            .unwrap_or_else(|| declared.clone());
         let at = self.frames.len() - 1;
         if at == 0 {
-            let base = TExpr { kind: TKind::This, ty: declared.clone() };
-            return if ty == declared { base } else { TExpr { kind: TKind::Coerce(Box::new(base)), ty } };
+            let base = TExpr {
+                kind: TKind::This,
+                ty: declared.clone(),
+            };
+            return if ty == declared {
+                base
+            } else {
+                TExpr {
+                    kind: TKind::Coerce(Box::new(base)),
+                    ty,
+                }
+            };
         }
         self.captured(0, at, CapSource::This, ty)
     }
 
     /// `this` for a field of the class in the part of a constructor before `super(...)`.
     fn raw_this(&self) -> TExpr {
-        TExpr { kind: TKind::This, ty: self.frames[0].this_ty.clone().unwrap_or_else(Type::error) }
+        TExpr {
+            kind: TKind::This,
+            ty: self.frames[0].this_ty.clone().unwrap_or_else(Type::error),
+        }
     }
 
     pub fn local_type(&self, fi: usize, id: LocalId) -> Type {
         let f = &self.frames[fi];
-        f.flow.facts.get(&id).cloned().unwrap_or_else(|| f.locals[id as usize].ty.clone())
+        f.flow
+            .facts
+            .get(&id)
+            .cloned()
+            .unwrap_or_else(|| f.locals[id as usize].ty.clone())
     }
 
     pub fn local_read(&mut self, fi: usize, id: LocalId, pos: Pos) -> TExpr {
         let declared = self.frames[fi].locals[id as usize].ty.clone();
         if !self.frames[fi].flow.assigned.contains(&id) {
             let name = self.frames[fi].locals[id as usize].name.clone();
-            self.err(pos, format!("`{name}` is used where it may not have been assigned"));
+            self.err(
+                pos,
+                format!("`{name}` is used where it may not have been assigned"),
+            );
         }
         let ty = self.local_type(fi, id);
         let at = self.frames.len() - 1;
         if fi == at {
-            let base = TExpr { kind: TKind::Local(id), ty: declared.clone() };
-            return if ty == declared { base } else { TExpr { kind: TKind::Coerce(Box::new(base)), ty } };
+            let base = TExpr {
+                kind: TKind::Local(id),
+                ty: declared.clone(),
+            };
+            return if ty == declared {
+                base
+            } else {
+                TExpr {
+                    kind: TKind::Coerce(Box::new(base)),
+                    ty,
+                }
+            };
         }
         let m = &mut self.frames[fi].meta[id as usize];
         if m.captured_at.is_none() {
@@ -160,11 +210,27 @@ impl<'p> Checker<'p> {
         let at = self.frames.len() - 1;
         if c.owner == at {
             let (kind, declared) = match &c.source {
-                CapSource::This => (TKind::This, self.frames[at].this_ty.clone().unwrap_or_else(Type::error)),
-                CapSource::Local(id) => (TKind::Local(*id), self.frames[at].locals[*id as usize].ty.clone()),
+                CapSource::This => (
+                    TKind::This,
+                    self.frames[at].this_ty.clone().unwrap_or_else(Type::error),
+                ),
+                CapSource::Local(id) => (
+                    TKind::Local(*id),
+                    self.frames[at].locals[*id as usize].ty.clone(),
+                ),
             };
-            let base = TExpr { kind, ty: declared.clone() };
-            return if declared == c.ty { base } else { TExpr { kind: TKind::Coerce(Box::new(base)), ty: c.ty.clone() } };
+            let base = TExpr {
+                kind,
+                ty: declared.clone(),
+            };
+            return if declared == c.ty {
+                base
+            } else {
+                TExpr {
+                    kind: TKind::Coerce(Box::new(base)),
+                    ty: c.ty.clone(),
+                }
+            };
         }
         self.captured(c.owner, at, c.source.clone(), c.ty.clone())
     }
@@ -176,18 +242,31 @@ impl<'p> Checker<'p> {
         if from.nullable {
             return None;
         }
-        let (Ty::Class(s, sa), Ty::Class(t, ta)) = (&from.ty, &to.ty) else { return None };
+        let (Ty::Class(s, sa), Ty::Class(t, ta)) = (&from.ty, &to.ty) else {
+            return None;
+        };
         if s == t || !sa.is_empty() || !ta.is_empty() {
             return None;
         }
         // The result of a conversion has no refinement.
-        if to.quals.iter().any(|q| self.p.class(*q).qualifier == Qualifier::Refines) {
+        if to
+            .quals
+            .iter()
+            .any(|q| self.p.class(*q).qualifier == Qualifier::Refines)
+        {
             return None;
         }
         let c = self.p.class(*t);
         for (i, m) in c.methods.iter().enumerate() {
-            if m.implicit && m.is_static && m.params.len() == 1 && m.params[0].ty.class_id() == Some(*s) {
-                return Some(MethodRef { class: *t, index: i as u32 });
+            if m.implicit
+                && m.is_static
+                && m.params.len() == 1
+                && m.params[0].ty.class_id() == Some(*s)
+            {
+                return Some(MethodRef {
+                    class: *t,
+                    index: i as u32,
+                });
             }
         }
         None
@@ -200,16 +279,46 @@ impl<'p> Checker<'p> {
     /// Makes a value fit a location, converting it when section 4.5 allows.
     pub fn coerce(&mut self, e: TExpr, to: &Type, pos: Pos) -> TExpr {
         if e.ty.is_error() || to.is_error() {
-            return TExpr { kind: e.kind, ty: Type::error() };
+            return TExpr {
+                kind: e.kind,
+                ty: Type::error(),
+            };
         }
         if self.p.is_subtype(&e.ty, to) {
-            return if e.ty == *to { e } else { TExpr { kind: TKind::Coerce(Box::new(e)), ty: to.clone() } };
+            return if e.ty == *to {
+                e
+            } else {
+                TExpr {
+                    kind: TKind::Coerce(Box::new(e)),
+                    ty: to.clone(),
+                }
+            };
         }
         if let Some(m) = self.conversion(&e.ty, to) {
             let ret = Type::simple(m.class);
-            let call = Call { recv: None, method: m, class_args: Vec::new(), targs: Vec::new(), args: vec![e], dispatch: Dispatch::Direct };
-            let out = self.fold(TExpr { kind: TKind::Call(Box::new(call)), ty: ret.clone() }, pos);
-            return if ret == *to { out } else { TExpr { kind: TKind::Coerce(Box::new(out)), ty: to.clone() } };
+            let call = Call {
+                recv: None,
+                method: m,
+                class_args: Vec::new(),
+                targs: Vec::new(),
+                args: vec![e],
+                dispatch: Dispatch::Direct,
+            };
+            let out = self.fold(
+                TExpr {
+                    kind: TKind::Call(Box::new(call)),
+                    ty: ret.clone(),
+                },
+                pos,
+            );
+            return if ret == *to {
+                out
+            } else {
+                TExpr {
+                    kind: TKind::Coerce(Box::new(out)),
+                    ty: to.clone(),
+                }
+            };
         }
         let (a, b) = (self.show(&e.ty), self.show(to));
         if e.ty.is_null_literal() {
@@ -224,7 +333,11 @@ impl<'p> Checker<'p> {
         let TKind::Call(c) = &e.kind else { return e };
         let class = c.method.class;
         let w = &self.p.wk;
-        if self.p.num_kind(class).is_none() && class != w.boolean && class != w.char_ && class != w.string {
+        if self.p.num_kind(class).is_none()
+            && class != w.boolean
+            && class != w.char_
+            && class != w.string
+        {
             return e;
         }
         let recv = match &c.recv {
@@ -248,10 +361,15 @@ impl<'p> Checker<'p> {
                 if k.ty == e.ty {
                     k
                 } else {
-                    TExpr { kind: k.kind, ty: e.ty }
+                    TExpr {
+                        kind: k.kind,
+                        ty: e.ty,
+                    }
                 }
             }
-            Fold::Raises(x) => self.error_expr(pos, format!("this constant expression would raise `{x}`")),
+            Fold::Raises(x) => {
+                self.error_expr(pos, format!("this constant expression would raise `{x}`"))
+            }
             Fold::NotConst => e,
         }
     }
@@ -261,8 +379,13 @@ impl<'p> Checker<'p> {
         if a.is_error() || b.is_error() || (self.p.may_be_null(a) && self.p.may_be_null(b)) {
             return false;
         }
-        let (Ty::Class(x, _), Ty::Class(y, _)) = (&a.ty, &b.ty) else { return false };
-        let (xi, yi) = (self.p.class(*x).is_interface(), self.p.class(*y).is_interface());
+        let (Ty::Class(x, _), Ty::Class(y, _)) = (&a.ty, &b.ty) else {
+            return false;
+        };
+        let (xi, yi) = (
+            self.p.class(*x).is_interface(),
+            self.p.class(*y).is_interface(),
+        );
         let (ab, bb) = (a.bare(), b.bare());
         match (xi, yi) {
             (true, true) => false,
@@ -291,12 +414,22 @@ impl<'p> Checker<'p> {
             }
         };
         match &e.kind {
-            ExprKind::Int(digits, radix) => lit(self, BigRational::from_integer(parse_int(digits, *radix)), false, e.pos),
+            ExprKind::Int(digits, radix) => lit(
+                self,
+                BigRational::from_integer(parse_int(digits, *radix)),
+                false,
+                e.pos,
+            ),
             ExprKind::Dec(text) => lit(self, parse_decimal(text), true, e.pos),
             ExprKind::Paren(x) => self.literal_at(x, class),
             ExprKind::Unary(UnOp::Neg, x) => match &x.kind {
                 // A `-` written directly before a literal is part of the literal.
-                ExprKind::Int(digits, radix) => lit(self, -BigRational::from_integer(parse_int(digits, *radix)), false, e.pos),
+                ExprKind::Int(digits, radix) => lit(
+                    self,
+                    -BigRational::from_integer(parse_int(digits, *radix)),
+                    false,
+                    e.pos,
+                ),
                 ExprKind::Dec(text) => lit(self, -parse_decimal(text), true, e.pos),
                 _ => {
                     let v = self.literal_at(x, class);
@@ -307,7 +440,10 @@ impl<'p> Checker<'p> {
                 let l = self.literal_at(a, class);
                 let r = self.literal_at(b, class);
                 if l.ty.is_error() || r.ty.is_error() {
-                    return TExpr { kind: TKind::Null, ty: Type::error() };
+                    return TExpr {
+                        kind: TKind::Null,
+                        ty: Type::error(),
+                    };
                 }
                 self.operator(*op, l, r, e.pos)
             }
@@ -316,7 +452,9 @@ impl<'p> Checker<'p> {
     }
 
     fn literal(&mut self, e: &ast::Expr, expected: Option<&Type>) -> TExpr {
-        let class = expected.and_then(|t| self.p.numeric_class(t)).unwrap_or_else(|| self.default_literal_class(e));
+        let class = expected
+            .and_then(|t| self.p.numeric_class(t))
+            .unwrap_or_else(|| self.default_literal_class(e));
         self.literal_at(e, class)
     }
 
@@ -460,14 +598,21 @@ impl<'p> Checker<'p> {
                 if c.e.ty == boolean {
                     let e = match c.e.kind {
                         TKind::Bool(b) => self.bool_expr(!b),
-                        _ => TExpr { kind: TKind::Not(Box::new(c.e)), ty: boolean },
+                        _ => TExpr {
+                            kind: TKind::Not(Box::new(c.e)),
+                            ty: boolean,
+                        },
                     };
                     return Cond { e, t: c.f, f: c.t };
                 }
                 let mut site = CallSite::new(Vec::new(), pos);
                 site.operator = Some("!");
                 let e = self.call_method(c.e, "not", site);
-                Cond { e, t: Vec::new(), f: Vec::new() }
+                Cond {
+                    e,
+                    t: Vec::new(),
+                    f: Vec::new(),
+                }
             }
             ExprKind::And(a, b) | ExprKind::Or(a, b) => {
                 let is_and = matches!(e.kind, ExprKind::And(..));
@@ -492,13 +637,21 @@ impl<'p> Checker<'p> {
                     (intersect(&ca.t, &cb.t), fl)
                 };
                 let folded = match (&ea.kind, &eb.kind) {
-                    (TKind::Bool(x), TKind::Bool(y)) => Some(if is_and { *x && *y } else { *x || *y }),
+                    (TKind::Bool(x), TKind::Bool(y)) => {
+                        Some(if is_and { *x && *y } else { *x || *y })
+                    }
                     _ => None,
                 };
                 let e = match folded {
                     Some(v) => self.bool_expr(v),
-                    None if is_and => TExpr { kind: TKind::And(Box::new(ea), Box::new(eb)), ty: boolean },
-                    None => TExpr { kind: TKind::Or(Box::new(ea), Box::new(eb)), ty: boolean },
+                    None if is_and => TExpr {
+                        kind: TKind::And(Box::new(ea), Box::new(eb)),
+                        ty: boolean,
+                    },
+                    None => TExpr {
+                        kind: TKind::Or(Box::new(ea), Box::new(eb)),
+                        ty: boolean,
+                    },
                 };
                 Cond { e, t, f: fl }
             }
@@ -507,28 +660,53 @@ impl<'p> Checker<'p> {
                 let is_eq = *op == BinOp::Eq;
                 let x = self.check_expr(other, None);
                 if x.ty.is_error() {
-                    return Cond { e: x, t: Vec::new(), f: Vec::new() };
+                    return Cond {
+                        e: x,
+                        t: Vec::new(),
+                        f: Vec::new(),
+                    };
                 }
                 if !self.p.may_be_null(&x.ty) {
                     let s = self.show(&x.ty);
-                    self.err(pos, format!("a null test of a `{s}` is rejected, because it cannot be `null`"));
+                    self.err(
+                        pos,
+                        format!("a null test of a `{s}` is rejected, because it cannot be `null`"),
+                    );
                 }
                 let mut facts = Vec::new();
                 if let Some(id) = self.subject(&x) {
                     facts.push((id, x.ty.clone().non_null()));
                 }
-                let e = TExpr { kind: TKind::IsNull(Box::new(x), is_eq), ty: boolean };
+                let e = TExpr {
+                    kind: TKind::IsNull(Box::new(x), is_eq),
+                    ty: boolean,
+                };
                 if is_eq {
-                    Cond { e, t: Vec::new(), f: facts }
+                    Cond {
+                        e,
+                        t: Vec::new(),
+                        f: facts,
+                    }
                 } else {
-                    Cond { e, t: facts, f: Vec::new() }
+                    Cond {
+                        e,
+                        t: facts,
+                        f: Vec::new(),
+                    }
                 }
             }
             ExprKind::InstanceOf(x, t) => {
                 let v = self.check_expr(x, None);
                 let ty = self.resolve(t);
                 if v.ty.is_error() || ty.is_error() {
-                    return Cond { e: TExpr { kind: TKind::Null, ty: Type::error() }, t: Vec::new(), f: Vec::new() };
+                    return Cond {
+                        e: TExpr {
+                            kind: TKind::Null,
+                            ty: Type::error(),
+                        },
+                        t: Vec::new(),
+                        f: Vec::new(),
+                    };
                 }
                 if ty.nullable {
                     self.err(t.pos, "`@Nullable` is rejected after `instanceof`: `null` is an instance of no type");
@@ -539,22 +717,40 @@ impl<'p> Checker<'p> {
                 let ty = ty.bare();
                 if self.disjoint(&v.ty.clone().non_null(), &ty) {
                     let (a, b) = (self.show(&v.ty), self.show(&ty));
-                    self.err(pos, format!("`{a}` and `{b}` are disjoint, so this test could never be `true`"));
+                    self.err(
+                        pos,
+                        format!("`{a}` and `{b}` are disjoint, so this test could never be `true`"),
+                    );
                 }
                 let mut facts = Vec::new();
                 if let Some(id) = self.subject(&v) {
                     // Keep what is already known when it says more than the test does.
                     let known = v.ty.clone().non_null();
-                    let narrowed = if self.p.is_subtype(&known, &ty) { known } else { ty.clone() };
+                    let narrowed = if self.p.is_subtype(&known, &ty) {
+                        known
+                    } else {
+                        ty.clone()
+                    };
                     facts.push((id, narrowed));
                 }
-                let e = TExpr { kind: TKind::InstanceOf(Box::new(v), ty), ty: boolean };
-                Cond { e, t: facts, f: Vec::new() }
+                let e = TExpr {
+                    kind: TKind::InstanceOf(Box::new(v), ty),
+                    ty: boolean,
+                };
+                Cond {
+                    e,
+                    t: facts,
+                    f: Vec::new(),
+                }
             }
             _ => {
                 let e = self.check_expr(e, Some(&boolean));
                 let t = self.narrows_facts(&e);
-                Cond { e, t, f: Vec::new() }
+                Cond {
+                    e,
+                    t,
+                    f: Vec::new(),
+                }
             }
         }
     }
@@ -570,12 +766,24 @@ impl<'p> Checker<'p> {
 
     /// The facts a call of a `@Narrows` method gives when it returns `true`.
     fn narrows_facts(&mut self, e: &TExpr) -> Facts {
-        let TKind::Call(c) = &e.kind else { return Vec::new() };
+        let TKind::Call(c) = &e.kind else {
+            return Vec::new();
+        };
         let m = self.p.method(c.method);
-        let Some(q) = m.narrows else { return Vec::new() };
-        let subject = if m.is_static { c.args.first() } else { c.recv.as_ref() };
-        let Some(subject) = subject else { return Vec::new() };
-        let Some(id) = self.subject(subject) else { return Vec::new() };
+        let Some(q) = m.narrows else {
+            return Vec::new();
+        };
+        let subject = if m.is_static {
+            c.args.first()
+        } else {
+            c.recv.as_ref()
+        };
+        let Some(subject) = subject else {
+            return Vec::new();
+        };
+        let Some(id) = self.subject(subject) else {
+            return Vec::new();
+        };
         let mut ty = if id == THIS {
             match self.this_value(0).ty {
                 t if !t.is_error() => t,
@@ -602,10 +810,17 @@ impl<'p> Checker<'p> {
 
     fn find_field(&mut self, class: ClassId, name: &str) -> Option<FieldRef> {
         let mut classes = vec![class];
-        classes.extend(decl::all_supertypes(self.p, class).iter().filter_map(|t| t.class_id()));
+        classes.extend(
+            decl::all_supertypes(self.p, class)
+                .iter()
+                .filter_map(|t| t.class_id()),
+        );
         for cid in classes {
             if let Some(i) = self.p.class(cid).fields.iter().position(|f| f.name == name) {
-                return Some(FieldRef { class: cid, index: i as u32 });
+                return Some(FieldRef {
+                    class: cid,
+                    index: i as u32,
+                });
             }
         }
         None
@@ -615,7 +830,8 @@ impl<'p> Checker<'p> {
         if self.is_static {
             return None;
         }
-        self.find_field(self.class, name).filter(|f| !self.p.field(*f).is_static)
+        self.find_field(self.class, name)
+            .filter(|f| !self.p.field(*f).is_static)
     }
 
     fn name_expr(&mut self, name: &str, pos: Pos) -> TExpr {
@@ -628,24 +844,44 @@ impl<'p> Checker<'p> {
             }
             return self.own_field(f, pos);
         }
-        self.error_expr(pos, format!("`{name}` is not a variable or a field in scope"))
+        self.error_expr(
+            pos,
+            format!("`{name}` is not a variable or a field in scope"),
+        )
     }
 
     /// A field of the enclosing class named without a receiver.
     fn own_field(&mut self, f: FieldRef, pos: Pos) -> TExpr {
-        if !self.is_static && self.frames[0].ctor == CtorPhase::Before && self.frames[0].this_ty.is_some() {
+        if !self.is_static
+            && self.frames[0].ctor == CtorPhase::Before
+            && self.frames[0].this_ty.is_some()
+        {
             let name = self.p.field(f).name.clone();
             if f.class != self.class {
-                return self.error_expr(pos, format!("the inherited field `{name}` is not used before `super(...)` is called"));
+                return self.error_expr(
+                    pos,
+                    format!(
+                        "the inherited field `{name}` is not used before `super(...)` is called"
+                    ),
+                );
             }
             if self.frames.len() > 1 {
-                return self.error_expr(pos, "a lambda does not capture `this` before `super(...)` is called");
+                return self.error_expr(
+                    pos,
+                    "a lambda does not capture `this` before `super(...)` is called",
+                );
             }
             if !self.frames[0].flow.fields.contains(&f.index) {
-                self.err(pos, format!("the field `{name}` is read before it is assigned"));
+                self.err(
+                    pos,
+                    format!("the field `{name}` is read before it is assigned"),
+                );
             }
             let ty = self.p.field(f).ty.clone();
-            return TExpr { kind: TKind::Field(Box::new(self.raw_this()), f), ty };
+            return TExpr {
+                kind: TKind::Field(Box::new(self.raw_this()), f),
+                ty,
+            };
         }
         let this = self.this_value(pos);
         if this.ty.is_error() {
@@ -654,7 +890,13 @@ impl<'p> Checker<'p> {
         self.field_of(this, f, pos)
     }
 
-    pub fn can_access(&mut self, decl_class: ClassId, aud: Aud, only: &Option<Vec<ClassId>>, recv: Option<&Type>) -> bool {
+    pub fn can_access(
+        &mut self,
+        decl_class: ClassId,
+        aud: Aud,
+        only: &Option<Vec<ClassId>>,
+        recv: Option<&Type>,
+    ) -> bool {
         let me = self.class;
         if me == decl_class {
             return true;
@@ -682,13 +924,23 @@ impl<'p> Checker<'p> {
         }
     }
 
-    pub fn deprecation(&mut self, decl_class: ClassId, what: &str, message: &Option<String>, pos: Pos) {
+    pub fn deprecation(
+        &mut self,
+        decl_class: ClassId,
+        what: &str,
+        message: &Option<String>,
+        pos: Pos,
+    ) {
         let Some(m) = message else { return };
         if self.p.class(decl_class).unit == self.unit {
             return;
         }
         let u = &self.p.units[self.unit];
-        let text = if m.is_empty() { format!("{what} is deprecated") } else { format!("{what} is deprecated: {m}") };
+        let text = if m.is_empty() {
+            format!("{what} is deprecated")
+        } else {
+            format!("{what} is deprecated: {m}")
+        };
         let d = crate::lex::diag(&u.file, &u.text, pos, text);
         self.p.warnings.push(d);
     }
@@ -699,11 +951,17 @@ impl<'p> Checker<'p> {
         let (name, aud, only, fty) = (fd.name.clone(), fd.aud, fd.only.clone(), fd.ty.clone());
         if !self.can_access(f.class, aud, &only, Some(&recv.ty)) {
             let c = self.p.class(f.class).name.clone();
-            return self.error_expr(pos, format!("the field `{name}` of `{c}` is outside its audience here"));
+            return self.error_expr(
+                pos,
+                format!("the field `{name}` of `{c}` is outside its audience here"),
+            );
         }
         if self.p.may_be_null(&recv.ty) {
             let s = self.show(&recv.ty);
-            return self.error_expr(pos, format!("the field `{name}` is read from a `{s}`, which may be `null`"));
+            return self.error_expr(
+                pos,
+                format!("the field `{name}` is read from a `{s}`, which may be `null`"),
+            );
         }
         let cap = self.capture(&recv.ty);
         let ty = match self.p.supertype_at(&cap, f.class) {
@@ -711,24 +969,46 @@ impl<'p> Checker<'p> {
             None => fty,
         };
         let ty = self.project(&ty);
-        TExpr { kind: TKind::Field(Box::new(recv), f), ty }
+        TExpr {
+            kind: TKind::Field(Box::new(recv), f),
+            ty,
+        }
     }
 
     fn static_field(&mut self, f: FieldRef, pos: Pos) -> TExpr {
         let fd = self.p.field(f);
-        let (name, aud, only, ty, constant) = (fd.name.clone(), fd.aud, fd.only.clone(), fd.ty.clone(), fd.constant.clone());
+        let (name, aud, only, ty, constant) = (
+            fd.name.clone(),
+            fd.aud,
+            fd.only.clone(),
+            fd.ty.clone(),
+            fd.constant.clone(),
+        );
         if !self.can_access(f.class, aud, &only, None) {
             let c = self.p.class(f.class).name.clone();
-            return self.error_expr(pos, format!("the field `{name}` of `{c}` is outside its audience here"));
+            return self.error_expr(
+                pos,
+                format!("the field `{name}` of `{c}` is outside its audience here"),
+            );
         }
         if let Some(c) = constant {
             return self.const_expr(&c);
         }
         // A static initializer reads a field of its own class only once it is assigned.
-        if self.frames[0].in_static_init && f.class == self.class && self.frames.len() == 1 && !self.frames[0].flow.fields.contains(&f.index) {
-            self.err(pos, format!("the static field `{name}` is read before it is assigned"));
+        if self.frames[0].in_static_init
+            && f.class == self.class
+            && self.frames.len() == 1
+            && !self.frames[0].flow.fields.contains(&f.index)
+        {
+            self.err(
+                pos,
+                format!("the static field `{name}` is read before it is assigned"),
+            );
         }
-        TExpr { kind: TKind::StaticField(f), ty }
+        TExpr {
+            kind: TKind::StaticField(f),
+            ty,
+        }
     }
 
     /// Resolves what stands before a `.`.
@@ -746,12 +1026,22 @@ impl<'p> Checker<'p> {
                     return Target::Type(id);
                 }
                 let prefix = format!("{n}.");
-                if self.p.packages.iter().any(|p| p == n || p.starts_with(&prefix)) {
+                if self
+                    .p
+                    .packages
+                    .iter()
+                    .any(|p| p == n || p.starts_with(&prefix))
+                {
                     return Target::Package(n.clone());
                 }
-                Target::Value(self.error_expr(pos, format!("`{n}` is not a variable, a field or a type in scope")))
+                Target::Value(self.error_expr(
+                    pos,
+                    format!("`{n}` is not a variable, a field or a type in scope"),
+                ))
             }
-            ExprKind::Field(t, n) if matches!(t.kind, ExprKind::This) && self.own_instance_field(n).is_some() => {
+            ExprKind::Field(t, n)
+                if matches!(t.kind, ExprKind::This) && self.own_instance_field(n).is_some() =>
+            {
                 // `this.field`, which is legal even before `super(...)` is called.
                 let f = self.own_instance_field(n).unwrap();
                 Target::Value(self.own_field(f, pos))
@@ -765,31 +1055,55 @@ impl<'p> Checker<'p> {
                     }
                     let q = format!("{pk}.{n}");
                     let prefix = format!("{q}.");
-                    if self.p.packages.iter().any(|p| *p == q || p.starts_with(&prefix)) {
+                    if self
+                        .p
+                        .packages
+                        .iter()
+                        .any(|p| *p == q || p.starts_with(&prefix))
+                    {
                         return Target::Package(q);
                     }
-                    Target::Value(self.error_expr(pos, format!("the package `{pk}` has no type named `{n}`")))
+                    Target::Value(
+                        self.error_expr(pos, format!("the package `{pk}` has no type named `{n}`")),
+                    )
                 }
                 Target::Type(cid) => match self.find_field(cid, n) {
-                    Some(f) if self.p.field(f).is_static => Target::Value(self.static_field(f, pos)),
-                    Some(_) => Target::Value(self.error_expr(pos, format!("`{n}` is an instance field and is read from a value"))),
+                    Some(f) if self.p.field(f).is_static => {
+                        Target::Value(self.static_field(f, pos))
+                    }
+                    Some(_) => Target::Value(self.error_expr(
+                        pos,
+                        format!("`{n}` is an instance field and is read from a value"),
+                    )),
                     None => {
                         let c = self.p.class(cid).name.clone();
-                        Target::Value(self.error_expr(pos, format!("`{c}` has no static field named `{n}`")))
+                        Target::Value(
+                            self.error_expr(pos, format!("`{c}` has no static field named `{n}`")),
+                        )
                     }
                 },
-                Target::TypeVar(_) => Target::Value(self.error_expr(pos, "only a static requirement is reached through a type parameter")),
+                Target::TypeVar(_) => Target::Value(self.error_expr(
+                    pos,
+                    "only a static requirement is reached through a type parameter",
+                )),
                 Target::Value(v) => {
                     if v.ty.is_error() {
                         return Target::Value(v);
                     }
                     let found = self.field_on_type(&v.ty, n);
                     match found {
-                        Some(f) if !self.p.field(f).is_static => Target::Value(self.field_of(v, f, pos)),
-                        Some(_) => Target::Value(self.error_expr(pos, format!("the static field `{n}` is named through its class"))),
+                        Some(f) if !self.p.field(f).is_static => {
+                            Target::Value(self.field_of(v, f, pos))
+                        }
+                        Some(_) => Target::Value(self.error_expr(
+                            pos,
+                            format!("the static field `{n}` is named through its class"),
+                        )),
                         None => {
                             let s = self.show(&v.ty);
-                            Target::Value(self.error_expr(pos, format!("`{s}` has no field named `{n}`")))
+                            Target::Value(
+                                self.error_expr(pos, format!("`{s}` has no field named `{n}`")),
+                            )
                         }
                     }
                 }
@@ -838,7 +1152,12 @@ impl<'p> Checker<'p> {
     pub fn resolve_no_wildcards(&mut self, t: &ast::TypeRef, what: &str) -> Type {
         let ty = self.resolve(t);
         if t.dims.is_empty() && ty.has_wildcard_arg() {
-            self.err(t.pos, format!("a wildcard is not written among the arguments of {what}; a type is needed"));
+            self.err(
+                t.pos,
+                format!(
+                    "a wildcard is not written among the arguments of {what}; a type is needed"
+                ),
+            );
             return Type::error();
         }
         ty
@@ -852,7 +1171,10 @@ impl<'p> Checker<'p> {
                     self.check_expr(a, None);
                 }
             }
-            return TExpr { kind: TKind::Null, ty };
+            return TExpr {
+                kind: TKind::Null,
+                ty,
+            };
         }
         if ty.nullable || !ty.quals.is_empty() {
             self.err(t.pos, "the result of `new` has no qualifier");
@@ -880,7 +1202,10 @@ impl<'p> Checker<'p> {
         if let Some(why) = problem {
             return self.error_expr(pos, format!("`new {name}` is rejected: {why}"));
         }
-        self.construct(ty.bare(), CallSite::new(args.iter().map(ArgIn::Ast).collect(), pos))
+        self.construct(
+            ty.bare(),
+            CallSite::new(args.iter().map(ArgIn::Ast).collect(), pos),
+        )
     }
 
     /// Whether `new T[n]` has a default element for `T` (section 6.10).
@@ -888,7 +1213,9 @@ impl<'p> Checker<'p> {
         if t.nullable {
             return true;
         }
-        let Ty::Class(id, args) = &t.ty else { return false };
+        let Ty::Class(id, args) = &t.ty else {
+            return false;
+        };
         let w = &self.p.wk;
         if self.p.num_kind(*id).is_some() || *id == w.char_ || *id == w.boolean {
             return true;
@@ -915,7 +1242,12 @@ impl<'p> Checker<'p> {
 
     /// Section 4.6: converts one operand to the class of the other when exactly one converts.
     fn balance(&mut self, l: TExpr, r: TExpr, pos: Pos) -> (TExpr, TExpr) {
-        if l.ty.nullable || r.ty.nullable || l.ty.class_id() == r.ty.class_id() || l.ty.class_id().is_none() || r.ty.class_id().is_none() {
+        if l.ty.nullable
+            || r.ty.nullable
+            || l.ty.class_id() == r.ty.class_id()
+            || l.ty.class_id().is_none()
+            || r.ty.class_id().is_none()
+        {
             return (l, r);
         }
         let (lt, rt) = (l.ty.bare(), r.ty.bare());
@@ -966,11 +1298,18 @@ impl<'p> Checker<'p> {
             }
         };
         if l.ty.is_error() || r.as_ref().map(|r| r.ty.is_error()).unwrap_or(false) {
-            return TExpr { kind: TKind::Null, ty: Type::error() };
+            return TExpr {
+                kind: TKind::Null,
+                ty: Type::error(),
+            };
         }
         let Some(r) = r else {
             // The right operand needs the parameter's type: the call supplies it.
-            let hint = if l.ty.nullable { None } else { self.p.numeric_class(&l.ty) };
+            let hint = if l.ty.nullable {
+                None
+            } else {
+                self.p.numeric_class(&l.ty)
+            };
             if is_eq {
                 if let (Some(c), true) = (hint, is_literal_expr(b)) {
                     let r = self.literal_at(b, c);
@@ -981,9 +1320,17 @@ impl<'p> Checker<'p> {
             site.operator = Some(op.spelling());
             site.lit_hint = hint;
             let e = self.call_method(l, op.method(), site);
-            return if op == BinOp::Ne { self.negate_bool(e) } else { e };
+            return if op == BinOp::Ne {
+                self.negate_bool(e)
+            } else {
+                e
+            };
         };
-        let (l, r) = if is_shift { (l, r) } else { self.balance(l, r, pos) };
+        let (l, r) = if is_shift {
+            (l, r)
+        } else {
+            self.balance(l, r, pos)
+        };
         if is_eq {
             return self.equality(op, l, r, pos);
         }
@@ -996,13 +1343,19 @@ impl<'p> Checker<'p> {
         }
         match e.kind {
             TKind::Bool(b) => self.bool_expr(!b),
-            _ => TExpr { kind: TKind::Not(Box::new(e)), ty: self.boolean() },
+            _ => TExpr {
+                kind: TKind::Not(Box::new(e)),
+                ty: self.boolean(),
+            },
         }
     }
 
     fn equality(&mut self, op: BinOp, l: TExpr, r: TExpr, pos: Pos) -> TExpr {
         if l.ty.is_error() || r.ty.is_error() {
-            return TExpr { kind: TKind::Null, ty: Type::error() };
+            return TExpr {
+                kind: TKind::Null,
+                ty: Type::error(),
+            };
         }
         if self.disjoint(&l.ty, &r.ty) {
             let (a, b) = (self.show(&l.ty), self.show(&r.ty));
@@ -1015,7 +1368,10 @@ impl<'p> Checker<'p> {
                         return self.bool_expr(v == (op == BinOp::Eq));
                     }
                 }
-                return TExpr { kind: TKind::Prim(op, Box::new(l), Box::new(r)), ty: self.boolean() };
+                return TExpr {
+                    kind: TKind::Prim(op, Box::new(l), Box::new(r)),
+                    ty: self.boolean(),
+                };
             }
         }
         let mut site = CallSite::new(vec![ArgIn::Done(r)], pos);
@@ -1052,7 +1408,14 @@ impl<'p> Checker<'p> {
         (a, b, ty)
     }
 
-    fn conditional(&mut self, c: &ast::Expr, a: &ast::Expr, b: &ast::Expr, expected: Option<&Type>, pos: Pos) -> TExpr {
+    fn conditional(
+        &mut self,
+        c: &ast::Expr,
+        a: &ast::Expr,
+        b: &ast::Expr,
+        expected: Option<&Type>,
+        pos: Pos,
+    ) -> TExpr {
         let boolean = self.boolean();
         let cond = self.check_cond(c);
         let ce = self.coerce(cond.e, &boolean, c.pos);
@@ -1060,9 +1423,15 @@ impl<'p> Checker<'p> {
         self.apply_facts(&cond.t);
         // An arm that is a literal expression takes its class from the other arm.
         let (la, lb) = (is_literal_expr(a), is_literal_expr(b));
-        let numeric_expected = expected.map(|t| self.p.numeric_class(t).is_some()).unwrap_or(false);
+        let numeric_expected = expected
+            .map(|t| self.p.numeric_class(t).is_some())
+            .unwrap_or(false);
         let defer_a = la && !lb && !numeric_expected;
-        let mut ea = if defer_a { None } else { Some(self.check_expr(a, expected)) };
+        let mut ea = if defer_a {
+            None
+        } else {
+            Some(self.check_expr(a, expected))
+        };
         let flow_a = std::mem::replace(&mut self.frame().flow, base);
         self.apply_facts(&cond.f);
         let eb = if lb && !la && !numeric_expected {
@@ -1096,10 +1465,19 @@ impl<'p> Checker<'p> {
                 return if v { ea } else { eb };
             }
         }
-        TExpr { kind: TKind::Cond(Box::new(ce), Box::new(ea), Box::new(eb)), ty }
+        TExpr {
+            kind: TKind::Cond(Box::new(ce), Box::new(ea), Box::new(eb)),
+            ty,
+        }
     }
 
-    fn coalesce(&mut self, a: &ast::Expr, b: &ast::Expr, expected: Option<&Type>, pos: Pos) -> TExpr {
+    fn coalesce(
+        &mut self,
+        a: &ast::Expr,
+        b: &ast::Expr,
+        expected: Option<&Type>,
+        pos: Pos,
+    ) -> TExpr {
         let nullable_expected = expected.map(|t| t.clone().nullable());
         let ea = self.check_expr(a, nullable_expected.as_ref());
         if ea.ty.is_error() {
@@ -1107,7 +1485,10 @@ impl<'p> Checker<'p> {
         }
         if !self.p.may_be_null(&ea.ty) {
             let s = self.show(&ea.ty);
-            self.err(a.pos, format!("the left operand of `??` is a `{s}`, which cannot be `null`"));
+            self.err(
+                a.pos,
+                format!("the left operand of `??` is a `{s}`, which cannot be `null`"),
+            );
         }
         let left = ea.ty.clone().non_null();
         let base = self.frame().flow.clone();
@@ -1137,32 +1518,57 @@ impl<'p> Checker<'p> {
         };
         let eb = self.coerce(eb, &ty, b.pos);
         // The left value keeps its own type until the test; the result has `ty`.
-        let ea = if ea.ty == ty.clone().nullable() { ea } else { self.coerce(ea, &ty.clone().nullable(), a.pos) };
-        TExpr { kind: TKind::Coalesce(Box::new(ea), Box::new(eb)), ty }
+        let ea = if ea.ty == ty.clone().nullable() {
+            ea
+        } else {
+            self.coerce(ea, &ty.clone().nullable(), a.pos)
+        };
+        TExpr {
+            kind: TKind::Coalesce(Box::new(ea), Box::new(eb)),
+            ty,
+        }
     }
 
     fn cast(&mut self, t: &ast::TypeRef, x: &ast::Expr, pos: Pos) -> TExpr {
         let ty = self.resolve(t);
         let v = self.check_expr(x, Some(&ty));
         if ty.is_error() || v.ty.is_error() {
-            return TExpr { kind: TKind::Null, ty: Type::error() };
+            return TExpr {
+                kind: TKind::Null,
+                ty: Type::error(),
+            };
         }
         if !ty.quals.is_empty() {
             self.err(t.pos, "a value does not carry its qualifiers at run time, so a cast does not name one outside a type argument");
         }
         if self.p.is_subtype(&v.ty, &ty) {
-            return if v.ty == ty { v } else { TExpr { kind: TKind::Coerce(Box::new(v)), ty } };
+            return if v.ty == ty {
+                v
+            } else {
+                TExpr {
+                    kind: TKind::Coerce(Box::new(v)),
+                    ty,
+                }
+            };
         }
         if self.disjoint(&v.ty, &ty) {
             let (a, b) = (self.show(&v.ty), self.show(&ty));
             return self.error_expr(pos, format!("a cast from `{a}` to `{b}` is rejected: the types are disjoint, and a cast never converts a value"));
         }
-        TExpr { kind: TKind::Cast(Box::new(v)), ty }
+        TExpr {
+            kind: TKind::Cast(Box::new(v)),
+            ty,
+        }
     }
 
     // ---- assignment ----
 
-    fn place(&mut self, target: &ast::Expr, binds: &mut Vec<(LocalId, TExpr)>, compound: bool) -> Option<Place> {
+    fn place(
+        &mut self,
+        target: &ast::Expr,
+        binds: &mut Vec<(LocalId, TExpr)>,
+        compound: bool,
+    ) -> Option<Place> {
         let pos = target.pos;
         match &target.kind {
             ExprKind::Paren(x) => self.place(x, binds, compound),
@@ -1195,13 +1601,18 @@ impl<'p> Checker<'p> {
                             return None;
                         };
                         if self.p.field(f).is_static {
-                            self.err(pos, format!("the static field `{n}` is named through its class"));
+                            self.err(
+                                pos,
+                                format!("the static field `{n}` is named through its class"),
+                            );
                             return None;
                         }
                         self.field_place(Some(v), f, binds, compound, pos)
                     }
                     Target::Type(cid) => match self.find_field(cid, n) {
-                        Some(f) if self.p.field(f).is_static => self.field_place(None, f, binds, compound, pos),
+                        Some(f) if self.p.field(f).is_static => {
+                            self.field_place(None, f, binds, compound, pos)
+                        }
                         _ => {
                             let c = self.p.class(cid).name.clone();
                             self.err(pos, format!("`{c}` has no static field named `{n}`"));
@@ -1220,7 +1631,10 @@ impl<'p> Checker<'p> {
                     return None;
                 }
                 let ta = self.temp(recv.ty.clone());
-                let ra = TExpr { kind: TKind::Local(ta), ty: recv.ty.clone() };
+                let ra = TExpr {
+                    kind: TKind::Local(ta),
+                    ty: recv.ty.clone(),
+                };
                 binds.push((ta, recv));
                 // The index is checked as the argument of `get`, which gives a literal its class.
                 let index_ty = self.index_type(&ra.ty);
@@ -1233,7 +1647,10 @@ impl<'p> Checker<'p> {
                     None => idx,
                 };
                 let ti = self.temp(idx.ty.clone());
-                let ri = TExpr { kind: TKind::Local(ti), ty: idx.ty.clone() };
+                let ri = TExpr {
+                    kind: TKind::Local(ti),
+                    ty: idx.ty.clone(),
+                };
                 binds.push((ti, idx));
                 Some(Place::Index(ra, ri))
             }
@@ -1261,24 +1678,45 @@ impl<'p> Checker<'p> {
         found
     }
 
-    fn field_place(&mut self, recv: Option<TExpr>, f: FieldRef, binds: &mut Vec<(LocalId, TExpr)>, compound: bool, pos: Pos) -> Option<Place> {
+    fn field_place(
+        &mut self,
+        recv: Option<TExpr>,
+        f: FieldRef,
+        binds: &mut Vec<(LocalId, TExpr)>,
+        compound: bool,
+        pos: Pos,
+    ) -> Option<Place> {
         let fd = self.p.field(f);
-        let (name, aud, only, is_static, is_final, fty) = (fd.name.clone(), fd.aud, fd.only.clone(), fd.is_static, fd.is_final, fd.ty.clone());
+        let (name, aud, only, is_static, is_final, fty) = (
+            fd.name.clone(),
+            fd.aud,
+            fd.only.clone(),
+            fd.is_static,
+            fd.is_final,
+            fd.ty.clone(),
+        );
         let recv_ty = recv.as_ref().map(|r| r.ty.clone());
         if !self.can_access(f.class, aud, &only, recv_ty.as_ref()) {
             let c = self.p.class(f.class).name.clone();
-            self.err(pos, format!("the field `{name}` of `{c}` is outside its audience here"));
+            self.err(
+                pos,
+                format!("the field `{name}` of `{c}` is outside its audience here"),
+            );
             return None;
         }
         if is_static {
-            let in_init = self.frames[0].in_static_init && f.class == self.class && self.frames.len() == 1;
+            let in_init =
+                self.frames[0].in_static_init && f.class == self.class && self.frames.len() == 1;
             if is_final {
                 if !in_init {
                     self.err(pos, format!("the static final field `{name}` is assigned only by its initializer or a static initializer block"));
                     return None;
                 }
                 if self.frames[0].flow.maybe_fields.contains(&f.index) {
-                    self.err(pos, format!("the final field `{name}` is assigned at most once"));
+                    self.err(
+                        pos,
+                        format!("the final field `{name}` is assigned at most once"),
+                    );
                 }
             }
             if in_init && !compound {
@@ -1288,14 +1726,25 @@ impl<'p> Checker<'p> {
             }
             return Some(Place::Static(f, fty));
         }
-        let own_before = recv.is_none() && !self.is_static && self.frames[0].ctor == CtorPhase::Before && self.frames[0].this_ty.is_some();
+        let own_before = recv.is_none()
+            && !self.is_static
+            && self.frames[0].ctor == CtorPhase::Before
+            && self.frames[0].this_ty.is_some();
         if own_before {
             if f.class != self.class {
-                self.err(pos, format!("the inherited field `{name}` is not assigned before `super(...)` is called"));
+                self.err(
+                    pos,
+                    format!(
+                        "the inherited field `{name}` is not assigned before `super(...)` is called"
+                    ),
+                );
                 return None;
             }
             if self.frames.len() > 1 {
-                self.err(pos, "a lambda does not capture `this` before `super(...)` is called");
+                self.err(
+                    pos,
+                    "a lambda does not capture `this` before `super(...)` is called",
+                );
                 return None;
             }
             if self.p.class(self.class).is_value() {
@@ -1303,10 +1752,16 @@ impl<'p> Checker<'p> {
                 return None;
             }
             if compound && !self.frames[0].flow.fields.contains(&f.index) {
-                self.err(pos, format!("the field `{name}` is read before it is assigned"));
+                self.err(
+                    pos,
+                    format!("the field `{name}` is read before it is assigned"),
+                );
             }
             if is_final && self.frames[0].flow.maybe_fields.contains(&f.index) {
-                self.err(pos, format!("the final field `{name}` is assigned at most once"));
+                self.err(
+                    pos,
+                    format!("the final field `{name}` is assigned at most once"),
+                );
             }
             let fl = &mut self.frames[0].flow;
             fl.fields.insert(f.index);
@@ -1314,8 +1769,15 @@ impl<'p> Checker<'p> {
             return Some(Place::Field(self.raw_this(), f, fty));
         }
         if is_final {
-            let why = if self.p.class(f.class).is_value() { "a field of a value class is final" } else { "it is final" };
-            self.err(pos, format!("the field `{name}` is not assigned here: {why}"));
+            let why = if self.p.class(f.class).is_value() {
+                "a field of a value class is final"
+            } else {
+                "it is final"
+            };
+            self.err(
+                pos,
+                format!("the field `{name}` is not assigned here: {why}"),
+            );
             return None;
         }
         let recv = match recv {
@@ -1330,7 +1792,10 @@ impl<'p> Checker<'p> {
         };
         if self.p.may_be_null(&recv.ty) {
             let s = self.show(&recv.ty);
-            self.err(pos, format!("the field `{name}` is assigned through a `{s}`, which may be `null`"));
+            self.err(
+                pos,
+                format!("the field `{name}` is assigned through a `{s}`, which may be `null`"),
+            );
             return None;
         }
         // Read the field's type as section 7.4 reads a member's.
@@ -1341,7 +1806,10 @@ impl<'p> Checker<'p> {
         };
         let recv = if compound {
             let t = self.temp(recv.ty.clone());
-            let r = TExpr { kind: TKind::Local(t), ty: recv.ty.clone() };
+            let r = TExpr {
+                kind: TKind::Local(t),
+                ty: recv.ty.clone(),
+            };
             binds.push((t, recv));
             r
         } else {
@@ -1363,9 +1831,15 @@ impl<'p> Checker<'p> {
             Place::Local(fi, id) => self.local_read(*fi, *id, pos),
             Place::Field(r, f, t) => {
                 let ty = self.project(t);
-                TExpr { kind: TKind::Field(Box::new(r.clone()), *f), ty }
+                TExpr {
+                    kind: TKind::Field(Box::new(r.clone()), *f),
+                    ty,
+                }
             }
-            Place::Static(f, t) => TExpr { kind: TKind::StaticField(*f), ty: t.clone() },
+            Place::Static(f, t) => TExpr {
+                kind: TKind::StaticField(*f),
+                ty: t.clone(),
+            },
             Place::Index(a, i) => {
                 let mut site = CallSite::new(vec![ArgIn::Done(i.clone())], pos);
                 site.operator = Some("[]");
@@ -1381,7 +1855,12 @@ impl<'p> Checker<'p> {
                 let at = self.frames.len() - 1;
                 let name = self.frames[fi].locals[id as usize].name.clone();
                 if fi != at {
-                    return self.error_expr(pos, format!("a lambda does not assign `{name}`, a variable of the enclosing method"));
+                    return self.error_expr(
+                        pos,
+                        format!(
+                            "a lambda does not assign `{name}`, a variable of the enclosing method"
+                        ),
+                    );
                 }
                 let f = self.frame();
                 let seen = f.flow.maybe.contains(&id);
@@ -1396,10 +1875,19 @@ impl<'p> Checker<'p> {
                 f.flow.maybe.insert(id);
                 f.flow.facts.remove(&id);
                 let ty = f.locals[id as usize].ty.clone();
-                TExpr { kind: TKind::AssignLocal(id, Box::new(value)), ty }
+                TExpr {
+                    kind: TKind::AssignLocal(id, Box::new(value)),
+                    ty,
+                }
             }
-            Place::Field(r, f, t) => TExpr { kind: TKind::AssignField(Box::new(r), f, Box::new(value)), ty: t },
-            Place::Static(f, t) => TExpr { kind: TKind::AssignStatic(f, Box::new(value)), ty: t },
+            Place::Field(r, f, t) => TExpr {
+                kind: TKind::AssignField(Box::new(r), f, Box::new(value)),
+                ty: t,
+            },
+            Place::Static(f, t) => TExpr {
+                kind: TKind::AssignStatic(f, Box::new(value)),
+                ty: t,
+            },
             Place::Index(a, i) => {
                 let mut site = CallSite::new(vec![ArgIn::Done(i), ArgIn::Done(value)], pos);
                 site.operator = Some("[]=");
@@ -1412,14 +1900,24 @@ impl<'p> Checker<'p> {
         let mut out = body;
         for (id, init) in binds.into_iter().rev() {
             let ty = out.ty.clone();
-            out = TExpr { kind: TKind::Let(id, Box::new(init), Box::new(out)), ty };
+            out = TExpr {
+                kind: TKind::Let(id, Box::new(init), Box::new(out)),
+                ty,
+            };
         }
         out
     }
 
     /// `target = value` and `target op= value`. `want_value` is false where the
     /// expression is a statement and its value is discarded.
-    pub fn assign(&mut self, op: Option<BinOp>, target: &ast::Expr, value: &ast::Expr, pos: Pos, want_value: bool) -> TExpr {
+    pub fn assign(
+        &mut self,
+        op: Option<BinOp>,
+        target: &ast::Expr,
+        value: &ast::Expr,
+        pos: Pos,
+        want_value: bool,
+    ) -> TExpr {
         // `a[i] = e` with nothing compound is one call of `set`.
         if let (None, ExprKind::Index(a, i), false) = (op, &target.kind, want_value) {
             let recv = self.check_expr(a, None);
@@ -1435,7 +1933,10 @@ impl<'p> Checker<'p> {
             if !needs_expected(value) {
                 self.check_expr(value, None);
             }
-            return TExpr { kind: TKind::Null, ty: Type::error() };
+            return TExpr {
+                kind: TKind::Null,
+                ty: Type::error(),
+            };
         };
         let pty = self.place_type(&place);
         let v = match op {
@@ -1452,7 +1953,11 @@ impl<'p> Checker<'p> {
                     return cur;
                 }
                 let is_shift = matches!(op, BinOp::Shl | BinOp::Shr);
-                let hint = if cur.ty.nullable { None } else { self.p.numeric_class(&cur.ty) };
+                let hint = if cur.ty.nullable {
+                    None
+                } else {
+                    self.p.numeric_class(&cur.ty)
+                };
                 let r = if is_literal_expr(value) || needs_expected(value) {
                     let mut site = CallSite::new(vec![ArgIn::Ast(value)], pos);
                     site.operator = Some(op.spelling());
@@ -1463,7 +1968,11 @@ impl<'p> Checker<'p> {
                     if r.ty.is_error() {
                         return r;
                     }
-                    let (l, r) = if is_shift { (cur, r) } else { self.balance(cur, r, pos) };
+                    let (l, r) = if is_shift {
+                        (cur, r)
+                    } else {
+                        self.balance(cur, r, pos)
+                    };
                     self.operator(op, l, r, pos)
                 };
                 match &pty {
@@ -1486,34 +1995,60 @@ impl<'p> Checker<'p> {
         if let (Place::Index(..), true) = (&place, want_value) {
             // The value of the expression is the value stored.
             let tv = self.temp(v.ty.clone());
-            let rv = TExpr { kind: TKind::Local(tv), ty: v.ty.clone() };
+            let rv = TExpr {
+                kind: TKind::Local(tv),
+                ty: v.ty.clone(),
+            };
             binds.push((tv, v));
             let set = self.place_write(place, rv.clone(), pos);
             let ty = rv.ty.clone();
-            let body = TExpr { kind: TKind::Seq(vec![set], Box::new(rv)), ty };
+            let body = TExpr {
+                kind: TKind::Seq(vec![set], Box::new(rv)),
+                ty,
+            };
             return self.wrap(binds, body);
         }
         let out = self.place_write(place, v, pos);
         self.wrap(binds, out)
     }
 
-    pub fn inc_dec(&mut self, inc: bool, prefix: bool, target: &ast::Expr, pos: Pos, want_value: bool) -> TExpr {
+    pub fn inc_dec(
+        &mut self,
+        inc: bool,
+        prefix: bool,
+        target: &ast::Expr,
+        pos: Pos,
+        want_value: bool,
+    ) -> TExpr {
         let mut binds = Vec::new();
         let Some(place) = self.place(target, &mut binds, true) else {
-            return TExpr { kind: TKind::Null, ty: Type::error() };
+            return TExpr {
+                kind: TKind::Null,
+                ty: Type::error(),
+            };
         };
         let cur = self.place_read(&place, pos);
         if cur.ty.is_error() {
             return cur;
         }
         let pty = self.place_type(&place);
-        let one = ast::Expr { kind: ExprKind::Int("1".into(), 10), pos };
+        let one = ast::Expr {
+            kind: ExprKind::Int("1".into(), 10),
+            pos,
+        };
         let op = if inc { BinOp::Add } else { BinOp::Sub };
-        let hint = if cur.ty.nullable { None } else { self.p.numeric_class(&cur.ty) };
+        let hint = if cur.ty.nullable {
+            None
+        } else {
+            self.p.numeric_class(&cur.ty)
+        };
         // The postfix form yields the value from before the update.
         let (cur, old) = if !prefix && want_value {
             let t = self.temp(cur.ty.clone());
-            let r = TExpr { kind: TKind::Local(t), ty: cur.ty.clone() };
+            let r = TExpr {
+                kind: TKind::Local(t),
+                ty: cur.ty.clone(),
+            };
             binds.push((t, cur));
             (r.clone(), Some(r))
         } else {
@@ -1535,7 +2070,10 @@ impl<'p> Checker<'p> {
         let body = match old {
             Some(o) => {
                 let ty = o.ty.clone();
-                TExpr { kind: TKind::Seq(vec![write], Box::new(o)), ty }
+                TExpr {
+                    kind: TKind::Seq(vec![write], Box::new(o)),
+                    ty,
+                }
             }
             None => write,
         };

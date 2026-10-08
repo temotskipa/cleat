@@ -14,7 +14,6 @@ version = "0.1.0"
 dependencies = [
  "cleatrt",
  "num-bigint",
- "num-integer",
  "num-rational",
  "num-traits",
 ]
@@ -24,7 +23,6 @@ name = "cleatrt"
 version = "0.1.0"
 dependencies = [
  "num-bigint",
- "num-integer",
  "num-rational",
  "num-traits",
 ]

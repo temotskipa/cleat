@@ -1,9 +1,14 @@
 //! Calls: member lookup, overload resolution (section 4.4) and inference (section 7.5).
 
-use super::expr::{is_literal_expr, needs_expected};
-use super::*;
+use crate::ast;
 use crate::ast::{ExprKind, Variance};
-use crate::sema::decl::{self, ImplOf};
+use crate::lex::Pos;
+use crate::sema::check::expr::{is_literal_expr, needs_expected};
+use crate::sema::check::{Checker, CtorPhase};
+use crate::sema::decl;
+use crate::sema::decl::ImplOf;
+use crate::sema::tir::{Call, Dispatch, TExpr, TKind};
+use crate::sema::types::{Arg, ClassId, MethodRef, Subst, Tv, TvOwner, Ty, Type};
 
 /// An argument of a call: source still to be checked, or a value already checked.
 pub enum ArgIn<'a> {
@@ -25,7 +30,14 @@ pub struct CallSite<'a> {
 
 impl<'a> CallSite<'a> {
     pub fn new(args: Vec<ArgIn<'a>>, pos: Pos) -> CallSite<'a> {
-        CallSite { args, targs: None, expected: None, pos, lit_hint: None, operator: None }
+        CallSite {
+            args,
+            targs: None,
+            expected: None,
+            pos,
+            lit_hint: None,
+            operator: None,
+        }
     }
 }
 
@@ -124,13 +136,18 @@ impl<'p> Checker<'p> {
                     types.push(s.apply(&sup));
                 }
                 for ty in types {
-                    let Ty::Class(cid, cargs) = &ty.ty else { continue };
+                    let Ty::Class(cid, cargs) = &ty.ty else {
+                        continue;
+                    };
                     let c = self.p.class(*cid);
                     for (i, m) in c.methods.iter().enumerate() {
                         if m.name != name {
                             continue;
                         }
-                        let mref = MethodRef { class: *cid, index: i as u32 };
+                        let mref = MethodRef {
+                            class: *cid,
+                            index: i as u32,
+                        };
                         if !out.iter().any(|(o, _)| *o == mref) {
                             out.push((mref, Subst::for_class(*cid, cargs)));
                         }
@@ -148,7 +165,10 @@ impl<'p> Checker<'p> {
 
     fn drop_overridden(&self, cands: &mut Vec<(MethodRef, Subst)>) {
         let all: Vec<MethodRef> = cands.iter().map(|(m, _)| *m).collect();
-        cands.retain(|(f, _)| !all.iter().any(|g| g != f && self.p.method(*g).overrides.contains(f)));
+        cands.retain(|(f, _)| {
+            !all.iter()
+                .any(|g| g != f && self.p.method(*g).overrides.contains(f))
+        });
     }
 
     fn method_cand(&self, m: MethodRef, s: &Subst) -> Cand {
@@ -164,7 +184,13 @@ impl<'p> Checker<'p> {
         }
     }
 
-    fn accessible_methods(&mut self, cands: Vec<(MethodRef, Subst)>, recv: Option<&Type>, name: &str, pos: Pos) -> Option<Vec<(MethodRef, Subst)>> {
+    fn accessible_methods(
+        &mut self,
+        cands: Vec<(MethodRef, Subst)>,
+        recv: Option<&Type>,
+        name: &str,
+        pos: Pos,
+    ) -> Option<Vec<(MethodRef, Subst)>> {
         let mut out = Vec::new();
         for (m, s) in &cands {
             let md = self.p.method(*m);
@@ -175,7 +201,10 @@ impl<'p> Checker<'p> {
         }
         if out.is_empty() && !cands.is_empty() {
             let c = self.p.class(cands[0].0.class).name.clone();
-            self.err(pos, format!("the method `{name}` of `{c}` is outside its audience here"));
+            self.err(
+                pos,
+                format!("the method `{name}` of `{c}` is outside its audience here"),
+            );
             return None;
         }
         Some(out)
@@ -191,7 +220,8 @@ impl<'p> Checker<'p> {
                 ArgIn::Ast(e) if needs_expected(e) => PreArg::Deferred,
                 ArgIn::Ast(e) => {
                     // A call may need the parameter's type to infer its own type arguments.
-                    let speculative = matches!(&e.kind, ExprKind::Call { type_args, .. } if type_args.is_empty());
+                    let speculative =
+                        matches!(&e.kind, ExprKind::Call { type_args, .. } if type_args.is_empty());
                     if speculative {
                         let snap = self.snapshot();
                         let v = self.check_expr(e, None);
@@ -217,12 +247,23 @@ impl<'p> Checker<'p> {
             return e;
         }
         let ty = self.capture(&e.ty);
-        TExpr { kind: TKind::Coerce(Box::new(e)), ty }
+        TExpr {
+            kind: TKind::Coerce(Box::new(e)),
+            ty,
+        }
     }
 
     // ---- applicability ----
 
-    fn apply(&mut self, cands: &[Cand], ci: usize, pre: &[PreArg], site: &CallSite, conv: bool, strict: bool) -> Result<Applied, Why> {
+    fn apply(
+        &mut self,
+        cands: &[Cand],
+        ci: usize,
+        pre: &[PreArg],
+        site: &CallSite,
+        conv: bool,
+        strict: bool,
+    ) -> Result<Applied, Why> {
         let c = &cands[ci];
         let (n, k) = (c.params.len(), pre.len());
         let mut shapes: Vec<(Vec<Type>, Option<(usize, Type)>)> = Vec::new();
@@ -230,7 +271,10 @@ impl<'p> Checker<'p> {
             shapes.push((c.params.clone(), None));
         }
         if c.varargs && k + 1 >= n {
-            let elem = self.p.array_elem(&c.params[n - 1]).unwrap_or_else(Type::error);
+            let elem = self
+                .p
+                .array_elem(&c.params[n - 1])
+                .unwrap_or_else(Type::error);
             let mut v: Vec<Type> = c.params[..n - 1].to_vec();
             for _ in n - 1..k {
                 v.push(elem.clone());
@@ -263,7 +307,13 @@ impl<'p> Checker<'p> {
             };
             let mut ms = Subst::new();
             for (i, t) in targs.iter().enumerate() {
-                ms.bind(Tv { owner: TvOwner::Method(c.callee), index: i as u32 }, t.clone());
+                ms.bind(
+                    Tv {
+                        owner: TvOwner::Method(c.callee),
+                        index: i as u32,
+                    },
+                    t.clone(),
+                );
             }
             let ptypes: Vec<Type> = ptypes.iter().map(|t| ms.apply(t)).collect();
             let ret = ms.apply(&c.ret);
@@ -278,22 +328,43 @@ impl<'p> Checker<'p> {
                 }
             }
             if ok {
-                return Ok(Applied { cand: ci, targs, ptypes, spread_from: spread, ret });
+                return Ok(Applied {
+                    cand: ci,
+                    targs,
+                    ptypes,
+                    spread_from: spread,
+                    ret,
+                });
             }
             last = Why::Arg;
         }
         Err(last)
     }
 
-    fn arg_applicable(&mut self, pre: &PreArg, arg: &ArgIn, pt: &Type, site: &CallSite, conv: bool) -> bool {
+    fn arg_applicable(
+        &mut self,
+        pre: &PreArg,
+        arg: &ArgIn,
+        pt: &Type,
+        site: &CallSite,
+        conv: bool,
+    ) -> bool {
         match pre {
             PreArg::Typed(e) => e.ty.is_error() || self.assignable(&e.ty, pt, conv),
             PreArg::Deferred => {
                 let ArgIn::Ast(e) = arg else { return true };
                 if let Some((params, _)) = as_lambda(e) {
                     // The body of a lambda plays no part in choosing the method.
-                    let Some((fm, fs)) = self.functional_method(pt) else { return false };
-                    let fparams: Vec<Type> = self.p.method(fm).params.iter().map(|p| fs.apply(&p.ty)).collect();
+                    let Some((fm, fs)) = self.functional_method(pt) else {
+                        return false;
+                    };
+                    let fparams: Vec<Type> = self
+                        .p
+                        .method(fm)
+                        .params
+                        .iter()
+                        .map(|p| fs.apply(&p.ty))
+                        .collect();
                     if fparams.len() != params.len() {
                         return false;
                     }
@@ -317,7 +388,8 @@ impl<'p> Checker<'p> {
                         Some(c) => self.literal_fits(e, c),
                         None => {
                             let class = site.lit_hint.unwrap_or_else(|| self.default_class_of(e));
-                            self.literal_fits(e, class) && self.assignable(&Type::simple(class), pt, conv)
+                            self.literal_fits(e, class)
+                                && self.assignable(&Type::simple(class), pt, conv)
                         }
                     };
                 }
@@ -372,12 +444,16 @@ impl<'p> Checker<'p> {
             Ty::Class(pid, pargs) if pt.mentions(&|tv| tv.owner == owner) => {
                 let (pargs, aargs, gid): (Vec<Arg>, Vec<Arg>, ClassId) = match dir {
                     Dir::Co => {
-                        let Some(up) = self.p.supertype_at(at, *pid) else { return };
+                        let Some(up) = self.p.supertype_at(at, *pid) else {
+                            return;
+                        };
                         (pargs.clone(), up.args().to_vec(), *pid)
                     }
                     Dir::Contra => {
                         let Some(aid) = at.class_id() else { return };
-                        let Some(up) = self.p.supertype_at(pt, aid) else { return };
+                        let Some(up) = self.p.supertype_at(pt, aid) else {
+                            return;
+                        };
                         (up.args().to_vec(), at.args().to_vec(), aid)
                     }
                     Dir::Inv => {
@@ -482,21 +558,39 @@ impl<'p> Checker<'p> {
         let mut s = Subst::new();
         for (i, slot) in b.iter().enumerate() {
             if let Ok(Some(t)) = self.solve_one(slot) {
-                s.bind(Tv { owner, index: i as u32 }, t);
+                s.bind(
+                    Tv {
+                        owner,
+                        index: i as u32,
+                    },
+                    t,
+                );
             }
         }
         s
     }
 
-    fn infer(&mut self, c: &Cand, ptypes: &[Type], pre: &[PreArg], site: &CallSite) -> Option<Vec<Type>> {
+    fn infer(
+        &mut self,
+        c: &Cand,
+        ptypes: &[Type],
+        pre: &[PreArg],
+        site: &CallSite,
+    ) -> Option<Vec<Type>> {
         let n = c.ntparams;
         self.next_infer += 1;
         let owner = TvOwner::Infer(self.next_infer);
         let mut to_inf = Subst::new();
         for i in 0..n {
             to_inf.bind(
-                Tv { owner: TvOwner::Method(c.callee), index: i as u32 },
-                Type::var(Tv { owner, index: i as u32 }),
+                Tv {
+                    owner: TvOwner::Method(c.callee),
+                    index: i as u32,
+                },
+                Type::var(Tv {
+                    owner,
+                    index: i as u32,
+                }),
             );
         }
         let pts: Vec<Type> = ptypes.iter().map(|t| to_inf.apply(t)).collect();
@@ -522,9 +616,13 @@ impl<'p> Checker<'p> {
         // Lambdas, after the other arguments.
         for (i, a) in site.args.iter().enumerate() {
             let ArgIn::Ast(e) = a else { continue };
-            let Some((lparams, _)) = as_lambda(e) else { continue };
+            let Some((lparams, _)) = as_lambda(e) else {
+                continue;
+            };
             let pt = self.partial(owner, &b).apply(&pts[i]);
-            let Some((fm, fs)) = self.functional_method(&pt) else { continue };
+            let Some((fm, fs)) = self.functional_method(&pt) else {
+                continue;
+            };
             let fmd = self.p.method(fm);
             let fparams: Vec<Type> = fmd.params.iter().map(|p| fs.apply(&p.ty)).collect();
             let fret = fs.apply(&fmd.ret);
@@ -555,12 +653,16 @@ impl<'p> Checker<'p> {
         }
         // Numeric literals, last.
         for (i, a) in site.args.iter().enumerate() {
-            let (ArgIn::Ast(e), PreArg::Deferred) = (a, &pre[i]) else { continue };
+            let (ArgIn::Ast(e), PreArg::Deferred) = (a, &pre[i]) else {
+                continue;
+            };
             if !is_literal_expr(e) {
                 continue;
             }
             if let Ty::Var(tv) = &pts[i].ty {
-                if tv.owner == owner && !matches!(self.solve_one(&b[tv.index as usize]), Ok(Some(_))) {
+                if tv.owner == owner
+                    && !matches!(self.solve_one(&b[tv.index as usize]), Ok(Some(_)))
+                {
                     let class = site.lit_hint.unwrap_or_else(|| self.default_class_of(e));
                     b[tv.index as usize].lower.push(Type::simple(class));
                 }
@@ -576,7 +678,13 @@ impl<'p> Checker<'p> {
         // Each type is within the parameter's declared bound and carries its tags.
         let mut ms = Subst::new();
         for (i, t) in out.iter().enumerate() {
-            ms.bind(Tv { owner: TvOwner::Method(c.callee), index: i as u32 }, t.clone());
+            ms.bind(
+                Tv {
+                    owner: TvOwner::Method(c.callee),
+                    index: i as u32,
+                },
+                t.clone(),
+            );
         }
         let tparams = self.p.method(c.callee).tparams.clone();
         for (i, tp) in tparams.iter().enumerate() {
@@ -614,9 +722,19 @@ impl<'p> Checker<'p> {
         true
     }
 
-    fn resolve_call(&mut self, name: &str, what: &str, cands: &[Cand], site: &CallSite, pre: &[PreArg]) -> Option<Applied> {
+    fn resolve_call(
+        &mut self,
+        name: &str,
+        what: &str,
+        cands: &[Cand],
+        site: &CallSite,
+        pre: &[PreArg],
+    ) -> Option<Applied> {
         let pos = site.pos;
-        if pre.iter().any(|a| matches!(a, PreArg::Typed(e) if e.ty.is_error())) {
+        if pre
+            .iter()
+            .any(|a| matches!(a, PreArg::Typed(e) if e.ty.is_error()))
+        {
             return None;
         }
         let mut apps: Vec<Applied> = Vec::new();
@@ -638,7 +756,15 @@ impl<'p> Checker<'p> {
                     Ok(a) => Some(a),
                     Err(Why::Arity) => {
                         let n = cands[0].params.len();
-                        self.err(pos, format!("{what} `{name}` takes {n} argument{}, and {} {} written", if n == 1 { "" } else { "s" }, pre.len(), if pre.len() == 1 { "is" } else { "are" }));
+                        self.err(
+                            pos,
+                            format!(
+                                "{what} `{name}` takes {n} argument{}, and {} {} written",
+                                if n == 1 { "" } else { "s" },
+                                pre.len(),
+                                if pre.len() == 1 { "is" } else { "are" }
+                            ),
+                        );
                         None
                     }
                     Err(_) => {
@@ -674,7 +800,13 @@ impl<'p> Checker<'p> {
                     PreArg::Deferred => "_".to_string(),
                 });
             }
-            self.err(pos, format!("no {what} `{name}` accepts the arguments ({})", shown.join(", ")));
+            self.err(
+                pos,
+                format!(
+                    "no {what} `{name}` accepts the arguments ({})",
+                    shown.join(", ")
+                ),
+            );
             return None;
         }
         if apps.len() > 1 {
@@ -696,9 +828,16 @@ impl<'p> Checker<'p> {
                 let with_body: Vec<usize> = best
                     .iter()
                     .copied()
-                    .filter(|i| cands[apps[*i].cand].is_ctor || !self.p.method(cands[apps[*i].cand].callee).is_abstract)
+                    .filter(|i| {
+                        cands[apps[*i].cand].is_ctor
+                            || !self.p.method(cands[apps[*i].cand].callee).is_abstract
+                    })
                     .collect();
-                best = if with_body.is_empty() { vec![best[0]] } else { vec![with_body[0]] };
+                best = if with_body.is_empty() {
+                    vec![best[0]]
+                } else {
+                    vec![with_body[0]]
+                };
             }
             if best.is_empty() {
                 // Section 6.3: among methods a literal fits, the one of its default class.
@@ -706,7 +845,9 @@ impl<'p> Checker<'p> {
                 'apps: for (i, a) in apps.iter().enumerate() {
                     let mut any = false;
                     for (k, arg) in site.args.iter().enumerate() {
-                        let (ArgIn::Ast(e), PreArg::Deferred) = (arg, &pre[k]) else { continue };
+                        let (ArgIn::Ast(e), PreArg::Deferred) = (arg, &pre[k]) else {
+                            continue;
+                        };
                         if !is_literal_expr(e) {
                             continue;
                         }
@@ -758,7 +899,13 @@ impl<'p> Checker<'p> {
         }
         if let Some((from, elem)) = a.spread_from.clone() {
             let rest: Vec<TExpr> = out.split_off(from);
-            out.push(TExpr { kind: TKind::ArrayLit { elem: elem.clone(), elems: rest }, ty: self.p.array_of(elem) });
+            out.push(TExpr {
+                kind: TKind::ArrayLit {
+                    elem: elem.clone(),
+                    elems: rest,
+                },
+                ty: self.p.array_of(elem),
+            });
         }
         out
     }
@@ -766,7 +913,13 @@ impl<'p> Checker<'p> {
     fn check_explicit_targs(&mut self, c: &Cand, a: &Applied, pos: Pos) {
         let mut ms = Subst::new();
         for (i, t) in a.targs.iter().enumerate() {
-            ms.bind(Tv { owner: TvOwner::Method(c.callee), index: i as u32 }, t.clone());
+            ms.bind(
+                Tv {
+                    owner: TvOwner::Method(c.callee),
+                    index: i as u32,
+                },
+                t.clone(),
+            );
         }
         let tparams = self.p.method(c.callee).tparams.clone();
         for (i, tp) in tparams.iter().enumerate() {
@@ -778,13 +931,24 @@ impl<'p> Checker<'p> {
                 let bound = ms.apply(&c.class_subst.apply(bound));
                 if !self.p.is_subtype(t, &bound) {
                     let (x, y) = (self.show(t), self.show(&bound));
-                    self.err(pos, format!("`{x}` is not within the bound `{y}` of the type parameter `{}`", tp.name));
+                    self.err(
+                        pos,
+                        format!(
+                            "`{x}` is not within the bound `{y}` of the type parameter `{}`",
+                            tp.name
+                        ),
+                    );
                 }
             }
             for tag in &tp.tags {
                 if !decl::carries_tag(self.p, t, *tag) {
                     let (x, y) = (self.show(t), self.p.class(*tag).name.clone());
-                    self.err(pos, format!("`{x}` does not carry the tag `@{y}` that the type parameter requires"));
+                    self.err(
+                        pos,
+                        format!(
+                            "`{x}` does not carry the tag `@{y}` that the type parameter requires"
+                        ),
+                    );
                 }
             }
         }
@@ -799,7 +963,10 @@ impl<'p> Checker<'p> {
                 }
             }
         }
-        TExpr { kind: TKind::Null, ty: Type::error() }
+        TExpr {
+            kind: TKind::Null,
+            ty: Type::error(),
+        }
     }
 
     fn class_args(&mut self, recv: &Type, class: ClassId) -> Vec<Arg> {
@@ -817,14 +984,28 @@ impl<'p> Checker<'p> {
         if recv.ty.is_error() {
             return self.fail(site);
         }
-        let recv_ty = if recv.ty.is_null_literal() { self.p.object().nullable() } else { self.capture(&recv.ty) };
-        let recv = if recv_ty == recv.ty { recv } else { TExpr { kind: TKind::Coerce(Box::new(recv)), ty: recv_ty.clone() } };
+        let recv_ty = if recv.ty.is_null_literal() {
+            self.p.object().nullable()
+        } else {
+            self.capture(&recv.ty)
+        };
+        let recv = if recv_ty == recv.ty {
+            recv
+        } else {
+            TExpr {
+                kind: TKind::Coerce(Box::new(recv)),
+                ty: recv_ty.clone(),
+            }
+        };
         let mut cands = self.method_candidates(&recv_ty, name);
         cands.retain(|(m, _)| !self.p.method(*m).is_static);
         if cands.is_empty() {
             let s = self.show(&recv_ty);
             match site.operator {
-                Some(op) => self.err(pos, format!("`{op}` is the method `{name}`, and `{s}` has no method `{name}`")),
+                Some(op) => self.err(
+                    pos,
+                    format!("`{op}` is the method `{name}`, and `{s}` has no method `{name}`"),
+                ),
                 None => self.err(pos, format!("`{s}` has no method named `{name}`")),
             }
             return self.fail(site);
@@ -838,35 +1019,62 @@ impl<'p> Checker<'p> {
             }
         }
         self.drop_overridden(&mut cands);
-        let Some(cands) = self.accessible_methods(cands, Some(&recv_ty), name, pos) else { return self.fail(site) };
+        let Some(cands) = self.accessible_methods(cands, Some(&recv_ty), name, pos) else {
+            return self.fail(site);
+        };
         let cs: Vec<Cand> = cands.iter().map(|(m, s)| self.method_cand(*m, s)).collect();
         let pre = self.precheck(&site);
-        let Some(app) = self.resolve_call(name, "method", &cs, &site, &pre) else { return TExpr { kind: TKind::Null, ty: Type::error() } };
+        let Some(app) = self.resolve_call(name, "method", &cs, &site, &pre) else {
+            return TExpr {
+                kind: TKind::Null,
+                ty: Type::error(),
+            };
+        };
         let c = cs[app.cand].clone();
         self.finish_method(Some(recv), c, app, site, pre, false)
     }
 
-    fn finish_method(&mut self, recv: Option<TExpr>, c: Cand, app: Applied, site: CallSite, pre: Vec<PreArg>, is_super: bool) -> TExpr {
+    fn finish_method(
+        &mut self,
+        recv: Option<TExpr>,
+        c: Cand,
+        app: Applied,
+        site: CallSite,
+        pre: Vec<PreArg>,
+        is_super: bool,
+    ) -> TExpr {
         let pos = site.pos;
         if site.targs.is_some() {
             self.check_explicit_targs(&c, &app, pos);
         }
         let mut m = c.callee;
         let md = self.p.method(m);
-        let (name, recv_nullable, recv_quals, deprecated, is_static) =
-            (md.name.clone(), md.recv_nullable, md.recv_quals.clone(), md.deprecated.clone(), md.is_static);
+        let (name, recv_nullable, recv_quals, deprecated, is_static) = (
+            md.name.clone(),
+            md.recv_nullable,
+            md.recv_quals.clone(),
+            md.deprecated.clone(),
+            md.is_static,
+        );
         let mut is_virtual = md.is_virtual(self.p.class(m.class).is_interface());
         self.deprecation(m.class, &format!("the method `{name}`"), &deprecated, pos);
         if let Some(r) = &recv {
             // The receiver's type is a subtype of the method's receiver type (section 8.4).
-            let want = Type { ty: r.ty.ty.clone(), nullable: recv_nullable || r.ty.nullable, quals: recv_quals.clone() };
+            let want = Type {
+                ty: r.ty.ty.clone(),
+                nullable: recv_nullable || r.ty.nullable,
+                quals: recv_quals.clone(),
+            };
             let mut have = r.ty.clone();
             if recv_nullable {
                 have.nullable = want.nullable;
             }
             if !self.p.is_subtype(&have, &want) {
                 let (x, y) = (self.show(&r.ty), self.show(&want));
-                self.err(pos, format!("`{name}` is sent to a `{x}`, and its receiver is declared `{y}`"));
+                self.err(
+                    pos,
+                    format!("`{name}` is sent to a `{x}`, and its receiver is declared `{y}`"),
+                );
             }
         }
         let args = self.finish_args(&app, site, pre);
@@ -892,8 +1100,18 @@ impl<'p> Checker<'p> {
         }
         let _ = (is_virtual, is_static);
         let ty = self.project(&app.ret);
-        let call = Call { recv, method: m, class_args, targs: app.targs, args, dispatch };
-        let e = TExpr { kind: TKind::Call(Box::new(call)), ty };
+        let call = Call {
+            recv,
+            method: m,
+            class_args,
+            targs: app.targs,
+            args,
+            dispatch,
+        };
+        let e = TExpr {
+            kind: TKind::Call(Box::new(call)),
+            ty,
+        };
         self.fold(e, pos)
     }
 
@@ -902,7 +1120,17 @@ impl<'p> Checker<'p> {
         let pos = site.pos;
         let cname = self.p.class(class).name.clone();
         let n = self.p.class(class).tparams.len();
-        let own = Type::class(class, (0..n).map(|i| Arg::Ty(Type::var(Tv { owner: TvOwner::Class(class), index: i as u32 }))).collect());
+        let own = Type::class(
+            class,
+            (0..n)
+                .map(|i| {
+                    Arg::Ty(Type::var(Tv {
+                        owner: TvOwner::Class(class),
+                        index: i as u32,
+                    }))
+                })
+                .collect(),
+        );
         let all = self.method_candidates(&own, name);
         let mut cands = all.clone();
         cands.retain(|(m, _)| {
@@ -910,19 +1138,38 @@ impl<'p> Checker<'p> {
             md.is_static && !md.static_requirement
         });
         if cands.is_empty() {
-            if all.iter().any(|(m, _)| self.p.method(*m).static_requirement) {
+            if all
+                .iter()
+                .any(|(m, _)| self.p.method(*m).static_requirement)
+            {
                 self.err(pos, format!("`{name}` is a static requirement of `{cname}`; it is called through a type parameter, not on the interface"));
             } else if all.is_empty() {
-                self.err(pos, format!("`{cname}` has no static method named `{name}`"));
+                self.err(
+                    pos,
+                    format!("`{cname}` has no static method named `{name}`"),
+                );
             } else {
-                self.err(pos, format!("`{name}` is an instance method of `{cname}` and is called on a value"));
+                self.err(
+                    pos,
+                    format!("`{name}` is an instance method of `{cname}` and is called on a value"),
+                );
             }
             return self.fail(site);
         }
-        let Some(cands) = self.accessible_methods(cands, None, name, pos) else { return self.fail(site) };
-        let cs: Vec<Cand> = cands.iter().map(|(m, _)| self.method_cand(*m, &Subst::new())).collect();
+        let Some(cands) = self.accessible_methods(cands, None, name, pos) else {
+            return self.fail(site);
+        };
+        let cs: Vec<Cand> = cands
+            .iter()
+            .map(|(m, _)| self.method_cand(*m, &Subst::new()))
+            .collect();
         let pre = self.precheck(&site);
-        let Some(app) = self.resolve_call(name, "method", &cs, &site, &pre) else { return TExpr { kind: TKind::Null, ty: Type::error() } };
+        let Some(app) = self.resolve_call(name, "method", &cs, &site, &pre) else {
+            return TExpr {
+                kind: TKind::Null,
+                ty: Type::error(),
+            };
+        };
         let c = cs[app.cand].clone();
         self.finish_method(None, c, app, site, pre, false)
     }
@@ -940,11 +1187,19 @@ impl<'p> Checker<'p> {
         }
         let cs: Vec<Cand> = cands.iter().map(|(m, s)| self.method_cand(*m, s)).collect();
         let pre = self.precheck(&site);
-        let Some(app) = self.resolve_call(name, "method", &cs, &site, &pre) else { return TExpr { kind: TKind::Null, ty: Type::error() } };
+        let Some(app) = self.resolve_call(name, "method", &cs, &site, &pre) else {
+            return TExpr {
+                kind: TKind::Null,
+                ty: Type::error(),
+            };
+        };
         let method = cs[app.cand].callee;
         let ty = app.ret.clone();
         let args = self.finish_args(&app, site, pre);
-        TExpr { kind: TKind::StaticReq { on, method, args }, ty }
+        TExpr {
+            kind: TKind::StaticReq { on, method, args },
+            ty,
+        }
     }
 
     /// `name(args)`: a method of the enclosing class.
@@ -959,10 +1214,17 @@ impl<'p> Checker<'p> {
             return self.fail(site);
         }
         self.drop_overridden(&mut cands);
-        let Some(cands) = self.accessible_methods(cands, Some(&own), name, pos) else { return self.fail(site) };
+        let Some(cands) = self.accessible_methods(cands, Some(&own), name, pos) else {
+            return self.fail(site);
+        };
         let cs: Vec<Cand> = cands.iter().map(|(m, s)| self.method_cand(*m, s)).collect();
         let pre = self.precheck(&site);
-        let Some(app) = self.resolve_call(name, "method", &cs, &site, &pre) else { return TExpr { kind: TKind::Null, ty: Type::error() } };
+        let Some(app) = self.resolve_call(name, "method", &cs, &site, &pre) else {
+            return TExpr {
+                kind: TKind::Null,
+                ty: Type::error(),
+            };
+        };
         let c = cs[app.cand].clone();
         if self.p.method(c.callee).is_static {
             return self.finish_method(None, c, app, site, pre, false);
@@ -1004,26 +1266,41 @@ impl<'p> Checker<'p> {
             self.err(pos, format!("`{s}` has no method named `{name}`"));
             return self.fail(site);
         }
-        let Some(cands) = self.accessible_methods(cands, None, name, pos) else { return self.fail(site) };
+        let Some(cands) = self.accessible_methods(cands, None, name, pos) else {
+            return self.fail(site);
+        };
         let cs: Vec<Cand> = cands.iter().map(|(m, s)| self.method_cand(*m, s)).collect();
         let pre = self.precheck(&site);
-        let Some(app) = self.resolve_call(name, "method", &cs, &site, &pre) else { return TExpr { kind: TKind::Null, ty: Type::error() } };
+        let Some(app) = self.resolve_call(name, "method", &cs, &site, &pre) else {
+            return TExpr {
+                kind: TKind::Null,
+                ty: Type::error(),
+            };
+        };
         let c = cs[app.cand].clone();
         if self.p.method(c.callee).is_abstract {
-            return self.error_expr(pos, format!("`super.{name}` names an abstract method, which has no body to run"));
+            return self.error_expr(
+                pos,
+                format!("`super.{name}` names an abstract method, which has no body to run"),
+            );
         }
         self.finish_method(Some(this), c, app, site, pre, true)
     }
 
     fn ctor_cands(&mut self, ty: &Type) -> Vec<Cand> {
-        let Ty::Class(cid, args) = &ty.ty else { return Vec::new() };
+        let Ty::Class(cid, args) = &ty.ty else {
+            return Vec::new();
+        };
         let s = Subst::for_class(*cid, args);
         let c = self.p.class(*cid);
         c.ctors
             .iter()
             .enumerate()
             .map(|(i, k)| Cand {
-                callee: MethodRef { class: *cid, index: i as u32 },
+                callee: MethodRef {
+                    class: *cid,
+                    index: i as u32,
+                },
                 is_ctor: true,
                 class_subst: s.clone(),
                 params: k.params.iter().map(|p| s.apply(&p.ty)).collect(),
@@ -1034,7 +1311,12 @@ impl<'p> Checker<'p> {
             .collect()
     }
 
-    fn resolve_ctor(&mut self, ty: &Type, site: CallSite, check_access: bool) -> Option<(MethodRef, Vec<TExpr>)> {
+    fn resolve_ctor(
+        &mut self,
+        ty: &Type,
+        site: CallSite,
+        check_access: bool,
+    ) -> Option<(MethodRef, Vec<TExpr>)> {
         let pos = site.pos;
         let cid = ty.class_id()?;
         let cname = self.p.class(cid).name.clone();
@@ -1051,7 +1333,10 @@ impl<'p> Checker<'p> {
             }
             cs = kept;
             if cs.is_empty() && before > 0 {
-                self.err(pos, format!("the constructor of `{cname}` is outside its audience here"));
+                self.err(
+                    pos,
+                    format!("the constructor of `{cname}` is outside its audience here"),
+                );
                 self.fail(site);
                 return None;
             }
@@ -1064,7 +1349,9 @@ impl<'p> Checker<'p> {
         let pre = self.precheck(&site);
         let app = self.resolve_call(&cname, "constructor", &cs, &site, &pre)?;
         let ctor = cs[app.cand].callee;
-        let dep = self.p.class(cid).ctors[ctor.index as usize].deprecated.clone();
+        let dep = self.p.class(cid).ctors[ctor.index as usize]
+            .deprecated
+            .clone();
         self.deprecation(cid, &format!("this constructor of `{cname}`"), &dep, pos);
         let args = self.finish_args(&app, site, pre);
         Some((ctor, args))
@@ -1073,8 +1360,14 @@ impl<'p> Checker<'p> {
     /// `new C<..>(args)`.
     pub fn construct(&mut self, ty: Type, site: CallSite) -> TExpr {
         match self.resolve_ctor(&ty, site, true) {
-            Some((ctor, args)) => TExpr { kind: TKind::New { ctor, args }, ty },
-            None => TExpr { kind: TKind::Null, ty: Type::error() },
+            Some((ctor, args)) => TExpr {
+                kind: TKind::New { ctor, args },
+                ty,
+            },
+            None => TExpr {
+                kind: TKind::Null,
+                ty: Type::error(),
+            },
         }
     }
 
@@ -1099,7 +1392,9 @@ impl<'p> Checker<'p> {
     /// The one abstract method of a functional interface (section 4.8), with the
     /// substitution that reads its signature through the type.
     pub fn functional_method(&mut self, t: &Type) -> Option<(MethodRef, Subst)> {
-        let Ty::Class(id, args) = &t.ty else { return None };
+        let Ty::Class(id, args) = &t.ty else {
+            return None;
+        };
         if !self.p.class(*id).is_interface() || t.has_wildcard_arg() {
             return None;
         }
@@ -1111,12 +1406,17 @@ impl<'p> Checker<'p> {
         let mut abstracts: Vec<(MethodRef, Subst)> = Vec::new();
         let mut bodies: Vec<MethodRef> = Vec::new();
         for ty in &types {
-            let Ty::Class(cid, cargs) = &ty.ty else { continue };
+            let Ty::Class(cid, cargs) = &ty.ty else {
+                continue;
+            };
             if *cid == self.p.wk.object {
                 continue;
             }
             for (i, m) in self.p.class(*cid).methods.iter().enumerate() {
-                let mref = MethodRef { class: *cid, index: i as u32 };
+                let mref = MethodRef {
+                    class: *cid,
+                    index: i as u32,
+                };
                 if m.static_requirement {
                     return None;
                 }
@@ -1130,8 +1430,15 @@ impl<'p> Checker<'p> {
                 }
             }
         }
-        let all: Vec<MethodRef> = abstracts.iter().map(|(m, _)| *m).chain(bodies.iter().copied()).collect();
-        abstracts.retain(|(f, _)| !all.iter().any(|g| g != f && self.p.method(*g).overrides.contains(f)));
+        let all: Vec<MethodRef> = abstracts
+            .iter()
+            .map(|(m, _)| *m)
+            .chain(bodies.iter().copied())
+            .collect();
+        abstracts.retain(|(f, _)| {
+            !all.iter()
+                .any(|g| g != f && self.p.method(*g).overrides.contains(f))
+        });
         if abstracts.len() == 1 {
             abstracts.pop()
         } else {

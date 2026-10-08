@@ -17,10 +17,9 @@ path = "src/lib.rs"
 
 [dependencies]
 cleatrt = { path = "rt" }
-num-bigint = "0.4"
-num-rational = "0.4"
-num-traits = "0.2"
-num-integer = "0.1"
+num-bigint = "0.4.8"
+num-rational = "0.4.2"
+num-traits = "0.2.19"
 
 # The runtime is linked into every compiled program, so it is optimized even in a
 # development build.

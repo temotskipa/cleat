@@ -1659,7 +1659,7 @@ pub fn same_signature(p: &mut Program, m: MethodRef, n: MethodRef, n_class_subst
     }
     for (a, b) in mm.params.iter().zip(nn.params.iter()) {
         let bt = s.apply(&b.ty);
-        if a.ty != bt && !(p.same_type(&a.ty, &bt)) {
+        if a.ty != bt && !p.same_type(&a.ty, &bt) {
             return None;
         }
     }
