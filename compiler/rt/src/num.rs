@@ -15,12 +15,17 @@ pub enum Num {
 }
 
 unsafe fn fail(ctx: *mut Ctx, n: &Num, class: &str) {
-    let shown = match n {
-        Num::I(v) => v.to_string(),
-        Num::F32(f) => crate::object::show_float(*f as f64),
-        Num::F64(f) => crate::object::show_float(*f),
-    };
-    unsafe { raise(ctx, X_ARITHMETIC, &format!("{shown} is not a value of {class}")) }
+    unsafe {
+        let shown = match n {
+            Num::I(v) => Some(v.to_string()),
+            Num::F32(f) => crate::object::machine_text(ctx, K_F32, f.to_bits() as u64),
+            Num::F64(f) => crate::object::machine_text(ctx, K_F64, f.to_bits()),
+        };
+        // Without a text, printing the float raised, and that exception stands.
+        if let Some(shown) = shown {
+            raise(ctx, X_ARITHMETIC, &format!("{shown} is not a value of {class}"));
+        }
+    }
 }
 
 /// The integer a number equals, when it equals one.

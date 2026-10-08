@@ -32,10 +32,10 @@ const INTRINSICS: &[(&str, &str, &[&str])] = &[
     ("UInt32", "As Int8.", &["wrapping(Int)", "from(Int)"]),
     (
         "Float64",
-        "The operations of IEEE 754, each one instruction or one library routine. Printing and reading decimal digits are whole algorithms, still in the runtime. An Int and a UInt64 convert in one step, because two steps would round twice.",
+        "The operations of IEEE 754, each one instruction or one library routine. An Int and a UInt64 convert in one step, because two steps would round twice.",
         &[
             "plus(Float64)", "minus(Float64)", "times(Float64)", "div(Float64)", "negate()", "lessThan(Float64)", "atMost(Float64)", "totalOrder(Float64)", "floor()", "ceil()", "truncate()", "round()",
-            "sqrt()", "abs()", "toFixed(Int)", "parse(String)", "from(Int)", "from(UInt64)", "from(Float32)", "nearest(Int)", "nearest(UInt64)", "nearest(Float32)",
+            "sqrt()", "abs()", "from(Int)", "from(UInt64)", "from(Float32)", "nearest(Int)", "nearest(UInt64)", "nearest(Float32)",
         ],
     ),
     (
@@ -43,7 +43,7 @@ const INTRINSICS: &[(&str, &str, &[&str])] = &[
         "As Float64.",
         &[
             "plus(Float32)", "minus(Float32)", "times(Float32)", "div(Float32)", "negate()", "lessThan(Float32)", "atMost(Float32)", "totalOrder(Float32)", "floor()", "ceil()", "truncate()", "round()",
-            "sqrt()", "abs()", "toFixed(Int)", "parse(String)", "from(Int)", "from(UInt64)", "from(Float64)", "nearest(Int)", "nearest(UInt64)", "nearest(Float64)",
+            "sqrt()", "abs()", "from(Int)", "from(UInt64)", "from(Float64)", "nearest(Int)", "nearest(UInt64)", "nearest(Float64)",
         ],
     ),
     ("Char", "A scalar and its number, and the tables of Unicode.", &["from(Int)", "code()", "isLetter()", "isDigit()", "isWhitespace()", "toLowerCase()", "toUpperCase()"]),

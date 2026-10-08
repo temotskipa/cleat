@@ -110,12 +110,34 @@ public value class Float64 implements Divisible<Float64>, Ordered<Float64> {
         return this > other ? this : other;
     }
 
-    // The decimal digits of the value rounded to `places` digits after the point.
-    @Intrinsic
-    public String toFixed(Int places);
+    // The shortest digits that read back as the value, with a point and at least one
+    // digit after it, or in exponent form from 1e21 up and below 1e-7. NaN and the
+    // infinities are "NaN", "Infinity" and "-Infinity".
+    @Override
+    public String toString() {
+        var size = abs();
+        return Floats.show(this, 53, -1074, size > 0 && (size >= 1e21 || size < 1e-7));
+    }
 
-    @Intrinsic
-    public static @Nullable Float64 parse(String text);
+    // The decimal digits of the value rounded to `places` digits after the point, ties to
+    // even, after a minus sign when the value is below zero or is -0.0. NaN and the
+    // infinities are written as toString writes them.
+    public String toFixed(Int places) {
+        if (places < 0 || places > 1000) {
+            throw new IllegalArgumentException("" + places + " digits after the point");
+        }
+        if (isNaN() || isInfinite()) {
+            return toString();
+        }
+        var digits = Rational.from(abs()).toDecimal(places);
+        return this < 0 || this == 0 && 1 / this < 0 ? "-" + digits : digits;
+    }
+
+    // A decimal numeral, such as "-1.5", ".5" or "6.02e23", read as the nearest float,
+    // or null when the text is not one.
+    public static @Nullable Float64 parse(String text) {
+        return Floats.parse(text, 53, -1074, 971);
+    }
 
     public static Float64 from(Int8 value) {
         return from(Int.from(value));

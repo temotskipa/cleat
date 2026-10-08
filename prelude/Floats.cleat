@@ -113,4 +113,290 @@ package class Floats {
         }
         return scale(Float64.from(mantissa), e);
     }
+
+    // The text of a float: "NaN", "Infinity" or "-Infinity", or the shortest digits
+    // that read back as the value. Of two candidates as short, the nearer is taken, and
+    // of two as near, the larger. The digits are in exponent form, "1.5e-8", when
+    // `exponential` is true, and otherwise have a point with at least one digit after
+    // it, "100.0", padded with zeros where the digits end before the point.
+    package static String show(Float64 value, Int precision, Int emin, Boolean exponential) {
+        if (value.isNaN()) {
+            return "NaN";
+        }
+        if (value.isInfinite()) {
+            return value > 0 ? "Infinity" : "-Infinity";
+        }
+        var text = new StringBuilder();
+        if (value < 0 || value == 0 && 1 / value < 0) {
+            text.append('-');
+        }
+        var size = value.abs();
+        if (size == 0) {
+            text.append("0.0");
+            return text.toString();
+        }
+        var shortest = shortest(size, precision, emin);
+        var digits = shortest.chars;
+        var count = shortest.count;
+        var point = shortest.point;
+        if (exponential) {
+            text.append(digits[0]);
+            if (count > 1) {
+                text.append('.');
+                for (var i = 1; i < count; i++) {
+                    text.append(digits[i]);
+                }
+            }
+            text.append('e');
+            text.append(point - 1);
+        } else if (point <= 0) {
+            text.append("0.");
+            for (var i = point; i < 0; i++) {
+                text.append('0');
+            }
+            for (var i = 0; i < count; i++) {
+                text.append(digits[i]);
+            }
+        } else if (point < count) {
+            for (var i = 0; i < count; i++) {
+                if (i == point) {
+                    text.append('.');
+                }
+                text.append(digits[i]);
+            }
+        } else {
+            for (var i = 0; i < count; i++) {
+                text.append(digits[i]);
+            }
+            for (var i = count; i < point; i++) {
+                text.append('0');
+            }
+            text.append(".0");
+        }
+        return text.toString();
+    }
+
+    // The shortest digits of a positive finite float that read back as it. This is
+    // Steele and White's method as Rust's core library writes it, `format_shortest` of
+    // its Dragon strategy, so that a float prints as it did when the runtime printed it.
+    private static Digits shortest(Float64 size, Int precision, Int emin) {
+        // Seventeen digits are enough for a Float64, and nine for a Float32.
+        var digits = new Char[precision];
+        var e = exponent(size, precision, emin);
+        var m = Int.from(scale(size, -e));
+        // Every number from (mant - minus) × 2^exp to (mant + plus) × 2^exp reads back as
+        // the value. The neighbour below a power of two is half as far as the one above.
+        // A bound itself reads back as the value when the mantissa is even, and always
+        // when the value is subnormal.
+        var mant = m * 2;
+        var minus = 1;
+        var plus = 1;
+        var exp = e - 1;
+        var inclusive = m % 2 == 0;
+        if (m < 1 << (precision - 1)) {
+            inclusive = true;
+        } else if (m == 1 << (precision - 1)) {
+            mant = m * 4;
+            plus = 2;
+            exp = e - 2;
+        }
+        // An estimate of the power of ten of the upper bound, at most one too small.
+        var bits = 0;
+        for (var rest = mant + plus - 1; rest != 0; rest = rest >> 1) {
+            bits++;
+        }
+        var k = ((bits + exp) * 1292913986) >> 32;
+        // As fractions over `scale`: the value is mant/scale, the lower bound
+        // (mant - minus)/scale and the upper bound (mant + plus)/scale, times 10^k.
+        var v = Natural.ofMagnitude(mant);
+        var low = Natural.ofMagnitude(minus);
+        var high = Natural.ofMagnitude(plus);
+        var scale = Natural.ofMagnitude(1);
+        if (exp < 0) {
+            scale.shiftLeft(-exp);
+        } else {
+            v.shiftLeft(exp);
+            low.shiftLeft(exp);
+            high.shiftLeft(exp);
+        }
+        if (k >= 0) {
+            scale.multiplyByTenTo(k);
+        } else {
+            v.multiplyByTenTo(-k);
+            low.multiplyByTenTo(-k);
+            high.multiplyByTenTo(-k);
+        }
+        if (below(scale, sum(v, high), inclusive)) {
+            k++;
+        } else {
+            v.multiplySmall(10);
+            low.multiplySmall(10);
+            high.multiplySmall(10);
+        }
+        var scale2 = scale.copy();
+        scale2.shiftLeft(1);
+        var scale4 = scale.copy();
+        scale4.shiftLeft(2);
+        var scale8 = scale.copy();
+        scale8.shiftLeft(3);
+        var count = 0;
+        var down = false;
+        var up = false;
+        while (true) {
+            var d = 0;
+            if (v.compare(scale8) >= 0) {
+                v.subtract(scale8);
+                d += 8;
+            }
+            if (v.compare(scale4) >= 0) {
+                v.subtract(scale4);
+                d += 4;
+            }
+            if (v.compare(scale2) >= 0) {
+                v.subtract(scale2);
+                d += 2;
+            }
+            if (v.compare(scale) >= 0) {
+                v.subtract(scale);
+                d += 1;
+            }
+            digits[count] = Char.from(48 + d);
+            count++;
+            // Stop when the digits so far, or they with the last one raised, lie
+            // between the bounds.
+            down = below(v, low, inclusive);
+            up = below(scale, sum(v, high), inclusive);
+            if (down || up) {
+                break;
+            }
+            v.multiplySmall(10);
+            low.multiplySmall(10);
+            high.multiplySmall(10);
+        }
+        // Raise the last digit when only that works, or when it brings the digits
+        // nearer to the value. A tie is raised.
+        if (up && (!down || sum(v, v).compare(scale) >= 0)) {
+            var at = count - 1;
+            while (at >= 0 && digits[at] == '9') {
+                digits[at] = '0';
+                at--;
+            }
+            if (at >= 0) {
+                digits[at] = Char.from(digits[at].code() + 1);
+            } else {
+                // All nines: 99...9 becomes 100...0, one place further left.
+                digits[0] = '1';
+                digits[count] = '0';
+                count++;
+                k++;
+            }
+        }
+        return new Digits(digits, count, k);
+    }
+
+    // A decimal numeral: a sign, digits with a point among or around them, and an
+    // exponent after `e` or `E`, as in "-1.5", ".5", "2." and "6.02e23". The float
+    // nearest to its value, rounded as `nearest` rounds, and with its sign when it is
+    // zero; null when the text is not one.
+    package static @Nullable Float64 parse(String text, Int precision, Int emin, Int emax) {
+        var length = text.length();
+        var at = 0;
+        var negative = false;
+        if (at < length && (text[at] == '-' || text[at] == '+')) {
+            negative = text[at] == '-';
+            at++;
+        }
+        // The digits, as an integer, and the power of ten it is multiplied by.
+        var digits = new Natural(length.floorDiv(9) + 1);
+        var seen = 0;
+        var significant = 0;
+        var power = 0;
+        var point = false;
+        while (at < length && (BigInt.isDigit(text[at]) || text[at] == '.' && !point)) {
+            if (text[at] == '.') {
+                point = true;
+            } else {
+                var digit = text[at].code() - 48;
+                if (significant > 0 || digit != 0) {
+                    significant++;
+                }
+                digits.multiplySmall(10);
+                digits.addSmall(digit);
+                seen++;
+                if (point) {
+                    power--;
+                }
+            }
+            at++;
+        }
+        if (seen == 0) {
+            return null;
+        }
+        if (at < length && (text[at] == 'e' || text[at] == 'E')) {
+            at++;
+            var down = false;
+            if (at < length && (text[at] == '-' || text[at] == '+')) {
+                down = text[at] == '-';
+                at++;
+            }
+            var exponent = 0;
+            var count = 0;
+            while (at < length && BigInt.isDigit(text[at])) {
+                // Past a billion the value is zero or infinite in any case.
+                if (exponent < 1000000000) {
+                    exponent = exponent * 10 + text[at].code() - 48;
+                }
+                count++;
+                at++;
+            }
+            if (count == 0) {
+                return null;
+            }
+            power += down ? -exponent : exponent;
+        }
+        if (at != length) {
+            return null;
+        }
+        // The value is below 10^(power + significant) and at least a tenth of that, so
+        // past 10^400 it is infinite, and below 10^-400 it is zero, for either class.
+        Float64 size = 0.0;
+        if (significant > 0 && power + significant > 400) {
+            size = 1.0 / 0.0;
+        } else if (significant > 0 && power + significant >= -400) {
+            var denominator = Natural.ofMagnitude(1);
+            if (power >= 0) {
+                digits.multiplyByTenTo(power);
+            } else {
+                denominator.multiplyByTenTo(-power);
+            }
+            size = nearest(digits, denominator, precision, emin, emax);
+        }
+        return negative ? -size : size;
+    }
+
+    // a < b, or a <= b when `inclusive`.
+    private static Boolean below(Natural a, Natural b, Boolean inclusive) {
+        var order = a.compare(b);
+        return inclusive ? order <= 0 : order < 0;
+    }
+
+    private static Natural sum(Natural a, Natural b) {
+        var total = a.copy();
+        total.add(b);
+        return total;
+    }
+}
+
+// Decimal digits and where the point goes: the value is 0.d1 d2 ... dn × 10^point, where
+// d1 to dn are the first `count` of `chars`.
+class Digits {
+    package Char[] chars;
+    package Int count;
+    package Int point;
+
+    package Digits(Char[] chars, Int count, Int point) {
+        this.chars = chars;
+        this.count = count;
+        this.point = point;
+    }
 }

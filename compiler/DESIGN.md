@@ -26,6 +26,9 @@ source, and nothing calls them.
   at call and field boundaries by the declared type of the member).
 - `Unit` is no value at all in a result; where one is needed as an object it is the
   runtime's one `Unit` object.
+- A float's digits are written in the language. Where the runtime prints a value class
+  with a float field, or a conversion's message names a float, it boxes the float and
+  sends it `toString`.
 - `Rational` is an ordinary value class of the prelude, over its `BigInt`. A literal of
   it is made the first time it is evaluated, by the prelude's `Rational.literal` from the
   text `numerator/denominator`, and kept in a global (`@rat.N`) that the collector marks.

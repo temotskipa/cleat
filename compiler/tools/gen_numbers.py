@@ -9,7 +9,8 @@ written in the language:
 - The narrower integer classes have no arithmetic of their own. Each computes in `Int`
   and converts back, and the conversion raises when the result does not fit.
 - The float classes have IEEE 754 arithmetic, rounding, and their conversions between
-  machine numbers. Their conversions from `Rational` round in `Floats`.
+  machine numbers. Their conversions from `Rational`, their digits and their reading
+  are written once in `Floats`.
 - `Rational` is a numerator and a denominator of the prelude's `BigInt`.
 
 Run from the repository root: python compiler/tools/gen_numbers.py
@@ -487,13 +488,39 @@ FLOAT = """    @Override
         return this > other ? this : other;
     }}
 
-    // The decimal digits of the value rounded to `places` digits after the point.
-    @Intrinsic
-    public String toFixed(Int places);
+    // The shortest digits that read back as the value, with a point and at least one
+    // digit after it, or in exponent form from 1e21 up and below 1e-7. NaN and the
+    // infinities are "NaN", "Infinity" and "-Infinity".
+    @Override
+    public String toString() {{
+        var size = abs();
+        return Floats.show({wide}, {precision}, {emin}, size > 0 && (size >= 1e21 || size < 1e-7));
+    }}
 
-    @Intrinsic
-    public static @Nullable {n} parse(String text);
+    // The decimal digits of the value rounded to `places` digits after the point, ties to
+    // even, after a minus sign when the value is below zero or is -0.0. NaN and the
+    // infinities are written as toString writes them.
+    public String toFixed(Int places) {{
+        if (places < 0 || places > 1000) {{
+            throw new IllegalArgumentException("" + places + " digits after the point");
+        }}
+        if (isNaN() || isInfinite()) {{
+            return toString();
+        }}
+        var digits = Rational.from(abs()).toDecimal(places);
+        return this < 0 || this == 0 && 1 / this < 0 ? "-" + digits : digits;
+    }}
+
+    // A decimal numeral, such as "-1.5", ".5" or "6.02e23", read as the nearest float,
+    // or null when the text is not one.
+    public static @Nullable {n} parse(String text) {{
+        {parse}
+    }}
 """
+
+# What Floats is told about each float class: its precision, and the exponents of its
+# least and greatest lowest bit.
+FLOAT_SHAPE = {"Float64": (53, -1074, 971), "Float32": (24, -149, 104)}
 
 RATIONAL = """    // The value in lowest terms: the denominator is above zero, and no integer above one
     // divides both. Each value has one form, so the defaults of a value class compare
@@ -750,7 +777,16 @@ for name in FLOATS:
         name,
         f"public value class {name} implements Divisible<{name}>, Ordered<{name}> {{\n"
         f"    private {name} {{\n    }}\n\n"
-        + FLOAT.format(n=name, zero_and_one=ZERO_AND_ONE.format(n=name))
+        + FLOAT.format(
+            n=name,
+            zero_and_one=ZERO_AND_ONE.format(n=name),
+            wide="this" if name == "Float64" else "Float64.from(this)",
+            precision=FLOAT_SHAPE[name][0],
+            emin=FLOAT_SHAPE[name][1],
+            parse="return Floats.parse(text, 53, -1074, 971);"
+            if name == "Float64"
+            else "var wide = Floats.parse(text, 24, -149, 104);\n        return wide == null ? null : from(wide);",
+        )
         + "\n"
         + conversions(name, "from", machine)
         + "\n"

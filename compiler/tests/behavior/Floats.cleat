@@ -1,0 +1,61 @@
+// The digits of the float classes, written in the language (chapter 6, and the
+// prelude's list in design/foundations.md): the shortest digits that read back as the
+// value, toFixed, and reading a numeral.
+package t;
+
+value class Reading {
+    public Float64 wide;
+    public Float32 narrow;
+}
+
+public class Floats {
+    static String attempt(Function0<Object> body) {
+        try {
+            return "" + body.invoke();
+        } catch (ArithmeticException e) {
+            return "raised: " + e.message();
+        } catch (IllegalArgumentException e) {
+            return "rejected: " + e.message();
+        }
+    }
+
+    static Float64 wide(String text) {
+        return (Float64) Float64.parse(text);
+    }
+
+    static Float32 narrow(String text) {
+        return (Float32) Float32.parse(text);
+    }
+
+    public static void main() {
+        // The shortest digits, with a point and a digit after it.
+        for (String text : "0.1 0.30000000000000004 100 1.5 -2.25 123456.789 1e15 1e16 9007199254740993 1152921504606846976 1125899906842624.25 0.000001".split(" ")) {
+            Console.println(text + " -> " + wide(text));
+        }
+        // Exponent form from 1e21 up and below 1e-7.
+        for (String text : "1e21 9.999999999999999e20 1e-7 9.999999999999999e-8 -1.5e-8 5e-324 2.2250738585072014e-308 1.7976931348623157e308".split(" ")) {
+            Console.println(text + " -> " + wide(text));
+        }
+        // Float32 is shortest at its own precision.
+        for (String text : "0.1 1e20 16777217 3.4028235e38 1e-45 1.17549435e-38 0.33333334 -7.5".split(" ")) {
+            Console.println(text + " -> " + narrow(text));
+        }
+        Float64 zero = 0.0;
+        Float32 small = 0.0;
+        Console.println("" + (zero / zero) + " " + (1 / zero) + " " + (-1 / zero) + " " + (-zero) + " " + (1 / small) + " " + (-small));
+
+        // toFixed rounds the exact value, ties to even, and keeps the sign.
+        Console.println(wide("2.5").toFixed(0) + " " + wide("3.5").toFixed(0) + " " + wide("0.125").toFixed(2) + " " + wide("0.375").toFixed(2) + " " + wide("2.0005").toFixed(3) + " " + wide("-0.001").toFixed(2) + " " + (-zero).toFixed(1));
+        Console.println(wide("1e21").toFixed(2) + " " + wide("0.1").toFixed(20) + " " + narrow("0.1").toFixed(10) + " " + (1 / zero).toFixed(2) + " " + (zero / zero).toFixed(2));
+        Console.println(attempt(() -> wide("1.5").toFixed(-1)) + " | " + attempt(() -> wide("1.5").toFixed(1001)));
+
+        // Reading: the nearest float, or null.
+        for (String text : "1.5 .5 5. -0 +2e3 1E-3 6.02e23 1e400 -1e400 1e-400 -1e-400 2.4703282292062328e-324 2.4703282292062327e-324 . e5 1e 1e+ 1.2.3 --1 inf NaN 1_0".split(" ")) {
+            Console.println("[" + text + "] " + Float64.parse(text) + " " + Float32.parse(text));
+        }
+
+        // A value class's float fields, and an exception's message, use the same digits.
+        Console.println(new Reading(wide("1152921504606846976"), narrow("0.1")));
+        Console.println(attempt(() -> Int.from(wide("1.5"))) + " | " + attempt(() -> Int.from(wide("1e300"))) + " | " + attempt(() -> Rational.from(zero / zero)));
+    }
+}

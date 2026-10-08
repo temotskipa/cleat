@@ -42,6 +42,7 @@ cases![
     members => "Members",
     widths => "Widths",
     rationals => "Rationals",
+    floats => "Floats",
     rules => "Rules",
     sentences_01 => "Sentences01",
     sentences_02 => "Sentences02",

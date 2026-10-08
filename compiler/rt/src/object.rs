@@ -408,20 +408,7 @@ pub unsafe extern "C" fn cl_Object_hashCode(ctx: *mut Ctx, a: Obj) -> i64 {
     }
 }
 
-pub fn show_float(f: f64) -> String {
-    if f.is_nan() {
-        "NaN".into()
-    } else if f.is_infinite() {
-        if f > 0.0 { "Infinity".into() } else { "-Infinity".into() }
-    } else if f != 0.0 && (f.abs() >= 1e21 || f.abs() < 1e-7) {
-        format!("{f:e}")
-    } else if f == f.trunc() {
-        format!("{f:.1}")
-    } else {
-        format!("{f}")
-    }
-}
-
+/// The text of a machine number other than a float.
 pub fn show_machine(kind: u32, x: u64) -> String {
     match kind {
         K_I8 => (x as i8).to_string(),
@@ -429,22 +416,29 @@ pub fn show_machine(kind: u32, x: u64) -> String {
         K_I32 => (x as i32).to_string(),
         K_I64 => (x as i64).to_string(),
         K_U8 | K_U16 | K_U32 | K_U64 => x.to_string(),
-        K_F32 => {
-            let f = f32::from_bits(x as u32);
-            if f.is_finite() && f != 0.0 && (f.abs() >= 1e21 || f.abs() < 1e-7) {
-                format!("{f:e}")
-            } else if f.is_finite() && f == f.trunc() {
-                format!("{f:.1}")
-            } else if f.is_finite() {
-                format!("{f}")
-            } else {
-                show_float(f as f64)
-            }
-        }
-        K_F64 => show_float(f64::from_bits(x)),
         K_BOOL => if x != 0 { "true".into() } else { "false".into() },
         K_CHAR => char::from_u32(x as u32).unwrap_or('\u{FFFD}').to_string(),
         _ => format!("Pointer({x:#x})"),
+    }
+}
+
+/// The `toString` of a machine value. A float's is written in the language, so a float
+/// is boxed and asked. `None` when that raised.
+pub unsafe fn machine_text(ctx: *mut Ctx, kind: u32, x: u64) -> Option<String> {
+    unsafe {
+        if kind != K_F32 && kind != K_F64 {
+            return Some(show_machine(kind, x));
+        }
+        let boxed = cl_box(ctx, kind, x);
+        if boxed.is_null() {
+            return None;
+        }
+        let _t = Temp::new(ctx, boxed);
+        let t = v_to_string(ctx, boxed);
+        if !(*ctx).exc.is_null() || t.is_null() {
+            return None;
+        }
+        Some(to_rust(t))
     }
 }
 
@@ -456,7 +450,10 @@ pub unsafe extern "C" fn cl_Object_toString(ctx: *mut Ctx, a: Obj) -> Obj {
         }
         let c = class_of(a);
         match c.kind {
-            k if is_machine(k) => new_str(ctx, &show_machine(k, bits(a))),
+            k if is_machine(k) => match machine_text(ctx, k, bits(a)) {
+                Some(text) => new_str(ctx, &text),
+                None => std::ptr::null_mut(),
+            },
             K_STRING => a,
             K_CLASS => new_str(ctx, (**at::<Td>(a, BODY)).name()),
             _ if c.is(F_LAMBDA) => new_str(ctx, &format!("{}@{:x}", c.name(), a as usize >> 4)),
@@ -474,7 +471,10 @@ pub unsafe extern "C" fn cl_Object_toString(ctx: *mut Ctx, a: Obj) -> Obj {
                         }
                         s.push_str(&to_rust(t));
                     } else {
-                        s.push_str(&show_machine(f.kind, load_field(a, f)));
+                        match machine_text(ctx, f.kind, load_field(a, f)) {
+                            Some(text) => s.push_str(&text),
+                            None => return std::ptr::null_mut(),
+                        }
                     }
                 }
                 s.push(')');
