@@ -120,6 +120,9 @@ fn methods_and_members_follow_their_modifier_rules() {
 #[test]
 fn audiences_follow_chapter_3() {
     rejected("private class A { }", "a type is");
+    rejected_files(&[("A.cleat", "public class A { public void f(Hidden h) { } } class Hidden { }")], "Hidden");
+    rejected_files(&[("A.cleat", "public class A { public Hidden h = new Hidden(); } class Hidden { }")], "Hidden");
+    accepted("public class T { Hidden h = new Hidden(); public T() { } package void f(Mid m) { } } class Hidden { } package class Mid { }");
     rejected("protected class A { }", "a type is");
     rejected("class A { private only(B) Int x = 1; } class B { }", "only");
     rejected_files(&[("a/A.cleat", "package a; class Hidden { }"), ("b/B.cleat", "package b; import a.Hidden; class B { }")], "Hidden");
@@ -207,6 +210,7 @@ fn generics_follow_chapter_7() {
     rejected("class A<T extends Int & String> { }", "");
     rejected("interface Out<out T> { } class A { void f(Out<? super Int> o) { } }", "? super");
     rejected("class A<T> { T[] make(Int n) { return new T[n]; } }", "no default");
+    rejected("class A<T> { Class of() { return T.class; } }", "type parameter");
     rejected("class A { void f(List<Int> a, List<String> b) { a = b; } }", "is not assignable");
     accepted("class A<T> { @Nullable T[] make(Int n) { return new @Nullable T[n]; } <R extends Ordered<R>> R pick(R a, R b) { return a < b ? a : b; } }");
     done();

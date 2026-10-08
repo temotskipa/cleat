@@ -413,6 +413,9 @@ impl<'p> Checker<'p> {
                 if ty.nullable || !ty.quals.is_empty() {
                     self.err(pos, "a class literal names a class, without a qualifier");
                 }
+                if matches!(ty.ty, Ty::Var(_)) {
+                    return self.error_expr(pos, "a class literal names a class, not a type parameter");
+                }
                 TExpr { kind: TKind::ClassLit(ty), ty: Type::simple(self.p.wk.class) }
             }
             ExprKind::MethodRef { .. } => self.method_ref(e, expected),

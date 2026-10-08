@@ -63,14 +63,16 @@ struct Plan {
     members: &'static str,
     /// More types in the same file.
     support: &'static str,
+    /// More files of the same package, each with its name.
+    files: &'static [(&'static str, &'static str)],
 }
 
 fn p(kind: Kind) -> Plan {
-    Plan { kind, members: "", support: "" }
+    Plan { kind, members: "", support: "", files: &[] }
 }
 
 fn pm(kind: Kind, members: &'static str, support: &'static str) -> Plan {
-    Plan { kind, members, support }
+    Plan { kind, members, support, files: &[] }
 }
 
 const SHAPES: &str = "interface Shape { } value class Circle implements Shape { public Rational radius; }";
@@ -150,7 +152,13 @@ fn plan(chapter: &str, index: usize) -> Plan {
             CALC,
         ),
         ("09", 2) => pm(Stmts("void", "String path"), "static void process(File input) { }", ""),
-        ("09", 3) => pm(Unit, "", "class Ledger { public void register(Account account) { } }"),
+        // A public constructor names `Ledger`, so `Ledger` is public too, in its own file.
+        ("09", 3) => Plan {
+            kind: Unit,
+            members: "",
+            support: "",
+            files: &[("Ledger.cleat", "package spec; public class Ledger { public void register(Account account) { } }")],
+        },
         ("09", 4) => p(Unit),
         ("09", 5) => p(Sigs("class Fence")),
         ("12", 0) => p(Members("class Fence")),
@@ -265,14 +273,16 @@ fn wrap(plan: &Plan, lines: &[String]) -> Vec<(PathBuf, String)> {
 /// Checks the example and returns, for each diagnostic, the line of the example it is
 /// on and its text. A diagnostic outside the example fails the test.
 fn check(plan: &Plan, lines: &[String], what: &str) -> Vec<(usize, String)> {
-    let files = wrap(plan, lines);
+    let mut files = wrap(plan, lines);
+    let own = files.len();
+    files.extend(plan.files.iter().map(|(n, t)| (PathBuf::from(n), t.to_string())));
     let diags = match analyze_sources(&files) {
         Ok(_) => Vec::new(),
         Err(d) => d,
     };
     let mut out = Vec::new();
     for d in diags {
-        let in_example = files.iter().any(|(f, _)| *f == d.file) && d.line >= 2 && (d.line as usize - 2) < lines.len();
+        let in_example = files[..own].iter().any(|(f, _)| *f == d.file) && d.line >= 2 && (d.line as usize - 2) < lines.len();
         assert!(in_example, "{what}: a diagnostic outside the example: {}:{}:{}: {}", d.file.display(), d.line, d.column, d.message);
         out.push((d.line as usize - 2, d.message));
     }
@@ -328,7 +338,8 @@ fn run(chapter: &str, index: usize) {
     for n in &needed {
         let mut lines = fence.lines.clone();
         lines[*n] = String::new();
-        let files = wrap(&plan, &lines);
+        let mut files = wrap(&plan, &lines);
+        files.extend(plan.files.iter().map(|(n, t)| (PathBuf::from(n), t.to_string())));
         assert!(analyze_sources(&files).is_err(), "{what}: without line {} the example should be rejected, and the checker accepts it", n + 1);
     }
 }

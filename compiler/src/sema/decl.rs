@@ -367,6 +367,89 @@ fn without_qualifiers(t: &Type) -> Type {
     Type { ty, nullable: false, quals: Vec::new() }
 }
 
+/// How far a type can be named: its file, its package, or everywhere.
+fn type_reach(a: Aud) -> u32 {
+    match a {
+        Aud::Private | Aud::File => 1,
+        Aud::Package => 2,
+        Aud::Protected | Aud::Public => 3,
+    }
+}
+
+fn member_reach(a: Aud) -> u32 {
+    match a {
+        Aud::Private => 0,
+        Aud::File => 1,
+        Aud::Package => 2,
+        Aud::Protected | Aud::Public => 3,
+    }
+}
+
+/// The least reach among the classes a type names.
+fn least_reach(p: &Program, t: &Type, least: &mut Option<(u32, ClassId)>) {
+    if let Ty::Class(id, args) = &t.ty {
+        let r = type_reach(p.class(*id).aud);
+        if least.map(|(have, _)| r < have).unwrap_or(true) {
+            *least = Some((r, *id));
+        }
+        for a in args {
+            match a {
+                Arg::Ty(x) => least_reach(p, x, least),
+                Arg::Wild(e, s) => {
+                    if let Some(x) = e {
+                        least_reach(p, x, least);
+                    }
+                    if let Some(x) = s {
+                        least_reach(p, x, least);
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Section 3.2: a declaration does not name, in its signature, a type that the code
+/// which may see the declaration may not name.
+fn signatures_are_nameable(p: &mut Program, id: ClassId) {
+    let c = p.class(id).clone();
+    if c.lambda.is_some() {
+        return;
+    }
+    let own = type_reach(c.aud);
+    let mut bad: Vec<(Pos, String)> = Vec::new();
+    let check = |p: &Program, what: String, reach: u32, types: Vec<&Type>, pos: Pos, bad: &mut Vec<(Pos, String)>| {
+        let mut least = None;
+        for t in types {
+            least_reach(p, t, &mut least);
+        }
+        if let Some((r, hidden)) = least {
+            if r < reach.min(own) {
+                bad.push((pos, format!("{what} can be seen where `{}` cannot be named, and its signature names it", p.class(hidden).name)));
+            }
+        }
+    };
+    let mut supers: Vec<&Type> = c.interfaces.iter().collect();
+    if let Some(s) = &c.superclass {
+        supers.push(s);
+    }
+    check(p, format!("`{}`", c.name), 3, supers, c.pos, &mut bad);
+    for f in &c.fields {
+        check(p, format!("the field `{}`", f.name), member_reach(f.aud), vec![&f.ty], f.pos, &mut bad);
+    }
+    for m in &c.methods {
+        let mut types: Vec<&Type> = m.params.iter().map(|x| &x.ty).collect();
+        types.push(&m.ret);
+        check(p, format!("the method `{}`", m.name), member_reach(m.aud), types, m.pos, &mut bad);
+    }
+    for k in &c.ctors {
+        let types: Vec<&Type> = k.params.iter().map(|x| &x.ty).collect();
+        check(p, "this constructor".to_string(), member_reach(k.aud), types, k.pos, &mut bad);
+    }
+    for (pos, message) in bad {
+        p.error(c.unit, pos, message);
+    }
+}
+
 /// Section 4.4: two methods of one class that share a name differ in a parameter.
 fn overloads_differ(p: &mut Program, id: ClassId) {
     let c = p.class(id).clone();
@@ -1676,6 +1759,7 @@ fn hierarchy(p: &mut Program) {
         variance_checks(p, id);
         overloads_differ(p, id);
         interface_bodies_agree(p, id);
+        signatures_are_nameable(p, id);
     }
 }
 
