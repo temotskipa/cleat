@@ -39,4 +39,6 @@ cases![
     threads => "Threads",
     foreign => "Foreign",
     statics => "Statics",
+    members => "Members",
+    widths => "Widths",
 ];

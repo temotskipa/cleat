@@ -285,6 +285,24 @@ impl<'p> Checker<'p> {
                 let snap = self.snapshot();
                 let is_type = matches!(self.target(x), Target::Type(_));
                 self.restore(snap);
+                if is_type && name == "new" {
+                    // `Type::new`, where the type was read as a name.
+                    fn path(e: &ast::Expr, out: &mut Vec<String>) {
+                        match &e.kind {
+                            ExprKind::Name(n) => out.push(n.clone()),
+                            ExprKind::Field(t, n) => {
+                                path(t, out);
+                                out.push(n.clone());
+                            }
+                            _ => {}
+                        }
+                    }
+                    let mut parts = Vec::new();
+                    path(x, &mut parts);
+                    let ty = ast::TypeRef { annotations: Vec::new(), name: parts, args: None, dims: Vec::new(), pos };
+                    let body = ast::Expr { kind: ExprKind::New { ty, args: (0..n).map(arg).collect() }, pos };
+                    return self.lambda(&lam(body), t);
+                }
                 if is_type {
                     Some((**x).clone())
                 } else {

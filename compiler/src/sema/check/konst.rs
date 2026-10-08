@@ -772,5 +772,35 @@ pub fn evaluate_annotations(p: &mut Program) {
             }
         }
     }
+    // Section 8.7: a type that would inherit two different uses of one tag must write
+    // the annotation itself.
+    fn carried(p: &Program, id: ClassId, tag: ClassId, depth: u32) -> Vec<AnnValue> {
+        if let Some(own) = p.class(id).anns.iter().find(|a| a.class == tag) {
+            return vec![own.clone()];
+        }
+        let mut found: Vec<AnnValue> = Vec::new();
+        if depth < 32 {
+            for sup in p.direct_supers(id) {
+                if let Some(sid) = sup.class_id() {
+                    for v in carried(p, sid, tag, depth + 1) {
+                        if !found.contains(&v) {
+                            found.push(v);
+                        }
+                    }
+                }
+            }
+        }
+        found
+    }
+    let tags: Vec<ClassId> = (0..n).filter(|id| p.class(*id).is_annotation() && p.class(*id).inherited).collect();
+    for id in 0..n {
+        for tag in &tags {
+            if carried(p, id, *tag, 0).len() > 1 {
+                let c = p.class(id);
+                let (unit, pos, name, tname) = (c.unit, c.pos, c.name.clone(), p.class(*tag).name.clone());
+                p.error(unit, pos, format!("`{name}` would inherit two uses of `@{tname}` with different arguments; it writes the annotation itself to choose"));
+            }
+        }
+    }
     let _ = (BigInt::one(), BinOp::Add, BigRational::one().abs());
 }

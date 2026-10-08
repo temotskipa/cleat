@@ -1,0 +1,232 @@
+// What a program's own classes may do: operators, order, arithmetic, iteration,
+// conversion, method references and varargs (chapters 2, 4 and 6).
+package t;
+
+// Its methods give it operators, an order, and the arithmetic of Numeric.
+value class Money implements Numeric<Money>, Ordered<Money> {
+    public Int cents;
+
+    @Override
+    public Money plus(Money other) {
+        return new Money(cents + other.cents);
+    }
+
+    @Override
+    public Money minus(Money other) {
+        return new Money(cents - other.cents);
+    }
+
+    @Override
+    public Money times(Money other) {
+        return new Money(cents * other.cents);
+    }
+
+    @Override
+    public Money negate() {
+        return new Money(-cents);
+    }
+
+    @Override
+    public static Money zero() {
+        return new Money(0);
+    }
+
+    @Override
+    public static Money one() {
+        return new Money(1);
+    }
+
+    @Override
+    public Boolean lessThan(Money other) {
+        return cents < other.cents;
+    }
+
+    @Override
+    public Boolean atMost(Money other) {
+        return cents <= other.cents;
+    }
+
+    @Override
+    public Boolean greaterThan(Money other) {
+        return cents > other.cents;
+    }
+
+    @Override
+    public Boolean atLeast(Money other) {
+        return cents >= other.cents;
+    }
+
+    @Override
+    public Int compare(Money other) {
+        return cents.compare(other.cents);
+    }
+
+    @Implicit
+    public static Money from(Int cents) {
+        return new Money(cents);
+    }
+
+    @Override
+    public String toString() {
+        return "$" + cents.floorDiv(100) + "." + (cents % 100 < 10 ? "0" : "") + cents % 100;
+    }
+}
+
+// `row[i]` and `row[i] = v` are its get and set, and a for statement visits it.
+class Row implements Iterable<Int> {
+    final Int[] cells;
+
+    public Row(Int size) {
+        this.cells = new Int[size];
+    }
+
+    public Int get(Int index) {
+        return cells[index];
+    }
+
+    public void set(Int index, Int value) {
+        cells[index] = value;
+    }
+
+    @Override
+    public Iterator<Int> iterator() {
+        return cells.iterator();
+    }
+}
+
+interface Shape {
+    Float64 area();
+
+    static Shape unit() {
+        return new Sq(1.0);
+    }
+
+    String describe() {
+        return "shape of area " + area().toFixed(1);
+    }
+}
+
+value class Sq implements Shape {
+    public Float64 side;
+
+    @Override
+    public Float64 area() {
+        return side * side;
+    }
+}
+
+class Text {
+    public static Boolean blank(@Nullable String s) {
+        return s == null || s.trim().isEmpty();
+    }
+}
+
+class Label {
+    final String text;
+
+    public Label(String text) {
+        this.text = text;
+    }
+
+    // A final method may take a receiver that is null.
+    public String shown(@Nullable Label this) {
+        if (this == null) {
+            return "(no label)";
+        }
+        return text;
+    }
+
+    @Override
+    public Boolean equals(@Nullable Object other) {
+        return other instanceof Label && text == other.text;
+    }
+
+    @Override
+    public Int hashCode() {
+        return text.hashCode();
+    }
+}
+
+public class Members {
+    static Int sum(Int... values) {
+        var total = 0;
+        for (Int v : values) {
+            total += v;
+        }
+        return total;
+    }
+
+    static <T extends Numeric<T>> T total(Iterable<T> items) {
+        T sum = T.zero();
+        for (T item : items) {
+            sum += item;
+        }
+        return sum;
+    }
+
+    static Function1<Int, Function1<Int, Int>> curried() {
+        return (a) -> (b) -> a * 10 + b;
+    }
+
+    public static void main() {
+        Money price = new Money(1999);
+        Money two = price + price;
+        Console.println(two);
+        Console.println(price < two);
+        Money gift = 500;
+        Console.println(two - gift);
+        var wallet = new List<Money>();
+        wallet.add(price);
+        wallet.add(gift);
+        wallet.add(new Money(1));
+        Console.println(total(wallet));
+        wallet.sort((a, b) -> a.compare(b));
+        Console.println(wallet[0]);
+
+        var row = new Row(3);
+        row[0] = 5;
+        row[1] = row[0] + 1;
+        row[2] += 10;
+        row[1]++;
+        var seen = "";
+        for (Int cell : row) {
+            seen = seen + cell + " ";
+        }
+        Console.println(seen.trim());
+
+        Console.println(sum() + sum(1) + sum(1, 2, 3));
+        Console.println(sum(new Int[] { 4, 5 }));
+
+        Console.println(Shape.unit().describe());
+        Console.println(curried().invoke(4).invoke(2));
+
+        @Nullable Label none = null;
+        Console.println(none.shown());
+        Console.println(new Label("x").shown());
+        var names = new Map<Label, Int>();
+        names[new Label("a")] = 1;
+        names[new Label("a")] = 2;
+        Console.println("" + names.size() + names[new Label("a")]);
+
+        var words = new List<String>();
+        Function1<String, Unit> adder = words::add;
+        adder.invoke("one");
+        adder.invoke("two");
+        Function0<StringBuilder> make = StringBuilder::new;
+        var sb = make.invoke();
+        for (String w : words) {
+            sb.append(w);
+        }
+        Console.println(sb);
+        Function1<String, Boolean> isBlank = Text::blank;
+        Console.println("" + isBlank.invoke("  ") + isBlank.invoke("x"));
+
+        Function0<Unit> nothing = () -> {
+        };
+        Unit u = nothing.invoke();
+        Console.println(u);
+        Object o = new Sq(2.0);
+        Console.println(o);
+        Console.println(o.identical(new Sq(2.0)));
+    }
+}

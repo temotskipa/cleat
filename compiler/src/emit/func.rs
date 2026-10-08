@@ -984,6 +984,9 @@ impl<'a, 'p> Func<'a, 'p> {
                 return self.shim_call(c, &shim, want);
             }
         }
+        if let Some(v) = self.inline_numeric(c, want) {
+            return v;
+        }
         let target = if c.dispatch == Dispatch::Virtual { self.e.root_of(c.method) } else { c.method };
         let sig = self.e.sig(target);
         let recv = match (&c.recv, sig.recv) {
@@ -1054,6 +1057,87 @@ impl<'a, 'p> Func<'a, 'p> {
             self.e.errors.push(format!("internal: the instance method `{}` is called without a receiver", md.name));
         }
         self.finish_call(&callee, &sig, all, want)
+    }
+
+    /// Arithmetic and comparison on machine numbers, in place of a call of the runtime.
+    /// An integer operation that overflows still goes to the runtime, which raises.
+    fn inline_numeric(&mut self, c: &Call, want: Repr) -> Option<Val> {
+        enum Op {
+            Checked(&'static str),
+            Plain(&'static str),
+            Compare(&'static str),
+        }
+        let md = self.e.p.method(c.method);
+        if !md.intrinsic || c.dispatch != Dispatch::Direct || c.args.len() != 1 {
+            return None;
+        }
+        let recv = c.recv.as_ref()?;
+        let r = self.repr(&Type::simple(c.method.class));
+        if !r.is_machine() || matches!(r, Repr::Bool | Repr::Char | Repr::Ptr) {
+            return None;
+        }
+        if self.repr(&recv.ty) != r || self.repr(&c.args[0].ty) != r || self.repr(&md.params[0].ty) != r {
+            return None;
+        }
+        let float = matches!(r, Repr::F32 | Repr::F64);
+        let signed = matches!(r, Repr::I8 | Repr::I16 | Repr::I32 | Repr::I64);
+        let pick = |f: &'static str, s: &'static str, u: &'static str| if float { f } else if signed { s } else { u };
+        let op = match (md.name.as_str(), float) {
+            ("plus", false) => Op::Checked(if signed { "sadd" } else { "uadd" }),
+            ("minus", false) => Op::Checked(if signed { "ssub" } else { "usub" }),
+            ("times", false) => Op::Checked(if signed { "smul" } else { "umul" }),
+            ("plus", true) => Op::Plain("fadd"),
+            ("minus", true) => Op::Plain("fsub"),
+            ("times", true) => Op::Plain("fmul"),
+            ("div", true) => Op::Plain("fdiv"),
+            ("and", false) => Op::Plain("and"),
+            ("or", false) => Op::Plain("or"),
+            ("xor", false) => Op::Plain("xor"),
+            ("wrappingPlus", false) => Op::Plain("add"),
+            ("wrappingMinus", false) => Op::Plain("sub"),
+            ("wrappingTimes", false) => Op::Plain("mul"),
+            ("lessThan", _) => Op::Compare(pick("fcmp olt", "icmp slt", "icmp ult")),
+            ("atMost", _) => Op::Compare(pick("fcmp ole", "icmp sle", "icmp ule")),
+            ("greaterThan", _) => Op::Compare(pick("fcmp ogt", "icmp sgt", "icmp ugt")),
+            ("atLeast", _) => Op::Compare(pick("fcmp oge", "icmp sge", "icmp uge")),
+            _ => return None,
+        };
+        let ty = r.ll();
+        let a = self.expr(recv);
+        let b = self.expr(&c.args[0]);
+        let (a, b) = (self.val(&a), self.val(&b));
+        let (out, repr) = match op {
+            Op::Plain(i) => {
+                let t = self.tmp();
+                self.ins(&format!("{t} = {i} {ty} {a}, {b}"));
+                (t, r)
+            }
+            Op::Compare(i) => {
+                let t = self.tmp();
+                self.ins(&format!("{t} = {i} {ty} {a}, {b}"));
+                (self.bool_of(&t), Repr::Bool)
+            }
+            Op::Checked(i) => {
+                self.e.declare(format!("declare {{ {ty}, i1 }} @llvm.{i}.with.overflow.{ty}({ty}, {ty})"));
+                let pair = self.tmp();
+                self.ins(&format!("{pair} = call {{ {ty}, i1 }} @llvm.{i}.with.overflow.{ty}({ty} {a}, {ty} {b})"));
+                let (v, o) = (self.tmp(), self.tmp());
+                self.ins(&format!("{v} = extractvalue {{ {ty}, i1 }} {pair}, 0"));
+                self.ins(&format!("{o} = extractvalue {{ {ty}, i1 }} {pair}, 1"));
+                let (over, fine) = (self.new_label("overflow"), self.new_label("fits"));
+                self.cond_br(&o, &over, &fine);
+                self.label(&over);
+                // The runtime does the operation again, and raises with its message.
+                let slow = self.e.fn_symbol(c.method);
+                let unused = self.tmp();
+                self.ins(&format!("{unused} = call {ty} {slow}(ptr %ctx, {ty} {a}, {ty} {b})"));
+                let h = self.handler();
+                self.br(&h);
+                self.label(&fine);
+                (v, r)
+            }
+        };
+        Some(self.convert(Val::Imm(repr, out), repr, want))
     }
 
     /// A foreign call that passes a struct: through the C shim, which copies each value

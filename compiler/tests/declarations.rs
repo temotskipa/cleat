@@ -169,6 +169,9 @@ fn annotations_follow_chapter_8() {
     rejected("@Refines(Q.class) annotation Q;", "below itself");
     rejected("@Refines annotation Q; class C { @Narrows(Q.class) public static Int f(Int n) { return n; } }", "Boolean");
     rejected("class C { @Implicit static C from(Int n) { return new C(); } }", "@Implicit");
+    let teams = "@Inherited annotation Team(String name); @Team(\"a\") interface A { } @Team(\"b\") interface B { } ";
+    rejected(&format!("{teams} class C implements A, B {{ }}"), "two uses");
+    accepted(&format!("{teams} @Team(\"c\") class C implements A, B {{ }} class D implements A {{ }}"));
     accepted("@Refines annotation Q; @Refines(Q.class) annotation R; class C { static @Q Int f(@R Int n) { return n; } }");
     done();
 }

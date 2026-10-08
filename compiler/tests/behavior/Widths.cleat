@@ -1,0 +1,68 @@
+// Arithmetic at every width, conversion, and exact rationals (chapter 6).
+package t;
+
+public class Widths {
+    static String attempt(Function0<String> body) {
+        try {
+            return body.invoke();
+        } catch (ArithmeticException e) {
+            return "raised";
+        }
+    }
+
+    public static void main() {
+        Int8 a = 100;
+        Int8 b = 27;
+        Console.println(a + b);
+        Console.println(attempt(() -> "" + (a + b + 1)));
+        Console.println(a.wrappingPlus(100));
+        UInt8 u = 200;
+        Console.println(attempt(() -> "" + (u + 100)));
+        Console.println(attempt(() -> "" + (-u)));
+        UInt64 big = 18446744073709551615;
+        Console.println(big);
+        Console.println(attempt(() -> "" + (big + 1)));
+        Int min = -9223372036854775808;
+        Console.println(attempt(() -> "" + (-min)));
+        Console.println(attempt(() -> "" + min.floorDiv(-1)));
+        Console.println(min % -1);
+        Int zero = 0;
+        Console.println(attempt(() -> "" + (7 % zero)));
+        Console.println(attempt(() -> "" + (1 << 64 - zero)));
+        Console.println(1 << 62);
+        Int16 s = -32768;
+        Console.println(s >> 15);
+        UInt16 us = 0x8000;
+        Console.println(us >> 15);
+        Console.println(Int.from(us) + Int.from(s));
+        Int wide = us;
+        Rational r = wide;
+        Console.println(r / 3);
+        Float32 f = 0.1;
+        Float64 d = f;
+        Console.println(d == 0.1);
+        Console.println(f);
+        Console.println(attempt(() -> "" + Int.from(d)));
+        Console.println(Int.from(Float64.nearest(2.9).floor()));
+        Int surrogate = 0xD800;
+        Console.println(attempt(() -> "" + Char.from(surrogate)));
+        Console.println(Float64.nearest(1.0 / 3).toFixed(6));
+
+        // A Rational is exact however large it grows.
+        Rational product = 1;
+        for (var i = 1; i <= 30; i++) {
+            product *= i;
+        }
+        Console.println(product);
+        Console.println(product / product == 1);
+        Console.println((product + 0.5).isInteger());
+        Rational q = 22.0 / 7;
+        Console.println("" + q.numerator() + " " + q.denominator() + " " + q.floor() + " " + q.ceil() + " " + q.round() + " " + q.toDecimal(3));
+        Console.println("" + (-q).truncate() + " " + (-q).floor() + " " + q.mod(1) + " " + q.floorDiv(2));
+        Console.println(Rational.parse("-12.50") ?? 0);
+        Console.println(Rational.parse("abc") ?? 0);
+        Console.println("" + Float64.parse("2.5") + Int.parse("-17") + Int.parse(""));
+        Console.println('\u{1F600}'.code());
+        Console.println("é" == "é");
+    }
+}
