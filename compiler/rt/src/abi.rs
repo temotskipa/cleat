@@ -130,7 +130,6 @@ pub const K_CHAR: u32 = 12;
 pub const K_POINTER: u32 = 13;
 pub const K_STRING: u32 = 20;
 pub const K_ARRAY: u32 = 21;
-pub const K_RATIONAL: u32 = 22;
 pub const K_CLASS: u32 = 23;
 pub const K_UNIT: u32 = 24;
 pub const K_NULL: u32 = 25;

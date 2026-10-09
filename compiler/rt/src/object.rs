@@ -322,41 +322,57 @@ unsafe fn load_field(o: Obj, f: &FieldInfo) -> u64 {
     }
 }
 
+/// Whether field `i` is the last of a value class and holds a reference. The default
+/// `equals`, `hashCode` and `identical` follow that field in a loop rather than a call
+/// when its value answers them the same way, so a chain of values as long as the digits
+/// of a large `BigInt` does not fill the stack.
+fn is_tail(fields: &[FieldInfo], i: usize) -> bool {
+    i + 1 == fields.len() && fields[i].kind == 0
+}
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn cl_Object_equals_Object(ctx: *mut Ctx, a: Obj, b: Obj) -> u8 {
     unsafe {
-        if a.is_null() || b.is_null() {
-            return (a.is_null() && b.is_null()) as u8;
-        }
-        if a == b {
-            return 1;
-        }
-        if (*a).td != (*b).td {
-            return 0;
-        }
-        let c = class_of(a);
-        let same = match c.kind {
-            k if is_machine(k) => machine_equal(k, bits(a), bits(b)),
-            K_STRING => chars(a) == chars(b),
-            K_RATIONAL => crate::num::rat(a) == crate::num::rat(b),
-            _ if c.is(F_VALUE) => {
-                let mut all = true;
-                for f in slice(c.fields, c.nfields) {
-                    let ok = if f.kind == 0 {
-                        v_equals(ctx, *at::<Obj>(a, f.offset as usize), *at::<Obj>(b, f.offset as usize))
-                    } else {
-                        machine_equal(f.kind, load_field(a, f), load_field(b, f))
-                    };
-                    if !ok || !(*ctx).exc.is_null() {
-                        all = false;
-                        break;
-                    }
-                }
-                all
+        let (mut a, mut b) = (a, b);
+        'chain: loop {
+            if a.is_null() || b.is_null() {
+                return (a.is_null() && b.is_null()) as u8;
             }
-            _ => false,
-        };
-        same as u8
+            if a == b {
+                return 1;
+            }
+            if (*a).td != (*b).td {
+                return 0;
+            }
+            let c = class_of(a);
+            let same = match c.kind {
+                k if is_machine(k) => machine_equal(k, bits(a), bits(b)),
+                K_STRING => chars(a) == chars(b),
+                _ if c.is(F_VALUE) => {
+                    let fields = slice(c.fields, c.nfields);
+                    let mut all = true;
+                    for (i, f) in fields.iter().enumerate() {
+                        let ok = if f.kind == 0 {
+                            let (x, y) = (*at::<Obj>(a, f.offset as usize), *at::<Obj>(b, f.offset as usize));
+                            if is_tail(fields, i) && types::cl_lookup(x, SEL_EQUALS) == cl_Object_equals_Object as *const u8 {
+                                (a, b) = (x, y);
+                                continue 'chain;
+                            }
+                            v_equals(ctx, x, y)
+                        } else {
+                            machine_equal(f.kind, load_field(a, f), load_field(b, f))
+                        };
+                        if !ok || !(*ctx).exc.is_null() {
+                            all = false;
+                            break;
+                        }
+                    }
+                    all
+                }
+                _ => false,
+            };
+            return same as u8;
+        }
     }
 }
 
@@ -389,46 +405,45 @@ fn machine_hash(kind: u32, x: u64) -> i64 {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn cl_Object_hashCode(ctx: *mut Ctx, a: Obj) -> i64 {
     unsafe {
-        if a.is_null() {
-            return 0;
-        }
-        let c = class_of(a);
-        match c.kind {
-            k if is_machine(k) => machine_hash(k, bits(a)),
-            K_STRING => chars(a).iter().fold(0i64, |h, ch| h.wrapping_mul(31).wrapping_add(*ch as i64)),
-            K_RATIONAL => {
-                use std::hash::{Hash, Hasher};
-                let mut h = std::collections::hash_map::DefaultHasher::new();
-                crate::num::rat(a).hash(&mut h);
-                h.finish() as i64
+        // A value's hash adds its last field's hash to the rest, so the values the loop
+        // has passed leave a sum to add to the hash of the one it is on.
+        let mut a = a;
+        let mut passed = 0i64;
+        'chain: loop {
+            if a.is_null() {
+                return passed;
             }
-            _ if c.is(F_VALUE) => {
-                let mut h = 17i64;
-                for f in slice(c.fields, c.nfields) {
-                    let part = if f.kind == 0 { v_hash(ctx, *at::<Obj>(a, f.offset as usize)) } else { machine_hash(f.kind, load_field(a, f)) };
-                    h = h.wrapping_mul(31).wrapping_add(part);
+            let c = class_of(a);
+            let h = match c.kind {
+                k if is_machine(k) => machine_hash(k, bits(a)),
+                K_STRING => chars(a).iter().fold(0i64, |h, ch| h.wrapping_mul(31).wrapping_add(*ch as i64)),
+                _ if c.is(F_VALUE) => {
+                    let fields = slice(c.fields, c.nfields);
+                    let mut h = 17i64;
+                    for (i, f) in fields.iter().enumerate() {
+                        let part = if f.kind == 0 {
+                            let x = *at::<Obj>(a, f.offset as usize);
+                            if is_tail(fields, i) && types::cl_lookup(x, SEL_HASH) == cl_Object_hashCode as *const u8 {
+                                passed = passed.wrapping_add(h.wrapping_mul(31));
+                                a = x;
+                                continue 'chain;
+                            }
+                            v_hash(ctx, x)
+                        } else {
+                            machine_hash(f.kind, load_field(a, f))
+                        };
+                        h = h.wrapping_mul(31).wrapping_add(part);
+                    }
+                    h
                 }
-                h
-            }
-            _ => (a as usize >> 4) as i64,
+                _ => (a as usize >> 4) as i64,
+            };
+            return passed.wrapping_add(h);
         }
     }
 }
 
-pub fn show_float(f: f64) -> String {
-    if f.is_nan() {
-        "NaN".into()
-    } else if f.is_infinite() {
-        if f > 0.0 { "Infinity".into() } else { "-Infinity".into() }
-    } else if f != 0.0 && (f.abs() >= 1e21 || f.abs() < 1e-7) {
-        format!("{f:e}")
-    } else if f == f.trunc() {
-        format!("{f:.1}")
-    } else {
-        format!("{f}")
-    }
-}
-
+/// The text of a machine number other than a float.
 pub fn show_machine(kind: u32, x: u64) -> String {
     match kind {
         K_I8 => (x as i8).to_string(),
@@ -436,22 +451,29 @@ pub fn show_machine(kind: u32, x: u64) -> String {
         K_I32 => (x as i32).to_string(),
         K_I64 => (x as i64).to_string(),
         K_U8 | K_U16 | K_U32 | K_U64 => x.to_string(),
-        K_F32 => {
-            let f = f32::from_bits(x as u32);
-            if f.is_finite() && f != 0.0 && (f.abs() >= 1e21 || f.abs() < 1e-7) {
-                format!("{f:e}")
-            } else if f.is_finite() && f == f.trunc() {
-                format!("{f:.1}")
-            } else if f.is_finite() {
-                format!("{f}")
-            } else {
-                show_float(f as f64)
-            }
-        }
-        K_F64 => show_float(f64::from_bits(x)),
         K_BOOL => if x != 0 { "true".into() } else { "false".into() },
         K_CHAR => char::from_u32(x as u32).unwrap_or('\u{FFFD}').to_string(),
         _ => format!("Pointer({x:#x})"),
+    }
+}
+
+/// The `toString` of a machine value. A float's is written in the language, so a float
+/// is boxed and asked. `None` when that raised.
+pub unsafe fn machine_text(ctx: *mut Ctx, kind: u32, x: u64) -> Option<String> {
+    unsafe {
+        if kind != K_F32 && kind != K_F64 {
+            return Some(show_machine(kind, x));
+        }
+        let boxed = cl_box(ctx, kind, x);
+        if boxed.is_null() {
+            return None;
+        }
+        let _t = Temp::new(ctx, boxed);
+        let t = v_to_string(ctx, boxed);
+        if !(*ctx).exc.is_null() || t.is_null() {
+            return None;
+        }
+        Some(to_rust(t))
     }
 }
 
@@ -463,9 +485,11 @@ pub unsafe extern "C" fn cl_Object_toString(ctx: *mut Ctx, a: Obj) -> Obj {
         }
         let c = class_of(a);
         match c.kind {
-            k if is_machine(k) => new_str(ctx, &show_machine(k, bits(a))),
+            k if is_machine(k) => match machine_text(ctx, k, bits(a)) {
+                Some(text) => new_str(ctx, &text),
+                None => std::ptr::null_mut(),
+            },
             K_STRING => a,
-            K_RATIONAL => new_str(ctx, &crate::num::show_rational(crate::num::rat(a))),
             K_CLASS => new_str(ctx, (**at::<Td>(a, BODY)).name()),
             _ if c.is(F_LAMBDA) => new_str(ctx, &format!("{}@{:x}", c.name(), a as usize >> 4)),
             _ if c.is(F_VALUE) => {
@@ -482,7 +506,10 @@ pub unsafe extern "C" fn cl_Object_toString(ctx: *mut Ctx, a: Obj) -> Obj {
                         }
                         s.push_str(&to_rust(t));
                     } else {
-                        s.push_str(&show_machine(f.kind, load_field(a, f)));
+                        match machine_text(ctx, f.kind, load_field(a, f)) {
+                            Some(text) => s.push_str(&text),
+                            None => return std::ptr::null_mut(),
+                        }
                     }
                 }
                 s.push(')');
@@ -495,25 +522,38 @@ pub unsafe extern "C" fn cl_Object_toString(ctx: *mut Ctx, a: Obj) -> Obj {
 
 unsafe fn identical(a: Obj, b: Obj) -> bool {
     unsafe {
-        if a == b {
-            return true;
-        }
-        if a.is_null() || b.is_null() || (*a).td != (*b).td {
-            return false;
-        }
-        let c = class_of(a);
-        match c.kind {
-            k if is_machine(k) => bits(a) == bits(b),
-            K_STRING => chars(a) == chars(b),
-            K_RATIONAL => crate::num::rat(a) == crate::num::rat(b),
-            _ if c.is(F_VALUE) => slice(c.fields, c.nfields).iter().all(|f| {
-                if f.kind == 0 {
-                    identical(*at::<Obj>(a, f.offset as usize), *at::<Obj>(b, f.offset as usize))
-                } else {
-                    load_field(a, f) == load_field(b, f)
+        let (mut a, mut b) = (a, b);
+        loop {
+            if a == b {
+                return true;
+            }
+            if a.is_null() || b.is_null() || (*a).td != (*b).td {
+                return false;
+            }
+            let c = class_of(a);
+            match c.kind {
+                k if is_machine(k) => return bits(a) == bits(b),
+                K_STRING => return chars(a) == chars(b),
+                _ if c.is(F_VALUE) => {
+                    let fields = slice(c.fields, c.nfields);
+                    let same = fields.iter().enumerate().all(|(i, f)| {
+                        if is_tail(fields, i) {
+                            true
+                        } else if f.kind == 0 {
+                            identical(*at::<Obj>(a, f.offset as usize), *at::<Obj>(b, f.offset as usize))
+                        } else {
+                            load_field(a, f) == load_field(b, f)
+                        }
+                    });
+                    match fields.last() {
+                        Some(f) if same && f.kind == 0 => {
+                            (a, b) = (*at::<Obj>(a, f.offset as usize), *at::<Obj>(b, f.offset as usize));
+                        }
+                        _ => return same,
+                    }
                 }
-            }),
-            _ => false,
+                _ => return false,
+            }
         }
     }
 }
@@ -559,23 +599,6 @@ pub unsafe extern "C" fn cl_Object_getClass(_ctx: *mut Ctx, a: Obj) -> Obj {
     unsafe { class_object((*a).td) }
 }
 
-// ---- Null ----
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Null_equals_Object(_ctx: *mut Ctx, _this: Obj, other: Obj) -> u8 {
-    other.is_null() as u8
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Null_hashCode(_ctx: *mut Ctx, _this: Obj) -> i64 {
-    0
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Null_toString(ctx: *mut Ctx, _this: Obj) -> Obj {
-    unsafe { new_str(ctx, "null") }
-}
-
 // ---- String ----
 
 #[unsafe(no_mangle)]
@@ -618,88 +641,8 @@ pub unsafe extern "C" fn cl_String_join_String(ctx: *mut Ctx, s: Obj, t: Obj) ->
     }
 }
 
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_plus_Object(ctx: *mut Ctx, s: Obj, other: Obj) -> Obj {
-    unsafe {
-        let t = v_to_string(ctx, other);
-        if !(*ctx).exc.is_null() || t.is_null() {
-            return std::ptr::null_mut();
-        }
-        let mut all: Vec<u32> = Vec::with_capacity(chars(s).len() + chars(t).len());
-        all.extend_from_slice(chars(s));
-        all.extend_from_slice(chars(t));
-        new_string(ctx, &all)
-    }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_indexOf_Char(_ctx: *mut Ctx, s: Obj, c: u32) -> i64 {
-    unsafe { chars(s).iter().position(|x| *x == c).map(|i| i as i64).unwrap_or(-1) }
-}
-
-fn find_sub(hay: &[u32], needle: &[u32]) -> i64 {
-    if needle.is_empty() {
-        return 0;
-    }
-    if needle.len() > hay.len() {
-        return -1;
-    }
-    (0..=hay.len() - needle.len()).find(|i| &hay[*i..*i + needle.len()] == needle).map(|i| i as i64).unwrap_or(-1)
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_indexOf_String(_ctx: *mut Ctx, s: Obj, t: Obj) -> i64 {
-    unsafe { find_sub(chars(s), chars(t)) }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_startsWith_String(_ctx: *mut Ctx, s: Obj, t: Obj) -> u8 {
-    unsafe { chars(s).starts_with(chars(t)) as u8 }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_endsWith_String(_ctx: *mut Ctx, s: Obj, t: Obj) -> u8 {
-    unsafe { chars(s).ends_with(chars(t)) as u8 }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_compare_String(_ctx: *mut Ctx, s: Obj, t: Obj) -> i64 {
-    unsafe {
-        match chars(s).cmp(chars(t)) {
-            std::cmp::Ordering::Less => -1,
-            std::cmp::Ordering::Equal => 0,
-            std::cmp::Ordering::Greater => 1,
-        }
-    }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_toUtf8(ctx: *mut Ctx, s: Obj) -> Obj {
-    unsafe {
-        let bytes = to_rust(s).into_bytes();
-        let a = cl_array_new(ctx, array_type(types::wk_type(K_U8)), bytes.len() as i64);
-        if !a.is_null() {
-            std::ptr::copy_nonoverlapping(bytes.as_ptr(), at::<u8>(a, ELEMS), bytes.len());
-        }
-        a
-    }
-}
-
 pub unsafe fn byte_slice(a: Obj) -> &'static [u8] {
     unsafe { std::slice::from_raw_parts(at::<u8>(a, ELEMS), len(a) as usize) }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_fromUtf8_UInt8Array(ctx: *mut Ctx, bytes: Obj) -> Obj {
-    unsafe {
-        match std::str::from_utf8(byte_slice(bytes)) {
-            Ok(s) => new_str(ctx, s),
-            Err(_) => {
-                raise(ctx, X_ILLEGAL_ARGUMENT, "the bytes are not well-formed UTF-8");
-                std::ptr::null_mut()
-            }
-        }
-    }
 }
 
 #[unsafe(no_mangle)]
@@ -732,7 +675,7 @@ pub unsafe extern "C" fn cl_String_toUpperCase(ctx: *mut Ctx, s: Obj) -> Obj {
     unsafe { map_chars(ctx, s, true) }
 }
 
-// ---- Char, Boolean, Pointer ----
+// ---- Char, Pointer ----
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn cl_Char_from_Int(ctx: *mut Ctx, code: i64) -> u32 {
@@ -787,26 +730,6 @@ pub unsafe extern "C" fn cl_Char_toUpperCase(_ctx: *mut Ctx, c: u32) -> u32 {
         (Some(one), None) => one as u32,
         _ => c,
     }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Boolean_and_Boolean(_ctx: *mut Ctx, a: u8, b: u8) -> u8 {
-    a & b
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Boolean_or_Boolean(_ctx: *mut Ctx, a: u8, b: u8) -> u8 {
-    a | b
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Boolean_xor_Boolean(_ctx: *mut Ctx, a: u8, b: u8) -> u8 {
-    a ^ b
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Boolean_not(_ctx: *mut Ctx, a: u8) -> u8 {
-    (a == 0) as u8
 }
 
 #[unsafe(no_mangle)]
@@ -887,7 +810,7 @@ pub unsafe extern "C" fn cl_start(program: *const Program) -> *mut Ctx {
             (**s).gc = GC_STATIC;
         }
         cl_unit = gc::alloc_static(types::wk_type(K_UNIT), BODY);
-        gc::new_ctx()
+        gc::new_ctx_sized(gc::main_stack())
     }
 }
 

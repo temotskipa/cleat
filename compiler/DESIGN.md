@@ -13,8 +13,8 @@ The prelude is ordinary source in `../prelude`, compiled with every program. A m
 marked `@Intrinsic` has no body: the backend either inlines it or calls the runtime
 symbol `cl_<Class>_<method>[_<ParamClass>...]`. A method is intrinsic only when the
 language cannot say what it does, and `tests/prelude_intrinsics.rs` lists every one with
-its reason. The runtime still exports bodies for methods that have since been written in
-source, and nothing calls them.
+its reason. The runtime exports a body for each of them and for the calls the emitter
+writes itself, and nothing else.
 
 ## Values
 
@@ -26,6 +26,16 @@ source, and nothing calls them.
   at call and field boundaries by the declared type of the member).
 - `Unit` is no value at all in a result; where one is needed as an object it is the
   runtime's one `Unit` object.
+- A float's digits are written in the language. Where the runtime prints a value class
+  with a float field, or a conversion's message names a float, it boxes the float and
+  sends it `toString`.
+- `Rational` is an ordinary value class of the prelude, over its `BigInt`. A literal of
+  it is made the first time it is evaluated, by the prelude's `Rational.literal` from the
+  text `numerator/denominator`, and kept in a global (`@rat.N`) that the collector marks.
+- The runtime's default `equals`, `hashCode` and `identical` of a value follow its last
+  field in a loop, not a call, when that field holds a value that answers them the same
+  way. A `BigInt`'s digits are such a chain, and a long one would otherwise fill the
+  stack.
 
 A field has the representation of its declared type, so a field of type `T` is always a
 pointer. An array is the exception: `Int[]` stores machine integers, and code that sees
@@ -68,6 +78,9 @@ is the earlier attempt on MMTk and is not linked.
 ## Foreign calls
 
 A foreign method whose types are all scalars, or arrays of scalars, is called directly.
+Every function that the runtime or C defines is declared with `signext` or `zeroext` on
+its 8- and 16-bit parameters (`Repr::ll_c`), because the C convention of Linux has the
+caller widen them and code that rustc or clang compiled relies on it.
 One that takes or returns a value class goes through C source the compiler writes
 (`emit/mod.rs`, `foreign_shim`) and gives to clang with the module. The C code copies
 an object's fields into the struct C expects and back, so the platform's own rules for
@@ -76,7 +89,8 @@ passing structs apply.
 ## Limits
 
 A thread has 16 MB of stack (`rt/src/gc.rs`, `STACK`; `emit/link.rs` asks the linker for
-the same). Every compiled function compares its frame's address with a limit in the
+the same on Windows, and on Linux `gc::main_stack` raises the soft limit that the main
+thread grows to). Every compiled function compares its frame's address with a limit in the
 context, and a call that finds the stack full ends the program.
 
 ## Tests

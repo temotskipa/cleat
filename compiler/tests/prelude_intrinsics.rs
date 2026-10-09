@@ -10,10 +10,10 @@ use std::path::Path;
 const INTRINSICS: &[(&str, &str, &[&str])] = &[
     (
         "Int",
-        "The machine's 64-bit arithmetic, comparison and bit operations. A narrower integer is taken as it is; a UInt64, a float and a Rational are checked.",
+        "The machine's 64-bit arithmetic, comparison and bit operations. A narrower integer is taken as it is; a UInt64 and a float are checked.",
         &[
             "plus(Int)", "minus(Int)", "times(Int)", "lessThan(Int)", "truncatingDiv(Int)", "truncatingRem(Int)", "wrappingPlus(Int)", "wrappingMinus(Int)", "wrappingTimes(Int)", "and(Int)", "or(Int)",
-            "xor(Int)", "shiftLeft(Int)", "shiftRight(Int)", "from(Int8)", "from(Int16)", "from(Int32)", "from(UInt8)", "from(UInt16)", "from(UInt32)", "from(UInt64)", "from(Float64)", "from(Rational)",
+            "xor(Int)", "shiftLeft(Int)", "shiftRight(Int)", "from(Int8)", "from(Int16)", "from(Int32)", "from(UInt8)", "from(UInt16)", "from(UInt32)", "from(UInt64)", "from(Float64)",
         ],
     ),
     (
@@ -21,7 +21,7 @@ const INTRINSICS: &[(&str, &str, &[&str])] = &[
         "The machine's unsigned 64-bit arithmetic, comparison and bit operations, and the conversions from the classes an Int cannot stand for.",
         &[
             "plus(UInt64)", "minus(UInt64)", "times(UInt64)", "lessThan(UInt64)", "truncatingDiv(UInt64)", "truncatingRem(UInt64)", "wrappingPlus(UInt64)", "wrappingMinus(UInt64)", "wrappingTimes(UInt64)",
-            "and(UInt64)", "or(UInt64)", "xor(UInt64)", "shiftLeft(Int)", "shiftRight(Int)", "from(Int)", "from(Float64)", "from(Rational)",
+            "and(UInt64)", "or(UInt64)", "xor(UInt64)", "shiftLeft(Int)", "shiftRight(Int)", "from(Int)", "from(Float64)",
         ],
     ),
     ("Int8", "The two conversions from an Int: the one that checks and the one that keeps the low bits. All its arithmetic is done in Int.", &["wrapping(Int)", "from(Int)"]),
@@ -32,10 +32,10 @@ const INTRINSICS: &[(&str, &str, &[&str])] = &[
     ("UInt32", "As Int8.", &["wrapping(Int)", "from(Int)"]),
     (
         "Float64",
-        "The operations of IEEE 754, each one instruction or one library routine. Printing and reading decimal digits are whole algorithms, still in the runtime. An Int and a UInt64 convert in one step, because two steps would round twice.",
+        "The operations of IEEE 754, each one instruction or one library routine. An Int and a UInt64 convert in one step, because two steps would round twice.",
         &[
             "plus(Float64)", "minus(Float64)", "times(Float64)", "div(Float64)", "negate()", "lessThan(Float64)", "atMost(Float64)", "totalOrder(Float64)", "floor()", "ceil()", "truncate()", "round()",
-            "sqrt()", "abs()", "toFixed(Int)", "parse(String)", "from(Int)", "from(UInt64)", "from(Float32)", "from(Rational)", "nearest(Int)", "nearest(UInt64)", "nearest(Float32)", "nearest(Rational)",
+            "sqrt()", "abs()", "from(Int)", "from(UInt64)", "from(Float32)", "nearest(Int)", "nearest(UInt64)", "nearest(Float32)",
         ],
     ),
     (
@@ -43,15 +43,7 @@ const INTRINSICS: &[(&str, &str, &[&str])] = &[
         "As Float64.",
         &[
             "plus(Float32)", "minus(Float32)", "times(Float32)", "div(Float32)", "negate()", "lessThan(Float32)", "atMost(Float32)", "totalOrder(Float32)", "floor()", "ceil()", "truncate()", "round()",
-            "sqrt()", "abs()", "toFixed(Int)", "parse(String)", "from(Int)", "from(UInt64)", "from(Float64)", "from(Rational)", "nearest(Int)", "nearest(UInt64)", "nearest(Float64)", "nearest(Rational)",
-        ],
-    ),
-    (
-        "Rational",
-        "Exact arithmetic on integers of any size, which the prelude has no class for yet. Until it has, the arithmetic, the two parts of a value, and its digits are in the runtime.",
-        &[
-            "plus(Rational)", "minus(Rational)", "times(Rational)", "div(Rational)", "lessThan(Rational)", "numerator()", "denominator()", "floorDiv(Rational)", "toDecimal(Int)", "parse(String)", "from(Int)",
-            "from(UInt64)", "from(Float64)",
+            "sqrt()", "abs()", "from(Int)", "from(UInt64)", "from(Float64)", "nearest(Int)", "nearest(UInt64)", "nearest(Float64)",
         ],
     ),
     ("Char", "A scalar and its number, and the tables of Unicode.", &["from(Int)", "code()", "isLetter()", "isDigit()", "isWhitespace()", "toLowerCase()", "toUpperCase()"]),
@@ -156,7 +148,7 @@ fn every_intrinsic_of_the_prelude_is_listed_with_its_reason() {
 #[test]
 fn the_classes_written_in_the_language_declare_no_intrinsic() {
     let declared = declared();
-    for class in ["Boolean", "Null", "List", "Map", "StringBuilder", "Field", "Method", "Parameter", "Scope", "Task"] {
+    for class in ["Boolean", "Null", "List", "Map", "StringBuilder", "Field", "Method", "Parameter", "Scope", "Task", "Rational", "BigInt", "Floats"] {
         assert!(!declared.contains_key(class), "`{class}` declares an intrinsic method");
     }
 }

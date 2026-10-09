@@ -409,6 +409,16 @@ impl<'a, 'p> Func<'a, 'p> {
         self.e.repr(t)
     }
 
+    /// A `Rational` literal. The first evaluation makes the value and keeps it in a
+    /// global the collector marks, so it needs no slot in the frame.
+    fn rational(&mut self, text: &str) -> Val {
+        let (slot, s) = self.e.rational_const(text);
+        let t = self.tmp();
+        self.ins(&format!("{t} = call ptr @cleat_rational(ptr %ctx, ptr {slot}, ptr {s})"));
+        self.check();
+        Val::Imm(Repr::Ref, t)
+    }
+
     fn float_lit(&self, f: f64, r: Repr) -> String {
         let f = if r == Repr::F32 { (f as f32) as f64 } else { f };
         format!("0x{:016X}", f.to_bits())
@@ -419,12 +429,7 @@ impl<'a, 'p> Func<'a, 'p> {
         match &e.kind {
             TKind::Int(v) => Val::Imm(r, v.to_string()),
             TKind::Float(f) => Val::Imm(r, self.float_lit(*f, r)),
-            TKind::Rational(text) => {
-                let (slot, bytes, len) = self.e.rational_const(text);
-                let t = self.tmp();
-                self.ins(&format!("{t} = call ptr @cl_rational_const(ptr %ctx, ptr {slot}, ptr {bytes}, i64 {len})"));
-                Val::Imm(Repr::Ref, t)
-            }
+            TKind::Rational(text) => self.rational(text),
             TKind::Bool(b) => Val::Imm(Repr::Bool, if *b { "1".into() } else { "0".into() }),
             TKind::Char(c) => Val::Imm(Repr::Char, (*c as u32).to_string()),
             TKind::Str(s) => Val::Imm(Repr::Ref, self.e.string_lit(s)),
@@ -839,12 +844,8 @@ impl<'a, 'p> Func<'a, 'p> {
     fn default_value(&mut self, t: &Type, depth: u32) -> Option<Val> {
         let Ty::Class(id, args) = &t.ty else { return None };
         if *id == self.e.p.wk.rational {
-            let f = "@cl_Rational_zero".to_string();
-            self.e.declare("declare ptr @cl_Rational_zero(ptr)".into());
-            let v = self.tmp();
-            self.ins(&format!("{v} = call ptr {f}(ptr %ctx)"));
-            self.check();
-            return Some(self.root(&v));
+            let v = self.rational("0/1");
+            return Some(v);
         }
         let c = self.e.p.class(*id).clone();
         if c.kind != TypeKind::ValueClass || depth > 8 {
@@ -1852,12 +1853,7 @@ impl<'a, 'p> Func<'a, 'p> {
         match c {
             Const::Int(v, _) => Val::Imm(r, v.to_string()),
             Const::Float(f, _) => Val::Imm(r, self.float_lit(*f, r)),
-            Const::Rational(q) => {
-                let (slot, bytes, len) = self.e.rational_const(&format!("{}/{}", q.numer(), q.denom()));
-                let t = self.tmp();
-                self.ins(&format!("{t} = call ptr @cl_rational_const(ptr %ctx, ptr {slot}, ptr {bytes}, i64 {len})"));
-                Val::Imm(Repr::Ref, t)
-            }
+            Const::Rational(q) => self.rational(&format!("{}/{}", q.numer(), q.denom())),
             Const::Bool(b) => Val::Imm(Repr::Bool, if *b { "1".into() } else { "0".into() }),
             Const::Char(ch) => Val::Imm(Repr::Char, (*ch as u32).to_string()),
             Const::Str(s) => Val::Imm(Repr::Ref, self.e.string_lit(s)),
@@ -2193,6 +2189,14 @@ impl<'a, 'p> Func<'a, 'p> {
         match method(e, find("Thread"), "run") {
             Some(run) => e.add_function(&format!("define void @cleat_thread_run(ptr %ctx, ptr %t) {{\n  call void {run}(ptr %ctx, ptr %t)\n  ret void\n}}\n")),
             None => e.errors.push("the prelude's `Thread` declares no `run`".into()),
+        }
+        // A `Rational` literal: made once by `Rational.literal` and kept in its global.
+        // Two threads may both make it, and either value is the same.
+        match method(e, Some(p.wk.rational), "literal") {
+            Some(make) => e.add_function(&format!(
+                "define internal ptr @cleat_rational(ptr %ctx, ptr %slot, ptr %text) {{\n  %have = load atomic ptr, ptr %slot acquire, align 8\n  %made = icmp ne ptr %have, null\n  br i1 %made, label %done, label %make\ndone:\n  ret ptr %have\nmake:\n  %r = call ptr {make}(ptr %ctx, ptr %text)\n  %exc = load ptr, ptr %ctx\n  %ok = icmp eq ptr %exc, null\n  br i1 %ok, label %keep, label %fail\nkeep:\n  store atomic ptr %r, ptr %slot release, align 8\n  ret ptr %r\nfail:\n  ret ptr null\n}}\n"
+            )),
+            None => e.errors.push("the prelude's `Rational` declares no `literal`".into()),
         }
         match method(e, Some(p.wk.throwable), "suppress") {
             Some(s) => e.add_function(&format!("define void @cleat_suppress(ptr %ctx, ptr %a, ptr %b) {{\n  call void {s}(ptr %ctx, ptr %a, ptr %b)\n  ret void\n}}\n")),

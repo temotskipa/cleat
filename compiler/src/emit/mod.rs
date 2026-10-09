@@ -50,6 +50,20 @@ impl Repr {
         }
     }
 
+    /// The type as a function that the runtime or C defines takes or returns it. The C
+    /// convention of some platforms has the caller widen a narrow integer, and code that
+    /// clang or rustc compiled relies on that.
+    pub fn ll_c(self) -> &'static str {
+        use Repr::*;
+        match self {
+            I8 => "i8 signext",
+            I16 => "i16 signext",
+            U8 | Bool => "i8 zeroext",
+            U16 => "i16 zeroext",
+            other => other.ll(),
+        }
+    }
+
     /// The runtime's number for a machine kind; 0 for a pointer to an object.
     pub fn kind(self) -> u32 {
         use Repr::*;
@@ -112,6 +126,22 @@ impl Sig {
         parts.extend(self.params.iter().map(|r| r.ll().to_string()));
         parts.join(", ")
     }
+
+    /// The parameters of a function that the runtime or C defines.
+    pub fn ll_params_c(&self) -> String {
+        let mut parts: Vec<&str> = Vec::new();
+        if !self.foreign {
+            parts.push("ptr");
+        }
+        if self.generic {
+            parts.push("ptr");
+        }
+        if let Some(r) = self.recv {
+            parts.push(r.ll_c());
+        }
+        parts.extend(self.params.iter().map(|r| r.ll_c()));
+        parts.join(", ")
+    }
 }
 
 pub struct Layout {
@@ -129,8 +159,6 @@ fn special_kind(p: &Program, id: ClassId) -> u32 {
         20
     } else if id == w.array {
         21
-    } else if id == w.rational {
-        22
     } else if id == w.class {
         23
     } else if id == w.unit {
@@ -345,7 +373,7 @@ impl<'p> Emitter<'p> {
         let s = self.sig(m);
         if md.foreign {
             let name = md.symbol.clone().unwrap_or_else(|| md.name.clone());
-            self.declare(format!("declare {} @\"{}\"({})", s.ret.ll(), sym(&name), s.ll_params()));
+            self.declare(format!("declare {} @\"{}\"({})", s.ret.ll(), sym(&name), s.ll_params_c()));
             return format!("@\"{}\"", sym(&name));
         }
         if md.intrinsic {
@@ -354,7 +382,7 @@ impl<'p> Emitter<'p> {
                 name.push('_');
                 name.push_str(&self.erasure(&prm.ty));
             }
-            self.declare(format!("declare {} @{name}({})", s.ret.ll(), s.ll_params()));
+            self.declare(format!("declare {} @{name}({})", s.ret.ll(), s.ll_params_c()));
             return format!("@{name}");
         }
         format!("@\"{}.{}/{}\"", sym(&c.qname), sym(&md.name), m.index)
@@ -390,15 +418,17 @@ impl<'p> Emitter<'p> {
         (format!("@b.{id}"), s.len())
     }
 
-    pub fn rational_const(&mut self, text: &str) -> (String, String, usize) {
+    /// A `Rational` literal, written `numerator/denominator`: the global that keeps its
+    /// value once made, and the text `Rational.literal` makes it from.
+    pub fn rational_const(&mut self, text: &str) -> (String, String) {
         let n = self.rationals.len();
         let id = *self.rationals.entry(text.to_string()).or_insert(n);
+        let slot = format!("@rat.{id}");
         if id == n {
-            let _ = writeln!(self.globals, "@rat.{id} = internal global ptr null");
-            self.static_roots.len();
+            let _ = writeln!(self.globals, "{slot} = internal global ptr null");
+            self.static_roots.push(slot.clone());
         }
-        let (b, len) = self.byte_string(text);
-        (format!("@rat.{id}"), b, len)
+        (slot, self.string_lit(text))
     }
 
     /// A type as constant data. The result is the symbol and whether the type mentions
@@ -584,7 +614,7 @@ impl<'p> Emitter<'p> {
                 let ct = c_scalar(r);
                 c_params.push(ct.to_string());
                 shim_params.push(format!("{ct} a{i}"));
-                ll_params.push(r.ll());
+                ll_params.push(r.ll_c());
                 args.push(format!("a{i}"));
                 kinds.push(ShimParam::Scalar(r));
             }
@@ -1069,7 +1099,6 @@ declare ptr @cl_lookup(ptr, i32)
 declare ptr @cl_static_req(ptr, i32)
 declare void @cl_class_init(ptr, ptr)
 declare void @cl_static_unassigned(ptr, ptr, i64)
-declare ptr @cl_rational_const(ptr, ptr, ptr, i64)
 declare void @cl_mirror_fail(ptr, i32, ptr, i64)
 declare void @cl_foreign_enter(ptr)
 declare void @cl_foreign_leave(ptr)

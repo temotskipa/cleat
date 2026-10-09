@@ -1,0 +1,85 @@
+// Exact rationals of any size (section 6.6). The prelude writes Rational over its
+// BigInt, and these cases hold it to the values the compiler folds, to values no Int
+// holds, and to the conversions at the edges of the other classes.
+package t;
+
+public class Rationals {
+    static Rational read(String text) {
+        return (Rational) Rational.parse(text);
+    }
+
+    static String attempt(Function0<Object> body) {
+        try {
+            return "" + body.invoke();
+        } catch (ArithmeticException e) {
+            return "raised: " + e.message();
+        } catch (IllegalArgumentException e) {
+            return "rejected: " + e.message();
+        }
+    }
+
+    public static void main() {
+        // A constant the compiler folds equals the same value computed at run time.
+        Rational folded = 1.0 / 3 + 1.0 / 6 - 2.5 * 0.4;
+        var computed = read("1/3") + read("1/6") - read("2.5") * read("0.4");
+        Console.println("" + folded + " " + computed + " " + (folded == computed));
+        Rational quotient = (7.5).floorDiv(-2);
+        Rational rest = 7.5 % -2;
+        Console.println("" + quotient + " " + read("7.5").floorDiv(read("-2")) + " " + rest + " " + read("7.5") % read("-2"));
+
+        // Thirty factorial and beyond: values no Int holds.
+        Rational factorial = 1;
+        for (var i = 1; i <= 30; i++) {
+            factorial = factorial * i;
+        }
+        var cube = factorial * factorial * factorial;
+        Console.println(factorial);
+        Console.println(cube);
+        var back = cube / factorial / factorial;
+        Console.println("" + (back == factorial) + " " + back.identical(factorial) + " " + (back.hashCode() == factorial.hashCode()) + " " + (cube - 1 < cube) + " " + (-cube < 1));
+        var ratio = (factorial + 1) / (factorial * -6);
+        Console.println("" + ratio + " " + ratio.numerator() + " " + ratio.denominator() + " " + ratio.isInteger());
+
+        // 2^64 and its neighbours, at the edges of Int and UInt64.
+        Rational power = 1;
+        for (var i = 0; i < 64; i++) {
+            power = power * 2;
+        }
+        var edge = power;
+        Console.println("" + edge + " " + UInt64.from(edge - 1) + " " + Int.from(-(edge / 2)));
+        Console.println(attempt(() -> UInt64.from(edge)));
+        Console.println(attempt(() -> Int.from(edge / 2)));
+        Console.println(attempt(() -> Int8.from(read("1/2"))) + " | " + attempt(() -> Int8.from(read("128"))) + " | " + Int8.from(read("-128")));
+
+        // Rounding: floor, ceil, truncate, ties to even, and decimal digits.
+        for (String text : "-2.5 -1.5 -0.5 0.5 1.5 2.5 7/3 -7/3 0.05 -0.005".split(" ")) {
+            var r = read(text);
+            Console.println(text + ": " + r.floor() + " " + r.ceil() + " " + r.truncate() + " " + r.round() + " " + r.round(1) + " " + r.toDecimal(0) + " " + r.toDecimal(2));
+        }
+        Console.println(read("-0.001").toDecimal(2) + " " + read("2/3").toDecimal(20) + " " + read("123456789.987654321").round(-3) + " " + factorial.toDecimal(2));
+        Console.println(attempt(() -> read("1").toDecimal(-1)));
+
+        // Reading text.
+        for (String text : "1/3|-4/6| 7 / 2 |1_000/3|00012.3400|-.5|5.|+1.25|1/0|1/-2|-0/5|1.2.3|1e5|1_000|.|abc".split("|")) {
+            Console.println("[" + text + "] " + Rational.parse(text));
+        }
+
+        // A zero divisor.
+        Console.println(attempt(() -> read("1") / read("0")) + " | " + attempt(() -> read("1").floorDiv(read("0"))) + " | " + attempt(() -> read("1") % read("0")));
+
+        // Floats, exactly and to the nearest.
+        Float64 tenth = 0.1;
+        Console.println("" + Rational.from(tenth) + " " + Rational.from(-0.0) + " " + Float64.from(read("0.375")) + " " + Float64.nearest(read("1/3")) + " " + Float32.nearest(read("1/3")));
+        Console.println(attempt(() -> Float64.from(read("1/3"))) + " | " + attempt(() -> Float32.from(read("0.1"))) + " | " + attempt(() -> Float32.from(read("16777217"))));
+        var tiny = read("1") / (cube * cube * cube * cube * cube * cube * cube * cube * cube * cube * cube);
+        Console.println("" + Float64.nearest(cube) + " " + Float64.nearest(-cube / tiny) + " " + Float64.nearest(tiny) + " " + Float64.nearest(-tiny));
+
+        // Equal values are one key of a map, and one value of an atomic cell.
+        var counts = new Map<Rational, Int>();
+        counts[read("1/2")] = 1;
+        counts[read("2/4")] = (counts[read("0.5")] ?? 0) + 1;
+        Console.println(counts[read("1/2")]);
+        var cell = new Atomic<Rational>(cube);
+        Console.println(cell.compareAndSet(back * factorial * factorial, factorial));
+    }
+}

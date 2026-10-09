@@ -41,6 +41,8 @@ cases![
     statics => "Statics",
     members => "Members",
     widths => "Widths",
+    rationals => "Rationals",
+    floats => "Floats",
     rules => "Rules",
     sentences_01 => "Sentences01",
     sentences_02 => "Sentences02",
@@ -111,4 +113,16 @@ fn an_exception_that_leaves_a_thread_is_written_to_the_error_stream() {
     let (_, exe) = build_text("behavior_thread_error", "Loud", text);
     let run = expect(&exe, &[], 0, "main goes on\n");
     assert!(run.err.contains("IllegalStateException: the body failed"), "{}", run.err);
+}
+
+/// The default `equals`, `hashCode` and `identical` of values follow a chain of them in
+/// a loop, so a chain far deeper than the stack compares (the digits of a large integer
+/// in the prelude are one). It runs only plainly: a collection at each of a million
+/// allocations takes too long.
+#[test]
+fn a_long_chain_of_values_compares_without_filling_the_stack() {
+    let text = "value class Link {\n    Int value;\n    @Nullable Link next;\n}\npublic class Chain {\n    static Link chain(Int length, Int last) {\n        var head = new Link(last, null);\n        for (var i = 1; i < length; i++) {\n            head = new Link(i, head);\n        }\n        return head;\n    }\n    public static void main() {\n        var a = chain(1000000, 0);\n        var b = chain(1000000, 0);\n        var c = chain(1000000, 1);\n        Console.println(\"\" + a.equals(b) + \" \" + a.identical(b) + \" \" + (a.hashCode() == b.hashCode()) + \" \" + a.equals(c) + \" \" + a.identical(c));\n    }\n}\n";
+    let (_, exe) = build_text("behavior_value_chain", "Chain", text);
+    let r = run(&exe, &[], false);
+    assert_eq!((r.status, r.out.as_str()), (0, "true true true false false\n"), "{}", r.err);
 }

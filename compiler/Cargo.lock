@@ -21,11 +21,6 @@ dependencies = [
 [[package]]
 name = "cleatrt"
 version = "0.1.0"
-dependencies = [
- "num-bigint",
- "num-rational",
- "num-traits",
-]
 
 [[package]]
 name = "num-bigint"

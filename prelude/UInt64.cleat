@@ -202,6 +202,7 @@ public value class UInt64 implements Numeric<UInt64>, Ordered<UInt64> {
     @Intrinsic
     public static UInt64 from(Float64 value);
 
-    @Intrinsic
-    public static UInt64 from(Rational value);
+    public static UInt64 from(Rational value) {
+        return value.whole("UInt64").toUInt64();
+    }
 }
