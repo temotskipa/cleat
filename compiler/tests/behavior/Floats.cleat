@@ -34,10 +34,10 @@ public class Floats {
         Console.println(text + ": " + literal + " " + (literal.totalOrder(wide(text)) == 0));
     }
 
-    // A Float32 literal is rounded to a Float64 first, as `Float32.nearest` of a
-    // Rational is.
+    // A Float32 literal is rounded once, to the Float32 nearest its digits, and not
+    // through a Float64.
     static void foldedNarrow(String text, Float32 literal) {
-        Console.println(text + ": " + literal + " " + (literal.totalOrder(Float32.nearest(wide(text))) == 0));
+        Console.println(text + ": " + literal + " " + (literal.totalOrder(narrow(text)) == 0));
     }
 
     public static void main() {
@@ -88,6 +88,19 @@ public class Floats {
         foldedNarrow("1e-40", subnormal);
         foldedNarrow("1e-45", least);
         foldedNarrow("3.4028235e38", most);
+        // Where the nearest Float64 is halfway between two Float32s, rounding through it
+        // would pick the wrong one: here 1.0, 1.0000002, 0.0 and an infinity.
+        foldedNarrow("1.00000005960464477539062500000001", 1.00000005960464477539062500000001);
+        foldedNarrow("1.000000059604644775390625", 1.000000059604644775390625);
+        foldedNarrow("1.000000178813934326171874999999", 1.000000178813934326171874999999);
+        foldedNarrow("7.00649232162408535461864791644958065640130970938257885878534141944895541342930300743319094181060791015625001e-46", 7.00649232162408535461864791644958065640130970938257885878534141944895541342930300743319094181060791015625001e-46);
+        foldedNarrow("-1e-46", -1e-46);
+        foldedNarrow("340282356779733661637539395458142568447.99", 340282356779733661637539395458142568447.99);
+        // `Float32.nearest` of a Rational rounds once too.
+        for (String text : "1.00000005960464477539062500000001 1.000000059604644775390625 1.000000178813934326171874999999 0.000000000000000000000000000000000000000000000700649232162408535461864791644958065640130970938257885878534141944895541342930300743319094181060791015625001 -0.0000000000000000000000000000000000000000000007 340282356779733661637539395458142568447.99 340282356779733661637539395458142568448".split(" ")) {
+            Console.println(text + " -> " + Float32.nearest((Rational) Rational.parse(text)));
+        }
+        Console.println(attempt(() -> Float32.from((Rational) Rational.parse("1.000000059604644775390625"))) + " | " + Float32.from((Rational) Rational.parse("1.00000011920928955078125")));
         // `nearest` of a constant is folded too.
         Float64 third = Float64.nearest(1.0 / 3e50);
         var computed = Float64.nearest((Rational) Rational.parse("1/300000000000000000000000000000000000000000000000000"));

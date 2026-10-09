@@ -61,13 +61,12 @@ WRITTEN = {
         }
         return near;""",
     ("Float64", "nearest", "Rational"): """return Floats.nearest(value, 53, -1074, 971);""",
-    ("Float32", "from", "Rational"): """var wide = Float64.nearest(value);
-        if (wide.isInfinite() || Rational.from(wide) != value || Float64.from(nearest(wide)) != wide) {
+    ("Float32", "from", "Rational"): """var near = nearest(value);
+        if (near.isInfinite() || Rational.from(Float64.from(near)) != value) {
             throw new ArithmeticException(value.toString() + " is not a value of Float32");
         }
-        return nearest(wide);""",
-    # Rounded to a Float64 first, as the compiler rounds a constant.
-    ("Float32", "nearest", "Rational"): """return nearest(Float64.nearest(value));""",
+        return near;""",
+    ("Float32", "nearest", "Rational"): """return nearest(Floats.nearest(value, 24, -149, 104));""",
     ("Rational", "from", "Int"): """return new Rational(BigInt.from(value), BigInt.one());""",
     ("Rational", "from", "UInt64"): """return new Rational(BigInt.from(value), BigInt.one());""",
     ("Rational", "from", "Float64"): """if (value.isNaN() || value.isInfinite()) {
@@ -90,7 +89,8 @@ WRITTEN = {
 COMMENTS = {
     ("Float64", "from", "Rational"): "The float equal to `value`, or ArithmeticException when there is none.",
     ("Float64", "nearest", "Rational"): "The float nearest to `value`. Of two as near, the one whose last bit is even;\n    // past the largest float, an infinity.",
-    ("Float32", "nearest", "Rational"): "The Float32 nearest to the Float64 nearest to `value`, as the compiler rounds a\n    // constant.",
+    ("Float32", "from", "Rational"): "The float equal to `value`, or ArithmeticException when there is none.",
+    ("Float32", "nearest", "Rational"): "The float nearest to `value`. Of two as near, the one whose last bit is even;\n    // past the largest float, an infinity.",
     ("Rational", "from", "Float64"): "The exact value of a float. NaN and the infinities raise.",
 }
 

@@ -67,6 +67,43 @@ fn rational_to_f64(r: &BigRational) -> f64 {
     r.to_f64().unwrap_or(f64::NAN)
 }
 
+/// The value of the float class of `bits` bits nearest to `r`, rounded as
+/// `rational_to_f64` rounds and held in an `f64`. This is the value `nearest` of the
+/// prelude gives the same rational at run time. A `Float32` is rounded once, from `r`:
+/// rounding to an `f64` first, as num-rational's `to_f32` does, can land halfway
+/// between two `Float32`s and then round the wrong way.
+fn rational_to_float(r: &BigRational, bits: u32) -> f64 {
+    if bits == 64 {
+        return rational_to_f64(r);
+    }
+    // A Float32 has 24 bits, and the unit of its last place is from 2^-149 to 2^104.
+    const PRECISION: i64 = 24;
+    const EMIN: i64 = -149;
+    const EMAX: i64 = 104;
+    if r.is_zero() {
+        return 0.0;
+    }
+    let (n, d) = (r.numer().magnitude(), r.denom().magnitude());
+    // The exponent of the highest bit of n/d, and of the unit of the last place.
+    let k = n.bits() as i64 - d.bits() as i64;
+    let at_least = if k >= 0 { *n >= d << k as usize } else { n << -k as usize >= *d };
+    let e = ((if at_least { k } else { k - 1 }) - PRECISION + 1).max(EMIN);
+    let size = if e > EMAX {
+        f64::INFINITY
+    } else {
+        let (top, bottom) = if e >= 0 { (n.clone(), d << e as usize) } else { (n << -e as usize, d.clone()) };
+        let mut mantissa = &top / &bottom;
+        let twice = (&top % &bottom) << 1usize;
+        if twice > bottom || twice == bottom && mantissa.bit(0) {
+            mantissa += 1u32;
+        }
+        // The mantissa has at most 25 bits, so it and its product with 2^e are exact.
+        let size = mantissa.to_f64().unwrap() * f64::from_bits(((1023 + e) as u64) << 52);
+        if size >= f64::from_bits((1023 + 128) << 52) { f64::INFINITY } else { size }
+    };
+    if r.is_negative() { -size } else { size }
+}
+
 fn f64_to_rational(f: f64) -> Option<BigRational> {
     BigRational::from_float(f)
 }
@@ -129,8 +166,7 @@ impl<'p> Checker<'p> {
                 }
             }
             NumKind::Float(bits) => {
-                let f = rational_to_f64(value);
-                let f = if bits == 32 { (f as f32) as f64 } else { f };
+                let f = rational_to_float(value, bits);
                 if f.is_infinite() {
                     return Err(format!("the literal is too large for `{name}`"));
                 }
@@ -190,8 +226,7 @@ impl<'p> Checker<'p> {
                             _ => Fold::NotConst,
                         };
                     };
-                    let f = rational_to_f64(&r);
-                    let f = if bits == 32 { (f as f32) as f64 } else { f };
+                    let f = rational_to_float(&r, bits);
                     if name == "from" && f64_to_rational(f).as_ref() != Some(&r) {
                         return Fold::Raises("ArithmeticException");
                     }
