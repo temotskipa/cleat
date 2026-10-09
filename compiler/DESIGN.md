@@ -32,6 +32,10 @@ writes itself, and nothing else.
 - `Rational` is an ordinary value class of the prelude, over its `BigInt`. A literal of
   it is made the first time it is evaluated, by the prelude's `Rational.literal` from the
   text `numerator/denominator`, and kept in a global (`@rat.N`) that the collector marks.
+- The runtime's default `equals`, `hashCode` and `identical` of a value follow its last
+  field in a loop, not a call, when that field holds a value that answers them the same
+  way. A `BigInt`'s digits are such a chain, and a long one would otherwise fill the
+  stack.
 
 A field has the representation of its declared type, so a field of type `T` is always a
 pointer. An array is the exception: `Int[]` stores machine integers, and code that sees

@@ -322,40 +322,57 @@ unsafe fn load_field(o: Obj, f: &FieldInfo) -> u64 {
     }
 }
 
+/// Whether field `i` is the last of a value class and holds a reference. The default
+/// `equals`, `hashCode` and `identical` follow that field in a loop rather than a call
+/// when its value answers them the same way, so a chain of values as long as the digits
+/// of a large `BigInt` does not fill the stack.
+fn is_tail(fields: &[FieldInfo], i: usize) -> bool {
+    i + 1 == fields.len() && fields[i].kind == 0
+}
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn cl_Object_equals_Object(ctx: *mut Ctx, a: Obj, b: Obj) -> u8 {
     unsafe {
-        if a.is_null() || b.is_null() {
-            return (a.is_null() && b.is_null()) as u8;
-        }
-        if a == b {
-            return 1;
-        }
-        if (*a).td != (*b).td {
-            return 0;
-        }
-        let c = class_of(a);
-        let same = match c.kind {
-            k if is_machine(k) => machine_equal(k, bits(a), bits(b)),
-            K_STRING => chars(a) == chars(b),
-            _ if c.is(F_VALUE) => {
-                let mut all = true;
-                for f in slice(c.fields, c.nfields) {
-                    let ok = if f.kind == 0 {
-                        v_equals(ctx, *at::<Obj>(a, f.offset as usize), *at::<Obj>(b, f.offset as usize))
-                    } else {
-                        machine_equal(f.kind, load_field(a, f), load_field(b, f))
-                    };
-                    if !ok || !(*ctx).exc.is_null() {
-                        all = false;
-                        break;
-                    }
-                }
-                all
+        let (mut a, mut b) = (a, b);
+        'chain: loop {
+            if a.is_null() || b.is_null() {
+                return (a.is_null() && b.is_null()) as u8;
             }
-            _ => false,
-        };
-        same as u8
+            if a == b {
+                return 1;
+            }
+            if (*a).td != (*b).td {
+                return 0;
+            }
+            let c = class_of(a);
+            let same = match c.kind {
+                k if is_machine(k) => machine_equal(k, bits(a), bits(b)),
+                K_STRING => chars(a) == chars(b),
+                _ if c.is(F_VALUE) => {
+                    let fields = slice(c.fields, c.nfields);
+                    let mut all = true;
+                    for (i, f) in fields.iter().enumerate() {
+                        let ok = if f.kind == 0 {
+                            let (x, y) = (*at::<Obj>(a, f.offset as usize), *at::<Obj>(b, f.offset as usize));
+                            if is_tail(fields, i) && types::cl_lookup(x, SEL_EQUALS) == cl_Object_equals_Object as *const u8 {
+                                (a, b) = (x, y);
+                                continue 'chain;
+                            }
+                            v_equals(ctx, x, y)
+                        } else {
+                            machine_equal(f.kind, load_field(a, f), load_field(b, f))
+                        };
+                        if !ok || !(*ctx).exc.is_null() {
+                            all = false;
+                            break;
+                        }
+                    }
+                    all
+                }
+                _ => false,
+            };
+            return same as u8;
+        }
     }
 }
 
@@ -388,22 +405,40 @@ fn machine_hash(kind: u32, x: u64) -> i64 {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn cl_Object_hashCode(ctx: *mut Ctx, a: Obj) -> i64 {
     unsafe {
-        if a.is_null() {
-            return 0;
-        }
-        let c = class_of(a);
-        match c.kind {
-            k if is_machine(k) => machine_hash(k, bits(a)),
-            K_STRING => chars(a).iter().fold(0i64, |h, ch| h.wrapping_mul(31).wrapping_add(*ch as i64)),
-            _ if c.is(F_VALUE) => {
-                let mut h = 17i64;
-                for f in slice(c.fields, c.nfields) {
-                    let part = if f.kind == 0 { v_hash(ctx, *at::<Obj>(a, f.offset as usize)) } else { machine_hash(f.kind, load_field(a, f)) };
-                    h = h.wrapping_mul(31).wrapping_add(part);
-                }
-                h
+        // A value's hash adds its last field's hash to the rest, so the values the loop
+        // has passed leave a sum to add to the hash of the one it is on.
+        let mut a = a;
+        let mut passed = 0i64;
+        'chain: loop {
+            if a.is_null() {
+                return passed;
             }
-            _ => (a as usize >> 4) as i64,
+            let c = class_of(a);
+            let h = match c.kind {
+                k if is_machine(k) => machine_hash(k, bits(a)),
+                K_STRING => chars(a).iter().fold(0i64, |h, ch| h.wrapping_mul(31).wrapping_add(*ch as i64)),
+                _ if c.is(F_VALUE) => {
+                    let fields = slice(c.fields, c.nfields);
+                    let mut h = 17i64;
+                    for (i, f) in fields.iter().enumerate() {
+                        let part = if f.kind == 0 {
+                            let x = *at::<Obj>(a, f.offset as usize);
+                            if is_tail(fields, i) && types::cl_lookup(x, SEL_HASH) == cl_Object_hashCode as *const u8 {
+                                passed = passed.wrapping_add(h.wrapping_mul(31));
+                                a = x;
+                                continue 'chain;
+                            }
+                            v_hash(ctx, x)
+                        } else {
+                            machine_hash(f.kind, load_field(a, f))
+                        };
+                        h = h.wrapping_mul(31).wrapping_add(part);
+                    }
+                    h
+                }
+                _ => (a as usize >> 4) as i64,
+            };
+            return passed.wrapping_add(h);
         }
     }
 }
@@ -487,24 +522,38 @@ pub unsafe extern "C" fn cl_Object_toString(ctx: *mut Ctx, a: Obj) -> Obj {
 
 unsafe fn identical(a: Obj, b: Obj) -> bool {
     unsafe {
-        if a == b {
-            return true;
-        }
-        if a.is_null() || b.is_null() || (*a).td != (*b).td {
-            return false;
-        }
-        let c = class_of(a);
-        match c.kind {
-            k if is_machine(k) => bits(a) == bits(b),
-            K_STRING => chars(a) == chars(b),
-            _ if c.is(F_VALUE) => slice(c.fields, c.nfields).iter().all(|f| {
-                if f.kind == 0 {
-                    identical(*at::<Obj>(a, f.offset as usize), *at::<Obj>(b, f.offset as usize))
-                } else {
-                    load_field(a, f) == load_field(b, f)
+        let (mut a, mut b) = (a, b);
+        loop {
+            if a == b {
+                return true;
+            }
+            if a.is_null() || b.is_null() || (*a).td != (*b).td {
+                return false;
+            }
+            let c = class_of(a);
+            match c.kind {
+                k if is_machine(k) => return bits(a) == bits(b),
+                K_STRING => return chars(a) == chars(b),
+                _ if c.is(F_VALUE) => {
+                    let fields = slice(c.fields, c.nfields);
+                    let same = fields.iter().enumerate().all(|(i, f)| {
+                        if is_tail(fields, i) {
+                            true
+                        } else if f.kind == 0 {
+                            identical(*at::<Obj>(a, f.offset as usize), *at::<Obj>(b, f.offset as usize))
+                        } else {
+                            load_field(a, f) == load_field(b, f)
+                        }
+                    });
+                    match fields.last() {
+                        Some(f) if same && f.kind == 0 => {
+                            (a, b) = (*at::<Obj>(a, f.offset as usize), *at::<Obj>(b, f.offset as usize));
+                        }
+                        _ => return same,
+                    }
                 }
-            }),
-            _ => false,
+                _ => return false,
+            }
         }
     }
 }
