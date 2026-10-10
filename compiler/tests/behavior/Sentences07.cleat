@@ -1,0 +1,324 @@
+// Chapter 7 at run time. tests/spec_rules/described_07.rs names a line of this
+// program's output for each sentence it shows. A type argument is part of an object's
+// class, so the name of a class shows what a call inferred.
+package t;
+
+@Refines
+annotation Positive;
+
+open class Shape {
+    public open Int area() {
+        return 1;
+    }
+}
+
+class Circle extends Shape {
+    @Override
+    public Int area() {
+        return 3;
+    }
+}
+
+interface Sink<in T> {
+    void put(T item);
+}
+
+class Bin<T> implements Sink<T> {
+    @Override
+    public void put(T item) {
+    }
+}
+
+interface Zeroed<T> {
+    static T zero();
+}
+
+value class Money implements Zeroed<Money>, Ordered<Money> {
+    public Int cents;
+
+    @Override
+    public static Money zero() {
+        return new Money(0);
+    }
+
+    @Override
+    public Boolean lessThan(Money other) {
+        return cents < other.cents;
+    }
+
+    @Override
+    public Boolean atMost(Money other) {
+        return cents <= other.cents;
+    }
+
+    @Override
+    public Boolean greaterThan(Money other) {
+        return cents > other.cents;
+    }
+
+    @Override
+    public Boolean atLeast(Money other) {
+        return cents >= other.cents;
+    }
+
+    @Override
+    public Int compare(Money other) {
+        return cents.compare(other.cents);
+    }
+}
+
+value class Weight implements Zeroed<Weight> {
+    public Int grams;
+
+    @Override
+    public static Weight zero() {
+        return new Weight(-1);
+    }
+}
+
+interface Named {
+    String name();
+}
+
+open class Base {
+    public open String name() {
+        return "base";
+    }
+}
+
+class Both extends Base implements Named {
+    @Override
+    public String name() {
+        return "one method";
+    }
+}
+
+class Accepts {
+    public String accept(List<String> items) {
+        return "strings";
+    }
+
+    public String accept(List<Int> items) {
+        return "ints";
+    }
+}
+
+// What a call inferred: each method records the name of its type argument.
+class Infer {
+    public static String seen = "";
+
+    public static <P> String of() {
+        var name = new List<P>().getClass().getName();
+        return name.substring(11, name.length() - 1);
+    }
+
+    public static <P> String one(P a) {
+        return Infer.<P>of();
+    }
+
+    public static <P> String nullable(@Nullable P a) {
+        return Infer.<P>of();
+    }
+
+    public static <P> String two(P a, P b) {
+        return Infer.<P>of();
+    }
+
+    public static <P> String list(List<P> a) {
+        return Infer.<P>of();
+    }
+
+    public static <P> String listAnd(List<P> a, P b) {
+        return Infer.<P>of();
+    }
+
+    public static <P> String source(Iterable<P> a) {
+        return Infer.<P>of();
+    }
+
+    public static <P> String sources(Iterable<P> a, Iterable<P> b) {
+        return Infer.<P>of();
+    }
+
+    public static <P> String sinks(Sink<P> a, Sink<P> b) {
+        return Infer.<P>of();
+    }
+
+    public static <P> String nested(Sink<Sink<P>> a, Sink<Sink<P>> b) {
+        return Infer.<P>of();
+    }
+
+    public static <P> String producers(List<? extends P> a, List<? extends P> b) {
+        return Infer.<P>of();
+    }
+
+    public static <P> String consumers(List<? super P> a, List<? super P> b) {
+        return Infer.<P>of();
+    }
+
+    public static <P> String producer(List<? extends P> a) {
+        return Infer.<P>of();
+    }
+
+    public static <P> String consumer(List<? super P> a) {
+        return Infer.<P>of();
+    }
+
+    public static <P> List<P> empty() {
+        seen = Infer.<P>of();
+        return new List<P>();
+    }
+
+    public static <P> P cast(Object o) {
+        seen = Infer.<P>of();
+        return (P) o;
+    }
+
+    public static <P> List<P> pair(P a, P b) {
+        seen = Infer.<P>of();
+        return new List<P>();
+    }
+
+    public static <A, B> String mapped(List<A> items, Function1<A, B> f) {
+        return Infer.<A>of() + " -> " + Infer.<B>of();
+    }
+
+    public static <A, B> String function(Function1<A, B> f) {
+        return Infer.<A>of() + " -> " + Infer.<B>of();
+    }
+}
+
+class Kinds {
+    public static <T> Boolean isA(@Nullable Object o) {
+        return o instanceof T;
+    }
+
+    public static <T> String cast(@Nullable Object o) {
+        try {
+            T value = (T) o;
+            return "accepted";
+        } catch (ClassCastException e) {
+            return "refused";
+        }
+    }
+
+    public static <T> String array() {
+        return new @Nullable T[2].getClass().getName();
+    }
+
+    public static <T> String sameKind(List<T> items) {
+        return new List<T>().getClass().getName();
+    }
+
+    public static <T extends Zeroed<T>> T zeroOf() {
+        return T.zero();
+    }
+
+    public static <T extends Numeric<T>> T sum(Iterable<T> items) {
+        T total = T.zero();
+        for (T item : items) {
+            total += item;
+        }
+        return total;
+    }
+}
+
+public class Sentences07 {
+    static Int totalArea(List<? extends Shape> shapes) {
+        var total = 0;
+        for (Shape shape : shapes) {
+            total += shape.area();
+        }
+        return total;
+    }
+
+    static String unknown(List<?> items) {
+        return Kinds.sameKind(items);
+    }
+
+    public static void main() {
+        var circles = new List<Circle>();
+        circles.add(new Circle());
+        circles.add(new Circle());
+        var shapes = new List<Shape>();
+        var names = new List<String>();
+        names.add("ab");
+        var circle = new Circle();
+        Shape shape = new Shape();
+
+        // ---- 7.3, 7.4 ----
+        Object strings = new List<String>();
+        Object bin = new Bin<Shape>();
+        Console.println("variance: " + (strings instanceof Iterable<Object>) + " " + (bin instanceof Sink<Circle>) + " " + (strings instanceof List<Object>));
+        var any = new List<List<?>>();
+        any.add(new List<Int>());
+        any.add(new List<String>());
+        Console.println("lists of any kind: " + any.size() + " " + any.getClass().getName());
+        Console.println("a for statement: " + totalArea(circles));
+        Console.println("the unknown type: " + unknown(circles) + " " + unknown(names));
+
+        // ---- 7.5 ----
+        Int8 small = 5;
+        @Nullable String maybe = "text";
+        List<? extends Shape> someShapes = circles;
+        List<? super Circle> someSink = shapes;
+        Console.println("a lower bound: " + Infer.one("a") + " " + Infer.nullable("a") + " " + Infer.one(circle));
+        Console.println("through a supertype: " + Infer.source(names));
+        Console.println("an invariant position: " + Infer.list(names) + " " + Infer.listAnd(shapes, circle));
+        Console.println("out and in: " + Infer.sources(circles, shapes) + " " + Infer.sinks(new Bin<Circle>(), new Bin<Shape>()));
+        Console.println("nested: " + Infer.nested(new Bin<Sink<Circle>>(), new Bin<Sink<Shape>>()));
+        Console.println("wildcard parameters: " + Infer.producers(circles, shapes) + " " + Infer.consumers(circles, shapes));
+        Console.println("wildcard arguments: " + Infer.producer(someShapes) + " " + Infer.consumer(someSink) + " " + Infer.list(someShapes));
+        List<String> expected = Infer.empty();
+        var fromEmpty = Infer.seen;
+        Shape result = Infer.cast(circle);
+        Console.println("the expected type: " + fromEmpty + " " + expected.getClass().getName() + " " + Infer.seen);
+        Console.println("a lambda: " + Infer.mapped(names, (s) -> s.length()) + " | " + Infer.function((String s) -> s.length()));
+        Console.println("a literal: " + Infer.two(small, 1) + " " + Infer.one(1) + " " + Infer.one(1.5));
+        Console.println("lower bounds: " + Infer.two(circle, shape) + " " + Infer.two(shape, circle));
+        List<Object> mixed = Infer.pair("a", 'b');
+        Console.println("no greatest lower bound: " + Infer.seen);
+        Console.println("upper bounds: " + Infer.consumer(shapes) + " " + Infer.consumers(shapes, circles));
+        var written = Infer.<Shape>empty();
+        Console.println("written: " + Infer.seen + " " + Infer.<Object>one("a"));
+        Console.println("with its qualifiers: " + Infer.one(maybe));
+
+        // ---- 7.6 ----
+        var numbers = new List<Rational>();
+        numbers.add(1/2);
+        numbers.add(1);
+        var counts = new List<Int>();
+        counts.add(2);
+        counts.add(4);
+        Console.println("a static requirement: " + Kinds.sum(numbers) + " " + Kinds.sum(counts) + " " + Kinds.<Money>zeroOf() + " " + Kinds.<Weight>zeroOf());
+
+        // ---- 7.7 ----
+        Object ints = new List<Int>();
+        Console.println("classes: " + (new List<String>().getClass() == new List<Int>().getClass()) + " " + (new List<String>().getClass() == strings.getClass()) + " " + (List<String>.class == strings.getClass()));
+        var castOfInts = "accepted";
+        try {
+            var bad = (List<String>) ints;
+        } catch (ClassCastException e) {
+            castOfInts = "fails";
+        }
+        Object circleList = circles;
+        Console.println("tests: a cast " + castOfInts + ", " + (strings instanceof Iterable<Object>) + " " + (strings instanceof List<?>) + " " + (ints instanceof List<?>) + " " + (circleList instanceof List<? extends Shape>) + " " + (strings instanceof List<? extends Shape>));
+        Console.println("a type parameter: " + Kinds.<String>isA("x") + " " + Kinds.<Int>isA("x") + " " + Kinds.<String>cast("x") + " " + Kinds.<Int>cast("x") + " " + Kinds.<String>array());
+        Object objects = new Object[] { "o" };
+        Object circleArray = new Circle[] { circle };
+        Console.println("arrays: " + new String[] { "s" }.getClass().getName() + " " + (objects instanceof String[]) + " " + (objects instanceof Object[]) + " " + (circleArray instanceof Shape[]) + " " + (circleArray instanceof Array<? extends Shape>));
+        Console.println("a wildcard argument: " + (new List<List<?>>().getClass() == new List<List<String>>().getClass()) + " " + new List<List<String>>().getClass().getName());
+        Console.println("names: " + new Map<String, Int>().getClass().getName() + " " + new List<@Nullable String>().getClass().getName() + " " + new List<@Positive @Nullable Int>().getClass().getName());
+        Console.println("wildcard names: " + new List<List<?>>().getClass().getName() + " " + new List<List<? extends Shape>>().getClass().getName() + " " + new List<List<? super Circle>>().getClass().getName());
+        Console.println("one name: " + new List<Iterable<? extends Shape>>().getClass().getName() + " " + new List<List<? extends @Nullable Object>>().getClass().getName() + " " + (new List<Iterable<? extends Shape>>().getClass() == new List<Iterable<Shape>>().getClass()) + " " + (new List<List<? extends @Nullable Object>>().getClass() == new List<List<?>>().getClass()));
+
+        // ---- 7.8 ----
+        var accepts = new Accepts();
+        Console.println("signatures: " + accepts.accept(names) + " " + accepts.accept(counts));
+        Named named = new Both();
+        Base base = new Both();
+        Console.println("one method: " + named.name() + ", " + base.name());
+        Ordered<Money> price = new Money(5);
+        Console.println("substituted: " + price.compare(new Money(7)));
+    }
+}

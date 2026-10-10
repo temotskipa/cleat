@@ -1,0 +1,31 @@
+variance: true true false
+lists of any kind: 2 cleat.List<cleat.List<?>>
+a for statement: 6
+the unknown type: cleat.List<t.Circle> cleat.List<cleat.String>
+a lower bound: cleat.String cleat.String t.Circle
+through a supertype: cleat.String
+an invariant position: cleat.String t.Shape
+out and in: t.Shape t.Circle
+nested: t.Shape
+wildcard parameters: t.Shape t.Circle
+wildcard arguments: t.Shape t.Circle t.Circle
+the expected type: cleat.String cleat.List<cleat.String> t.Shape
+a lambda: cleat.String -> cleat.Int | cleat.String -> cleat.Int
+a literal: cleat.Int8 cleat.Int cleat.Rational
+lower bounds: t.Shape t.Shape
+no greatest lower bound: cleat.Object
+upper bounds: t.Shape t.Circle
+written: t.Shape cleat.Object
+with its qualifiers: @cleat.Nullable cleat.String
+a static requirement: 3/2 6 Money(0) Weight(-1)
+classes: false true true
+tests: a cast fails, true true true true false
+a type parameter: true false accepted refused cleat.Array<@cleat.Nullable cleat.String>
+arrays: cleat.Array<cleat.String> false true false true
+a wildcard argument: false cleat.List<cleat.List<cleat.String>>
+names: cleat.Map<cleat.String, cleat.Int> cleat.List<@cleat.Nullable cleat.String> cleat.List<@cleat.Nullable @t.Positive cleat.Int>
+wildcard names: cleat.List<cleat.List<?>> cleat.List<cleat.List<? extends t.Shape>> cleat.List<cleat.List<? super t.Circle>>
+one name: cleat.List<cleat.Iterable<t.Shape>> cleat.List<cleat.List<?>> true true
+signatures: strings ints
+one method: one method, one method
+substituted: -1

@@ -1,0 +1,318 @@
+// Chapter 8 at run time. tests/spec_rules/described_08.rs names a line of this
+// program's output for each sentence it shows.
+package t;
+
+@Refines
+annotation Positive;
+
+@Target(Site.TYPE)
+@Inherited
+annotation Entity(String table = "none");
+
+@Target(Site.TYPE)
+annotation Plain;
+
+@Target({Site.FIELD, Site.METHOD})
+annotation Column(String name, Int width = 10);
+
+@Target(Site.PARAMETER)
+annotation Named(String value);
+
+annotation Marker;
+
+enum Mode { FAST, SAFE }
+
+annotation Config(Mode mode, Class type, Named inner, String[] tags = {}, Int[] sizes = {});
+
+interface Shape {
+}
+
+interface Labelled {
+}
+
+@Entity("people")
+@Plain
+open class Person implements Shape, Labelled {
+    @Column("full_name")
+    public String name;
+
+    @Column(name = "years", width = 3)
+    public Int age;
+
+    @Column("count")
+    public static Int count = 5;
+
+    @Column("secret")
+    Int hidden = 7;
+
+    @Column("fixed")
+    public final Int fixed = 1;
+
+    public Int unmarked = 0;
+
+    public @Nullable String nickname = null;
+
+    public Person(String name, Int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    @Column("greeting")
+    public open String greet(@Named("whom") String other, Int times) {
+        return name + " greets " + other + " x" + times;
+    }
+
+    @Marker
+    public void quiet() {
+    }
+
+    @Marker
+    public static Int twice(Int n) {
+        return n * 2;
+    }
+
+    @Marker
+    public Int fails() {
+        throw new IllegalStateException("from the method");
+    }
+
+    @Marker
+    public <T> T same(T x) {
+        return x;
+    }
+
+    @Marker
+    void secret() {
+    }
+
+    public void unmarkedMethod() {
+    }
+}
+
+class Student extends Person {
+    public Student(String name) {
+        super(name, 20);
+    }
+
+    @Override
+    public String greet(String other, Int times) {
+        return "the student " + name + " greets " + other;
+    }
+}
+
+@Entity("pupils")
+class Pupil extends Person {
+    public Pupil(String name) {
+        super(name, 10);
+    }
+}
+
+enum Level {
+    @Column("lowest")
+    LOW,
+    HIGH
+}
+
+@Config(mode = Mode.SAFE, type = Person.class, inner = @Named("within"), tags = "one", sizes = {1, 2})
+class Settings {
+}
+
+@Entity("boxes")
+class Box<T> {
+}
+
+@Deprecated("use Person")
+class Old {
+}
+
+value class Meters {
+    public Int length;
+
+    @Implicit
+    public static Meters from(Int whole) {
+        return new Meters(whole);
+    }
+
+    public Meters plus(Meters other) {
+        return new Meters(length + other.length);
+    }
+}
+
+public class Sentences08 {
+    static String names(Field[] fields) {
+        var all = "";
+        for (var i = 0; i < fields.length(); i++) {
+            all = all + fields[i].getName() + (fields[i].isStatic() ? "(static) " : " ");
+        }
+        return all;
+    }
+
+    static String names(Method[] methods) {
+        var all = "";
+        for (var i = 0; i < methods.length(); i++) {
+            all = all + methods[i].getName() + (methods[i].isStatic() ? "(static) " : " ");
+        }
+        return all;
+    }
+
+    static String table(Class type) {
+        @Nullable Entity entity = type.<Entity>getAnnotation();
+        return entity == null ? "none" : entity.table;
+    }
+
+    public static void main() {
+        var p = new Person("Ada", 36);
+        Class c = p.getClass();
+
+        // ---- 8.1, 8.2 ----
+        Entity entity = (Entity) c.<Entity>getAnnotation();
+        Object asObject = entity;
+        Console.println("read at run time: " + entity.table);
+        Console.println("the value: " + (asObject instanceof Annotation) + " " + entity.equals(c.<Entity>getAnnotation()) + " " + (entity == c.<Entity>getAnnotation()) + " " + entity);
+        var columns = c.<Column>getAnnotatedFields();
+        Column first = (Column) columns[0].<Column>getAnnotation();
+        Column second = (Column) columns[1].<Column>getAnnotation();
+        Console.println("arguments: " + first.name + "/" + first.width + " " + second.name + "/" + second.width);
+        Config config = (Config) Settings.class.<Config>getAnnotation();
+        Console.println("kinds of argument: " + config.mode + " " + config.type.getName() + " " + config.inner.value + " " + config.tags.length() + " " + config.tags[0] + " " + config.sizes.length());
+
+        // ---- 8.3 ----
+        Object plain = new List<Int>();
+        Object qualified = new List<@Positive Int>();
+        var cast = "";
+        try {
+            var same = (List<@Positive Int>) qualified;
+            cast = cast + "accepted ";
+            var other = (List<Int>) qualified;
+            cast = cast + "accepted";
+        } catch (ClassCastException e) {
+            cast = cast + "refused";
+        }
+        Console.println("a qualified type argument: " + (qualified instanceof List<@Positive Int>) + " " + (qualified instanceof List<Int>) + " " + (plain instanceof List<@Positive Int>) + ", a cast is " + cast);
+
+        // ---- 8.6 ----
+        @Nullable Object nothing = null;
+        var nullable = "";
+        try {
+            var kept = (@Nullable String) nothing;
+            nullable = nullable + "accepts null, ";
+            var refused = (String) nothing;
+            nullable = nullable + "accepts null";
+        } catch (ClassCastException e) {
+            nullable = nullable + "refuses null";
+        }
+        Console.println("a cast to a nullable type: " + nullable);
+
+        // ---- 8.7 ----
+        Console.println("an inherited tag: " + table(Student.class) + " " + table(Pupil.class) + " " + (Student.class.<Plain>getAnnotation() == null) + " " + (c.<Plain>getAnnotation() == null));
+
+        // ---- 8.8 ----
+        Meters height = 3;
+        var taller = height + 2;
+        Console.println("implicit: " + height + " " + taller);
+
+        // ---- 8.10 ----
+        Target target = (Target) Entity.class.<Target>getAnnotation();
+        Deprecated old = (Deprecated) Old.class.<Deprecated>getAnnotation();
+        Console.println("the prelude's annotations: " + target.sites.length() + " " + target.sites[0] + " " + (Entity.class.<Inherited>getAnnotation() != null) + " " + old.message);
+
+        // ---- 8.9 ----
+        Console.println("none: " + (c.<Marker>getAnnotation() == null));
+        Console.println("generic: " + table(Box<Int>.class) + " " + table(Box<String>.class) + " " + (Box<Int>.class.<Entity>getAnnotation() == Box<String>.class.<Entity>getAnnotation()));
+        Console.println("fields: " + names(columns));
+        Console.println("enum constants: " + names(Level.class.<Column>getAnnotatedFields()));
+        Console.println("methods: " + names(c.<Column>getAnnotatedMethods()) + "| " + names(c.<Marker>getAnnotatedMethods()));
+        Console.println("superclass: " + ((Class) Student.class.getSuperclass()).getName() + " " + (Object.class.getSuperclass() == null) + " " + (Shape.class.getSuperclass() == null));
+        var interfaces = c.getInterfaces();
+        Console.println("interfaces: " + interfaces.length() + " " + interfaces[0].getName() + " " + interfaces[1].getName());
+        Console.println("declared here: " + Student.class.<Column>getAnnotatedFields().length() + ", and in the superclass: " + ((Class) Student.class.getSuperclass()).<Column>getAnnotatedFields().length());
+        Method greet = c.<Column>getAnnotatedMethods()[0];
+        var parameters = greet.getParameters();
+        Named named = (Named) parameters[0].<Named>getAnnotation();
+        Console.println("parameters: " + parameters.length() + " " + parameters[0].getName() + " " + parameters[1].getName() + " " + named.value + " " + (parameters[1].<Named>getAnnotation() == null));
+        Console.println("a qualifier: " + c.<Nullable>getAnnotatedFields().length() + " " + (c.<Positive>getAnnotation() == null));
+        Config again = (Config) Settings.class.<Config>getAnnotation();
+        var fresh = !config.tags.identical(again.tags);
+        config.tags[0] = "changed";
+        Config later = (Config) Settings.class.<Config>getAnnotation();
+        Console.println("a new value: " + fresh + " " + config.tags[0] + " " + later.tags[0]);
+
+        Field age = columns[1];
+        var before = age.get(p);
+        age.set(p, 37);
+        Console.println("get and set: " + before + " " + p.age + " " + age.get(p));
+        Console.println("invoke: " + greet.invoke(p, "Bo", 2) + " | " + greet.invoke(new Student("Cy"), "Bo", 2));
+        var marked = c.<Marker>getAnnotatedMethods();
+        @Nullable Object unit = marked[0].invoke(p);
+        Console.println("a void method: " + (unit instanceof Unit) + " " + (unit == new Unit()));
+        Console.println("a static member: " + marked[1].invoke(null, 21) + " " + marked[1].invoke(p, 21) + " " + columns[2].get(null) + " " + columns[2].get(p));
+        try {
+            marked[2].invoke(p);
+            Console.println("an exception: returned");
+        } catch (IllegalStateException e) {
+            Console.println("an exception: " + e.message());
+        }
+
+        var access = "";
+        try {
+            var hidden = columns[3].get(p);
+        } catch (IllegalAccessException e) {
+            access = access + "a field that is not public, ";
+        }
+        try {
+            marked[4].invoke(p);
+        } catch (IllegalAccessException e) {
+            access = access + "a method that is not public, ";
+        }
+        try {
+            columns[4].set(p, 2);
+        } catch (IllegalAccessException e) {
+            access = access + "a final field";
+        }
+        Console.println("illegal access: " + access);
+
+        var casts = "";
+        try {
+            var wrong = age.get("not a person");
+        } catch (ClassCastException e) {
+            casts = casts + "the target, ";
+        }
+        try {
+            age.set(p, "old");
+        } catch (ClassCastException e) {
+            casts = casts + "a value, ";
+        }
+        try {
+            greet.invoke(p, 1, 2);
+        } catch (ClassCastException e) {
+            casts = casts + "an argument";
+        }
+        Console.println("class cast: " + casts);
+
+        var counts = "";
+        try {
+            greet.invoke(p, "Bo");
+        } catch (IllegalArgumentException e) {
+            counts = counts + "the number of arguments, ";
+        }
+        try {
+            marked[3].invoke(p, "x");
+        } catch (IllegalArgumentException e) {
+            counts = counts + "a generic method";
+        }
+        Console.println("illegal argument: " + counts);
+
+        var test = "a subclass is accepted, ";
+        try {
+            greet.invoke(p, null, 2);
+        } catch (ClassCastException e) {
+            test = test + "null is refused for a String, ";
+        }
+        try {
+            marked[1].invoke(null, Int32.from(21));
+        } catch (ClassCastException e) {
+            test = test + "an Int32 is refused for an Int";
+        }
+        Console.println("the test of a cast: " + test);
+    }
+}

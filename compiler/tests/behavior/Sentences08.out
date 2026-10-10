@@ -1,0 +1,29 @@
+read at run time: people
+the value: true true true Entity(people)
+arguments: full_name/10 years/3
+kinds of argument: SAFE t.Person within 1 one 2
+a qualified type argument: true false false, a cast is accepted refused
+a cast to a nullable type: accepts null, refuses null
+an inherited tag: people pupils true false
+implicit: Meters(3) Meters(5)
+the prelude's annotations: 1 TYPE true use Person
+none: true
+generic: boxes boxes true
+fields: name age count(static) hidden fixed 
+enum constants: LOW(static) 
+methods: greet | quiet twice(static) fails same secret 
+superclass: t.Person true true
+interfaces: 2 t.Shape t.Labelled
+declared here: 0, and in the superclass: 5
+parameters: 2 other times whom true
+a qualifier: 0 true
+a new value: true changed one
+get and set: 36 37 37
+invoke: Ada greets Bo x2 | the student Cy greets Bo
+a void method: true true
+a static member: 42 42 5 5
+an exception: from the method
+illegal access: a field that is not public, a method that is not public, a final field
+class cast: the target, a value, an argument
+illegal argument: the number of arguments, a generic method
+the test of a cast: a subclass is accepted, null is refused for a String, an Int32 is refused for an Int
