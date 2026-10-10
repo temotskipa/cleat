@@ -7,10 +7,9 @@ use crate::sema::check::call::{ArgIn, CallSite};
 use crate::sema::check::konst::{Fold, parse_decimal, parse_int};
 use crate::sema::check::{CapSource, Capture, Checker, CtorPhase, Facts, Flow, THIS};
 use crate::sema::decl;
-use crate::sema::program::{Aud, NumKind, Qualifier};
+use crate::sema::program::{Aud, BigRational, NumKind, Qualifier};
 use crate::sema::tir::{Call, Dispatch, LocalId, TExpr, TKind};
 use crate::sema::types::{Arg, ClassId, FieldRef, MethodRef, Subst, Tv, TvOwner, Ty, Type};
-use num_rational::BigRational;
 
 /// A checked condition with what it tells about locals on each outcome.
 pub struct Cond {

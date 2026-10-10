@@ -16,9 +16,10 @@ name = "cleatc"
 path = "src/lib.rs"
 
 [dependencies]
-cleatrt = { path = "rt" }
-num-bigint = "0.4.8"
-num-rational = "0.4.2"
+num-bigint = "0.5.1"
+# Without its own `num-bigint`, which is an older one: `sema::program::BigRational` is the
+# ratio over the `BigInt` above.
+num-rational = { version = "0.4.2", default-features = false, features = ["std"] }
 num-traits = "0.2.19"
 
 # The runtime is linked into every compiled program, so it is optimized even in a

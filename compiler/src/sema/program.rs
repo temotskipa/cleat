@@ -43,6 +43,9 @@ pub const SITE_NAMES: &[(&str, Site)] = &[
     ("PARAMETER", Site::Parameter),
 ];
 
+/// An exact rational of any size.
+pub type BigRational = num_rational::Ratio<num_bigint::BigInt>;
+
 /// A value the compiler has computed: chapter 12's constants and annotation arguments.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Const {
@@ -50,7 +53,7 @@ pub enum Const {
     Int(i128, ClassId),
     Float(f64, ClassId),
     /// An exact rational, as numerator and denominator in lowest terms.
-    Rational(num_rational::BigRational),
+    Rational(BigRational),
     Bool(bool),
     Char(char),
     Str(String),

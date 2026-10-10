@@ -1,11 +1,16 @@
 //! Statements (section 4.9, chapter 9) with the flow rules of chapter 12, and the
 //! bodies of a class: methods, constructors and static initializers.
 
-use super::call::{ArgIn, CallSite};
-use super::expr::needs_expected;
-use super::*;
+use crate::ast;
 use crate::ast::{ArmHead, ArmValue, ExprKind, StmtKind};
+use crate::lex::Pos;
+use crate::sema::check::call::{ArgIn, CallSite};
+use crate::sema::check::expr::needs_expected;
+use crate::sema::check::{Checker, CtorPhase, Flow, Label};
 use crate::sema::decl;
+use crate::sema::program::{Const, NumKind, Program};
+use crate::sema::tir::{ArmTest, LocalId, TCatch, TExpr, TKind, TStmt};
+use crate::sema::types::{Arg, ClassId, FieldRef, MethodRef, Tv, TvOwner, Ty, Type};
 
 // ---- the names a piece of code assigns ----
 
@@ -854,7 +859,7 @@ impl<'p> Checker<'p> {
                     }
                     let mut all = true;
                     for o in &cands {
-                        if !self.assignable(o, c, true) && !(o.is_null_literal()) {
+                        if !self.assignable(o, c, true) && !o.is_null_literal() {
                             all = false;
                             break;
                         }

@@ -1,8 +1,13 @@
 //! Lambdas and method references (section 4.8).
 
-use super::expr::Target;
-use super::*;
+use crate::ast;
 use crate::ast::{ExprKind, LambdaBody, RefTarget};
+use crate::lex::Pos;
+use crate::sema::check::expr::Target;
+use crate::sema::check::{CapSource, Capture, Checker, LambdaFrame};
+use crate::sema::program::{Aud, Class, LambdaClass, Method, Param, Qualifier};
+use crate::sema::tir::{Body, Lambda, TExpr, TKind, TStmt};
+use crate::sema::types::{ClassId, FieldRef, Tv, Type};
 
 fn unparen(e: &ast::Expr) -> &ast::Expr {
     match &e.kind {

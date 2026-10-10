@@ -1,5 +1,0 @@
-usdt:$MMTK:mmtk:process_slots {
-    if (@stats_enabled) {
-        @process_slots_work_packet_size = hist(arg0);
-    }
-}

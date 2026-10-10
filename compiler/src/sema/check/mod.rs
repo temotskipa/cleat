@@ -1,19 +1,20 @@
 //! Checks bodies: field initializers, methods, constructors and static initializers.
 //! The result is the typed form of `tir`.
 
+use crate::ast;
+use crate::lex::Pos;
+use crate::sema::decl;
+use crate::sema::decl::TypeCx;
+use crate::sema::program::{Aud, Field, Program, VarInfo};
+use crate::sema::tir::{Body, LocalId, LocalVar, TExpr, TKind, TStmt};
+use crate::sema::types::{Arg, ClassId, MethodRef, Tv, TvOwner, Ty, Type};
+use std::collections::{HashMap, HashSet};
+
 mod call;
 mod expr;
 pub mod konst;
 mod lambda;
 mod stmt;
-
-use super::decl::{self, TypeCx};
-use super::program::*;
-use super::tir::*;
-use super::types::*;
-use crate::ast;
-use crate::lex::Pos;
-use std::collections::{HashMap, HashSet};
 
 /// What narrowing knows about locals: for each, the type it is known to have.
 pub type Facts = Vec<(LocalId, Type)>;
@@ -164,7 +165,19 @@ impl<'p> Checker<'p> {
     pub fn new(p: &'p mut Program, class: ClassId, is_static: bool) -> Checker<'p> {
         let unit = p.class(class).unit;
         let cx = TypeCx::for_class(p, class, !is_static);
-        Checker { p, unit, class, cx, is_static, frames: Vec::new(), next_label: 0, next_lambda: 0, method: None, next_infer: 0, pending_label: None }
+        Checker {
+            p,
+            unit,
+            class,
+            cx,
+            is_static,
+            frames: Vec::new(),
+            next_label: 0,
+            next_lambda: 0,
+            method: None,
+            next_infer: 0,
+            pending_label: None,
+        }
     }
 
     pub fn err(&mut self, pos: Pos, message: impl Into<String>) {
@@ -173,7 +186,10 @@ impl<'p> Checker<'p> {
 
     pub fn error_expr(&mut self, pos: Pos, message: impl Into<String>) -> TExpr {
         self.err(pos, message);
-        TExpr { kind: TKind::Null, ty: Type::error() }
+        TExpr {
+            kind: TKind::Null,
+            ty: Type::error(),
+        }
     }
 
     pub fn frame(&mut self) -> &mut Frame {
@@ -190,7 +206,10 @@ impl<'p> Checker<'p> {
             meta: Vec::new(),
             params: Vec::new(),
             scopes: vec![Vec::new()],
-            flow: Flow { reachable: true, ..Flow::default() },
+            flow: Flow {
+                reachable: true,
+                ..Flow::default()
+            },
             labels: Vec::new(),
             ret,
             this_ty,
@@ -215,19 +234,39 @@ impl<'p> Checker<'p> {
                 self.err(at, format!("a lambda may use `{name}` only if it is never assigned after it is initialized"));
             }
         }
-        Body { locals: f.locals, params: f.params, stmts }
+        Body {
+            locals: f.locals,
+            params: f.params,
+            stmts,
+        }
     }
 
     // ---- locals and scopes ----
 
-    pub fn declare(&mut self, name: &str, ty: Type, is_final: bool, pos: Pos, is_param: bool) -> LocalId {
+    pub fn declare(
+        &mut self,
+        name: &str,
+        ty: Type,
+        is_final: bool,
+        pos: Pos,
+        is_param: bool,
+    ) -> LocalId {
         if !name.starts_with('#') && self.find_local(name).is_some() {
             self.err(pos, format!("`{name}` is already a variable of this method; a variable does not hide another"));
         }
         let f = self.frame();
         let id = f.locals.len() as LocalId;
-        f.locals.push(LocalVar { name: name.to_string(), ty, is_param });
-        f.meta.push(LocalMeta { is_final, reassigned: false, captured_at: None, pos });
+        f.locals.push(LocalVar {
+            name: name.to_string(),
+            ty,
+            is_param,
+        });
+        f.meta.push(LocalMeta {
+            is_final,
+            reassigned: false,
+            captured_at: None,
+            pos,
+        });
         f.scopes.last_mut().unwrap().push((name.to_string(), id));
         if is_param {
             f.params.push(id);
@@ -241,8 +280,17 @@ impl<'p> Checker<'p> {
     pub fn temp(&mut self, ty: Type) -> LocalId {
         let f = self.frame();
         let id = f.locals.len() as LocalId;
-        f.locals.push(LocalVar { name: format!("#t{id}"), ty, is_param: false });
-        f.meta.push(LocalMeta { is_final: true, reassigned: false, captured_at: None, pos: 0 });
+        f.locals.push(LocalVar {
+            name: format!("#t{id}"),
+            ty,
+            is_param: false,
+        });
+        f.meta.push(LocalMeta {
+            is_final: true,
+            reassigned: false,
+            captured_at: None,
+            pos: 0,
+        });
         f.flow.assigned.insert(id);
         f.flow.maybe.insert(id);
         id
@@ -273,11 +321,21 @@ impl<'p> Checker<'p> {
     pub fn captured(&mut self, owner: usize, at: usize, source: CapSource, ty: Type) -> TExpr {
         if owner == at {
             return match source {
-                CapSource::This => TExpr { kind: TKind::This, ty },
-                CapSource::Local(id) => TExpr { kind: TKind::Local(id), ty },
+                CapSource::This => TExpr {
+                    kind: TKind::This,
+                    ty,
+                },
+                CapSource::Local(id) => TExpr {
+                    kind: TKind::Local(id),
+                    ty,
+                },
             };
         }
-        let lambda_class = self.frames[at].lambda.as_ref().expect("an inner frame is a lambda").class;
+        let lambda_class = self.frames[at]
+            .lambda
+            .as_ref()
+            .expect("an inner frame is a lambda")
+            .class;
         let existing = self.frames[at]
             .lambda
             .as_ref()
@@ -287,7 +345,10 @@ impl<'p> Checker<'p> {
             .find(|c| c.owner == owner && c.source == source)
             .map(|c| c.local);
         if let Some(local) = existing {
-            return TExpr { kind: TKind::Local(local), ty: self.frames[at].locals[local as usize].ty.clone() };
+            return TExpr {
+                kind: TKind::Local(local),
+                ty: self.frames[at].locals[local as usize].ty.clone(),
+            };
         }
         let field = self.p.class(lambda_class).fields.len() as u32;
         let name = match &source {
@@ -311,12 +372,30 @@ impl<'p> Checker<'p> {
         });
         let f = &mut self.frames[at];
         let local = f.locals.len() as LocalId;
-        f.locals.push(LocalVar { name, ty: ty.clone(), is_param: false });
-        f.meta.push(LocalMeta { is_final: true, reassigned: false, captured_at: None, pos: 0 });
+        f.locals.push(LocalVar {
+            name,
+            ty: ty.clone(),
+            is_param: false,
+        });
+        f.meta.push(LocalMeta {
+            is_final: true,
+            reassigned: false,
+            captured_at: None,
+            pos: 0,
+        });
         f.flow.assigned.insert(local);
         f.flow.maybe.insert(local);
-        f.lambda.as_mut().unwrap().captures.push(Capture { owner, source, local, field, ty: ty.clone() });
-        TExpr { kind: TKind::Local(local), ty }
+        f.lambda.as_mut().unwrap().captures.push(Capture {
+            owner,
+            source,
+            local,
+            field,
+            ty: ty.clone(),
+        });
+        TExpr {
+            kind: TKind::Local(local),
+            ty,
+        }
     }
 
     // ---- flow ----
@@ -363,12 +442,17 @@ impl<'p> Checker<'p> {
     pub fn fresh_capture(&mut self, upper: Vec<Type>, lower: Option<Type>) -> Tv {
         let n = self.p.captures.len() as u32;
         self.p.captures.push(VarInfo { upper, lower });
-        Tv { owner: TvOwner::Capture(n), index: 0 }
+        Tv {
+            owner: TvOwner::Capture(n),
+            index: 0,
+        }
     }
 
     /// Replaces each wildcard argument of a type with an unknown type of its own.
     pub fn capture(&mut self, t: &Type) -> Type {
-        let Ty::Class(id, args) = &t.ty else { return t.clone() };
+        let Ty::Class(id, args) = &t.ty else {
+            return t.clone();
+        };
         if !t.has_wildcard_arg() {
             return t.clone();
         }
@@ -394,7 +478,11 @@ impl<'p> Checker<'p> {
                 }
             }
         }
-        Type { ty: Ty::Class(id, out), nullable: t.nullable, quals: t.quals.clone() }
+        Type {
+            ty: Ty::Class(id, out),
+            nullable: t.nullable,
+            quals: t.quals.clone(),
+        }
     }
 
     /// Writes a type without the unknown types of captured wildcards (section 7.4).
@@ -406,7 +494,11 @@ impl<'p> Checker<'p> {
             Ty::Var(tv) => {
                 if let TvOwner::Capture(n) = tv.owner {
                     let info = self.p.captures[n as usize].clone();
-                    let mut up = info.upper.first().cloned().unwrap_or_else(|| self.p.object().nullable());
+                    let mut up = info
+                        .upper
+                        .first()
+                        .cloned()
+                        .unwrap_or_else(|| self.p.object().nullable());
                     up = self.project(&up);
                     up.nullable |= t.nullable;
                     for q in &t.quals {
@@ -424,7 +516,9 @@ impl<'p> Checker<'p> {
                     out.push(match a {
                         Arg::Ty(at) => match &at.ty {
                             Ty::Var(tv) if matches!(tv.owner, TvOwner::Capture(_)) => {
-                                let TvOwner::Capture(n) = tv.owner else { unreachable!() };
+                                let TvOwner::Capture(n) = tv.owner else {
+                                    unreachable!()
+                                };
                                 let info = self.p.captures[n as usize].clone();
                                 match variance {
                                     ast::Variance::Out => Arg::Ty(self.project(at)),
@@ -447,7 +541,11 @@ impl<'p> Checker<'p> {
                         }
                     });
                 }
-                Type { ty: Ty::Class(id, out), nullable: t.nullable, quals: t.quals.clone() }
+                Type {
+                    ty: Ty::Class(id, out),
+                    nullable: t.nullable,
+                    quals: t.quals.clone(),
+                }
             }
             _ => t.clone(),
         }
@@ -493,7 +591,11 @@ impl<'p> Checker<'p> {
                 labels: f.labels.len(),
                 returned: f.returned.len(),
                 captures: f.lambda.as_ref().map(|l| l.captures.len()).unwrap_or(0),
-                cap_fields: f.lambda.as_ref().map(|l| self.p.class(l.class).fields.len()).unwrap_or(0),
+                cap_fields: f
+                    .lambda
+                    .as_ref()
+                    .map(|l| self.p.class(l.class).fields.len())
+                    .unwrap_or(0),
                 ctor: f.ctor,
             })
             .collect();
@@ -527,7 +629,9 @@ impl<'p> Checker<'p> {
             if let Some(l) = f.lambda.as_mut() {
                 l.captures.truncate(fs.captures);
                 if (l.class as usize) < s.classes {
-                    self.p.classes[l.class as usize].fields.truncate(fs.cap_fields);
+                    self.p.classes[l.class as usize]
+                        .fields
+                        .truncate(fs.cap_fields);
                 }
             }
         }

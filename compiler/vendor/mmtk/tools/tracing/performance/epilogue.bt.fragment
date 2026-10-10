@@ -1,7 +1,0 @@
-END {
-    system("rm $TMP_FILE");
-}
-
-interval:s:1200 {
-    exit();
-}
