@@ -460,20 +460,36 @@ impl Program {
         out
     }
 
+    /// The type of a class over its own type parameters.
+    pub fn own_type(&self, id: ClassId) -> Type {
+        let args = (0..self.class(id).tparams.len())
+            .map(|i| {
+                Arg::Ty(Type::var(Tv {
+                    owner: TvOwner::Class(id),
+                    index: i as u32,
+                }))
+            })
+            .collect();
+        Type::class(id, args)
+    }
+
+    /// Whether a bound of an outer wildcard admits the inner argument's bound on the
+    /// same side. An outer wildcard with no bound there admits anything, and one
+    /// with a bound needs the inner bound to be within it.
+    fn bound_admits(&mut self, outer: &Option<Type>, inner: &Option<Type>, upper: bool) -> bool {
+        match (outer, inner) {
+            (None, _) => true,
+            (Some(_), None) => false,
+            (Some(o), Some(i)) if upper => self.is_subtype(i, o),
+            (Some(o), Some(i)) => self.is_subtype(o, i),
+        }
+    }
+
     /// The instantiation of `target` that the class `from` extends or implements, over
     /// the type parameters of `from`.
     fn generic_super(&mut self, from: ClassId, target: ClassId) -> Option<Type> {
         if from == target {
-            let c = self.class(from);
-            let args = (0..c.tparams.len())
-                .map(|i| {
-                    Arg::Ty(Type::var(Tv {
-                        owner: TvOwner::Class(from),
-                        index: i as u32,
-                    }))
-                })
-                .collect();
-            return Some(Type::class(from, args));
+            return Some(self.own_type(from));
         }
         if let Some(hit) = self.supertype_cache.get(&(from, target)) {
             return hit.clone();
@@ -572,10 +588,7 @@ impl Program {
         }
         if !t.nullable {
             // T does not contain null, so S must not either.
-            let t_excludes_null = match &t.ty {
-                Ty::Var(_) => false,
-                _ => true,
-            };
+            let t_excludes_null = !matches!(&t.ty, Ty::Var(_));
             if s.nullable {
                 return false;
             }
@@ -594,10 +607,10 @@ impl Program {
             (Ty::Var(a), Ty::Var(b)) if a == b => true,
             (_, Ty::Var(b)) => {
                 // Only a captured `? super L` accepts something that is not itself.
-                if let TvOwner::Capture(n) = b.owner {
-                    if let Some(lower) = self.captures[n as usize].lower.clone() {
-                        return self.is_subtype(&s.bare(), &lower.bare());
-                    }
+                if let TvOwner::Capture(n) = b.owner
+                    && let Some(lower) = self.captures[n as usize].lower.clone()
+                {
+                    return self.is_subtype(&s.bare(), &lower.bare());
                 }
                 if let Ty::Var(a) = &s.ty {
                     let bounds = self.bounds_of(*a);
@@ -712,27 +725,7 @@ impl Program {
                     return self.same_type(&o, &i);
                 }
                 // The outer wildcard's range must enclose the inner range.
-                if let Some(o) = &ohigh {
-                    match &ihigh {
-                        Some(i) => {
-                            if !self.is_subtype(i, o) {
-                                return false;
-                            }
-                        }
-                        None => return false,
-                    }
-                }
-                if let Some(o) = &olow {
-                    match &ilow {
-                        Some(i) => {
-                            if !self.is_subtype(o, i) {
-                                return false;
-                            }
-                        }
-                        None => return false,
-                    }
-                }
-                true
+                self.bound_admits(&ohigh, &ihigh, true) && self.bound_admits(&olow, &ilow, false)
             }
         }
     }
@@ -751,18 +744,19 @@ impl Program {
         }
         match &t.ty {
             Ty::Class(id, args) => {
-                if *id == self.wk.array && args.len() == 1 {
-                    if let Arg::Ty(e) = &args[0] {
-                        // Qualifiers written here belong to the element; the array's own
-                        // were written above.
-                        let prefix = std::mem::take(&mut s);
-                        let inner = self.show(e);
-                        return if prefix.is_empty() {
-                            format!("{inner}[]")
-                        } else {
-                            format!("{inner} {}[]", prefix)
-                        };
-                    }
+                if *id == self.wk.array
+                    && args.len() == 1
+                    && let Arg::Ty(e) = &args[0]
+                {
+                    // Qualifiers written here belong to the element; the array's own
+                    // were written above.
+                    let prefix = std::mem::take(&mut s);
+                    let inner = self.show(e);
+                    return if prefix.is_empty() {
+                        format!("{inner}[]")
+                    } else {
+                        format!("{inner} {}[]", prefix)
+                    };
                 }
                 s.push_str(&self.class(*id).name);
                 if !args.is_empty() {

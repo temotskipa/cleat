@@ -624,16 +624,16 @@ impl<'p> Checker<'p> {
             self.err(a.pos, format!("`{}` is not an annotation", c.name));
             return None;
         }
-        if let (Some(site), Some(targets)) = (site, &c.targets) {
-            if !targets.contains(&site) {
-                self.err(
-                    a.pos,
-                    format!(
-                        "`@{}` may not be written here: its `@Target` does not list this site",
-                        c.name
-                    ),
-                );
-            }
+        if let (Some(site), Some(targets)) = (site, &c.targets)
+            && !targets.contains(&site)
+        {
+            self.err(
+                a.pos,
+                format!(
+                    "`@{}` may not be written here: its `@Target` does not list this site",
+                    c.name
+                ),
+            );
         }
         let n = c.elements.len();
         let mut sources: Vec<Option<ast::AnnValue>> = vec![None; n];

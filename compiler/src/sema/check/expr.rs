@@ -9,7 +9,7 @@ use crate::sema::check::{CapSource, Capture, Checker, CtorPhase, Facts, Flow, TH
 use crate::sema::decl;
 use crate::sema::program::{Aud, BigRational, NumKind, Qualifier};
 use crate::sema::tir::{Call, Dispatch, LocalId, TExpr, TKind};
-use crate::sema::types::{Arg, ClassId, FieldRef, MethodRef, Subst, Tv, TvOwner, Ty, Type};
+use crate::sema::types::{ClassId, FieldRef, MethodRef, Subst, Tv, Ty, Type};
 
 /// A checked condition with what it tells about locals on each outcome.
 pub struct Cond {
@@ -104,16 +104,16 @@ impl<'p> Checker<'p> {
 
     /// The type of the enclosing class as its own code sees it.
     pub fn self_type(&self) -> Type {
-        let c = self.p.class(self.class);
-        let args = (0..c.tparams.len())
-            .map(|i| {
-                Arg::Ty(Type::var(Tv {
-                    owner: TvOwner::Class(self.class),
-                    index: i as u32,
-                }))
-            })
-            .collect();
-        Type::class(self.class, args)
+        self.p.own_type(self.class)
+    }
+
+    /// The declared type of a field as a receiver of the captured type `cap` sees it:
+    /// section 7.4 reads a member's type through the receiver's type arguments.
+    fn field_type_through(&mut self, cap: &Type, f: FieldRef, declared: Type) -> Type {
+        match self.p.supertype_at(cap, f.class) {
+            Some(up) => Subst::for_class(f.class, up.args()).apply(&declared),
+            None => declared,
+        }
     }
 
     // ---- this and locals ----
@@ -963,10 +963,7 @@ impl<'p> Checker<'p> {
             );
         }
         let cap = self.capture(&recv.ty);
-        let ty = match self.p.supertype_at(&cap, f.class) {
-            Some(up) => Subst::for_class(f.class, up.args()).apply(&fty),
-            None => fty,
-        };
+        let ty = self.field_type_through(&cap, f, fty);
         let ty = self.project(&ty);
         TExpr {
             kind: TKind::Field(Box::new(recv), f),
@@ -1309,11 +1306,9 @@ impl<'p> Checker<'p> {
             } else {
                 self.p.numeric_class(&l.ty)
             };
-            if is_eq {
-                if let (Some(c), true) = (hint, is_literal_expr(b)) {
-                    let r = self.literal_at(b, c);
-                    return self.equality(op, l, r, pos);
-                }
+            if is_eq && let (Some(c), true) = (hint, is_literal_expr(b)) {
+                let r = self.literal_at(b, c);
+                return self.equality(op, l, r, pos);
             }
             let mut site = CallSite::new(vec![ArgIn::Ast(b)], pos);
             site.operator = Some(op.spelling());
@@ -1360,18 +1355,18 @@ impl<'p> Checker<'p> {
             let (a, b) = (self.show(&l.ty), self.show(&r.ty));
             return self.error_expr(pos, format!("`{}` between `{a}` and `{b}` is rejected: the two types are disjoint, so no pair of values is equal", op.spelling()));
         }
-        if let (Some(x), Some(y)) = (self.unboxed_class(&l.ty), self.unboxed_class(&r.ty)) {
-            if x == y {
-                if let (Some(ca), Some(cb)) = (self.as_const(&l), self.as_const(&r)) {
-                    if let Some(v) = self.fold_equals(&ca, &cb) {
-                        return self.bool_expr(v == (op == BinOp::Eq));
-                    }
-                }
-                return TExpr {
-                    kind: TKind::Prim(op, Box::new(l), Box::new(r)),
-                    ty: self.boolean(),
-                };
+        if let (Some(x), Some(y)) = (self.unboxed_class(&l.ty), self.unboxed_class(&r.ty))
+            && x == y
+        {
+            if let (Some(ca), Some(cb)) = (self.as_const(&l), self.as_const(&r))
+                && let Some(v) = self.fold_equals(&ca, &cb)
+            {
+                return self.bool_expr(v == (op == BinOp::Eq));
             }
+            return TExpr {
+                kind: TKind::Prim(op, Box::new(l), Box::new(r)),
+                ty: self.boolean(),
+            };
         }
         let mut site = CallSite::new(vec![ArgIn::Done(r)], pos);
         site.operator = Some(op.spelling());
@@ -1459,10 +1454,11 @@ impl<'p> Checker<'p> {
             }
             _ => self.unify_arms(ea, eb, pos),
         };
-        if let TKind::Bool(v) = ce.kind {
-            if self.as_const(&ea).is_some() && self.as_const(&eb).is_some() {
-                return if v { ea } else { eb };
-            }
+        if let TKind::Bool(v) = ce.kind
+            && self.as_const(&ea).is_some()
+            && self.as_const(&eb).is_some()
+        {
+            return if v { ea } else { eb };
         }
         TExpr {
             kind: TKind::Cond(Box::new(ce), Box::new(ea), Box::new(eb)),
@@ -1582,12 +1578,11 @@ impl<'p> Checker<'p> {
                 self.field_place(None, f, binds, compound, pos)
             }
             ExprKind::Field(t, n) => {
-                if matches!(t.kind, ExprKind::This) {
-                    if let Some(f) = self.find_field(self.class, n) {
-                        if !self.p.field(f).is_static {
-                            return self.field_place(None, f, binds, compound, pos);
-                        }
-                    }
+                if matches!(t.kind, ExprKind::This)
+                    && let Some(f) = self.find_field(self.class, n)
+                    && !self.p.field(f).is_static
+                {
+                    return self.field_place(None, f, binds, compound, pos);
                 }
                 match self.target(t) {
                     Target::Value(v) => {
@@ -1799,10 +1794,7 @@ impl<'p> Checker<'p> {
         }
         // Read the field's type as section 7.4 reads a member's.
         let cap = self.capture(&recv.ty);
-        let ty = match self.p.supertype_at(&cap, f.class) {
-            Some(up) => Subst::for_class(f.class, up.args()).apply(&fty),
-            None => fty,
-        };
+        let ty = self.field_type_through(&cap, f, fty);
         let recv = if compound {
             let t = self.temp(recv.ty.clone());
             let r = TExpr {
@@ -1982,12 +1974,12 @@ impl<'p> Checker<'p> {
         };
         if v.ty.is_error() {
             // Still record the assignment, so one mistake gives one message.
-            if let Place::Local(fi, id) = place {
-                if fi == self.frames.len() - 1 {
-                    let f = self.frame();
-                    f.flow.assigned.insert(id);
-                    f.flow.maybe.insert(id);
-                }
+            if let Place::Local(fi, id) = place
+                && fi == self.frames.len() - 1
+            {
+                let f = self.frame();
+                f.flow.assigned.insert(id);
+                f.flow.maybe.insert(id);
             }
             return v;
         }

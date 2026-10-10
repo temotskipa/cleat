@@ -212,7 +212,11 @@ pub unsafe fn alloc(ctx: *mut Ctx, td: *const crate::types::TypeDesc, size: usiz
             park(ctx);
         }
         let stress = STRESS.load(Ordering::Relaxed);
-        if stress != 0 && STRESS_COUNT.fetch_add(1, Ordering::Relaxed) % stress == 0 {
+        if stress != 0
+            && STRESS_COUNT
+                .fetch_add(1, Ordering::Relaxed)
+                .is_multiple_of(stress)
+        {
             collect(ctx);
         }
         if (*ctx).bytes >= REPORT {
@@ -334,7 +338,7 @@ pub unsafe fn collect(ctx: *mut Ctx) {
             }
             let mut f = t.top;
             while !f.is_null() {
-                let slots = (f as *const u8).add(std::mem::size_of::<Frame>()) as *const Obj;
+                let slots = (f as *const u8).add(size_of::<Frame>()) as *const Obj;
                 for i in 0..(*f).n as usize {
                     mark(&mut stack, *slots.add(i));
                 }

@@ -129,6 +129,43 @@ fn exit_ends_the_program_at_once() {
     );
 }
 
+/// `args` holds what the host passed, in order and without the program's own name.
+#[test]
+fn main_is_given_the_arguments_the_host_passed() {
+    let (_, exe) = build_text(
+        "arguments",
+        "t.Echo",
+        "package t;
+public class Echo {
+    public static void main(String[] args) {
+        Console.println(args.length());
+        for (var i = 0; i < args.length(); i++) {
+            Console.println(\"[\" + args[i] + \"]\");
+        }
+    }
+}
+",
+    );
+    expect(
+        &exe,
+        &["first", "second word", "3"],
+        0,
+        "3
+[first]
+[second word]
+[3]
+",
+    );
+    // With no arguments the array has length zero.
+    expect(
+        &exe,
+        &[],
+        0,
+        "0
+",
+    );
+}
+
 #[test]
 fn main_may_take_no_arguments_and_must_be_one() {
     let dir = scratch("entry");

@@ -42,7 +42,7 @@ static TABLE: Mutex<Option<HashMap<Key, usize>>> = Mutex::new(None);
 
 pub type Td = *const TypeDesc;
 
-pub fn intern(
+pub unsafe fn intern(
     class: *const ClassInfo,
     args: Vec<Td>,
     nullable: bool,
@@ -94,8 +94,8 @@ pub fn intern(
 }
 
 /// The type of a class that has no type parameters.
-pub fn simple(class: *const ClassInfo) -> Td {
-    intern(class, Vec::new(), false, Vec::new(), 0, std::ptr::null())
+pub unsafe fn simple(class: *const ClassInfo) -> Td {
+    unsafe { intern(class, Vec::new(), false, Vec::new(), 0, std::ptr::null()) }
 }
 
 /// The prelude class of a kind.
@@ -105,7 +105,7 @@ pub fn wk(kind: u32) -> *const ClassInfo {
 
 pub fn wk_type(kind: u32) -> Td {
     static CACHE: [OnceLock<usize>; K_COUNT] = [const { OnceLock::new() }; K_COUNT];
-    *CACHE[kind as usize].get_or_init(|| simple(wk(kind)) as usize) as Td
+    *CACHE[kind as usize].get_or_init(|| unsafe { simple(wk(kind)) } as usize) as Td
 }
 
 pub unsafe fn eval(e: *const TypeExpr, env: *const Td) -> Td {
@@ -181,7 +181,7 @@ impl TypeDesc {
     }
 
     /// The supertype that instantiates `class`.
-    pub fn super_at(&'static self, class: *const ClassInfo) -> Option<&'static TypeDesc> {
+    pub unsafe fn super_at(&'static self, class: *const ClassInfo) -> Option<&'static TypeDesc> {
         if self.class == class {
             return Some(self);
         }

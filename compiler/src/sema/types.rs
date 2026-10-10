@@ -216,6 +216,21 @@ impl Subst {
         s
     }
 
+    /// Binds the type parameters of a method to the types given for them, in order.
+    pub fn for_method(method: MethodRef, targs: &[Type]) -> Subst {
+        let mut s = Subst::new();
+        for (i, t) in targs.iter().enumerate() {
+            s.bind(
+                Tv {
+                    owner: TvOwner::Method(method),
+                    index: i as u32,
+                },
+                t.clone(),
+            );
+        }
+        s
+    }
+
     pub fn apply(&self, t: &Type) -> Type {
         if self.map.is_empty() {
             return t.clone();
@@ -252,10 +267,10 @@ impl Subst {
     pub fn apply_arg(&self, a: &Arg) -> Arg {
         match a {
             Arg::Ty(t) => {
-                if let Ty::Var(tv) = &t.ty {
-                    if let Some(w @ Arg::Wild(..)) = self.map.get(tv) {
-                        return w.clone();
-                    }
+                if let Ty::Var(tv) = &t.ty
+                    && let Some(w @ Arg::Wild(..)) = self.map.get(tv)
+                {
+                    return w.clone();
                 }
                 Arg::Ty(self.apply(t))
             }

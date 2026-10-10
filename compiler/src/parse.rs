@@ -347,11 +347,10 @@ impl<'a> Parser<'a> {
     /// `open`, `sealed` and `foreign` are identifiers unless another modifier, a type
     /// keyword, a type or `<` follows them.
     fn modifier_can_stand_here(&self) -> bool {
-        match self.tok_at(1) {
-            Tok::Ident(_) => true,
-            Tok::Punct("@") | Tok::Punct("<") => true,
-            _ => false,
-        }
+        matches!(
+            self.tok_at(1),
+            Tok::Ident(_) | Tok::Punct("@") | Tok::Punct("<")
+        )
     }
 
     fn annotation(&mut self) -> R<AnnotationUse> {
@@ -1344,14 +1343,14 @@ impl<'a> Parser<'a> {
                 pos,
             });
         }
-        if self.is_punct("(") {
-            if let Some(ty) = self.attempt(|p| p.cast_head()) {
-                let e = self.unary()?;
-                return Ok(Expr {
-                    kind: ExprKind::Cast(ty, Box::new(e)),
-                    pos,
-                });
-            }
+        if self.is_punct("(")
+            && let Some(ty) = self.attempt(|p| p.cast_head())
+        {
+            let e = self.unary()?;
+            return Ok(Expr {
+                kind: ExprKind::Cast(ty, Box::new(e)),
+                pos,
+            });
         }
         self.postfix()
     }
@@ -1587,10 +1586,9 @@ impl<'a> Parser<'a> {
                         && (self.is_punct_at(1, "<")
                             || (self.is_punct_at(1, "[") && self.is_punct_at(2, "]"))
                             || self.is_punct_at(1, "."))
+                        && let Some(e) = self.attempt(|p| p.type_led())
                     {
-                        if let Some(e) = self.attempt(|p| p.type_led()) {
-                            return Ok(e);
-                        }
+                        return Ok(e);
                     }
                     let name = self.ident()?;
                     if self.eat_punct("(") {
@@ -1652,7 +1650,7 @@ impl<'a> Parser<'a> {
             } else {
                 let mods = self.mods()?;
                 let mut ty = self.type_ref()?;
-                ty.annotations.splice(0..0, mods.annotations.into_iter());
+                ty.annotations.splice(0..0, mods.annotations);
                 let name = self.ident()?;
                 params.push(LambdaParam {
                     ty: Some(ty),

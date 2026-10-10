@@ -312,7 +312,8 @@ impl<'a, 'p> Func<'a, 'p> {
         t
     }
 
-    fn to_bits(&mut self, v: &str, m: Repr) -> String {
+    /// The 64 bits a machine value is boxed as.
+    fn bits_of(&mut self, v: &str, m: Repr) -> String {
         let t = self.tmp();
         match m {
             Repr::I8 | Repr::I16 | Repr::I32 => {
@@ -333,6 +334,27 @@ impl<'a, 'p> Func<'a, 'p> {
         t
     }
 
+    /// The arguments of a call, each held the way its parameter is.
+    fn arguments(&mut self, args: &[TExpr], params: &[Repr]) -> Vec<(Val, Repr)> {
+        let mut vals = Vec::new();
+        for (a, pr) in args.iter().zip(params.iter()) {
+            let v = self.expr(a);
+            let v = self.convert(v, self.repr(&a.ty), *pr);
+            vals.push((v, *pr));
+        }
+        vals
+    }
+
+    /// Emits a checked body. Its parameters are added to `params`, which already
+    /// holds the receiver when there is one.
+    fn checked_body(&mut self, body: &Body, held: &[Repr], params: &mut Vec<(Repr, Store)>) {
+        for (k, pr) in held.iter().enumerate() {
+            params.push((*pr, self.locals[body.params[k] as usize].clone()));
+        }
+        self.stmts(&body.stmts);
+        self.close();
+    }
+
     /// Changes how a value is held: boxing, unboxing, or nothing.
     pub fn convert_raw(&mut self, v: &str, from: Repr, to: Repr) -> String {
         if from == to {
@@ -342,7 +364,7 @@ impl<'a, 'p> Func<'a, 'p> {
             (Repr::Unit, Repr::Ref) => self.unit_object(),
             (_, Repr::Unit) => String::new(),
             (m, Repr::Ref) if m.is_machine() => {
-                let bits = self.to_bits(v, m);
+                let bits = self.bits_of(v, m);
                 let t = self.tmp();
                 self.ins(&format!(
                     "{t} = call ptr @cl_box(ptr %ctx, i32 {}, i64 {bits})",
@@ -500,12 +522,7 @@ impl<'a, 'p> Func<'a, 'p> {
             TKind::Call(c) => self.call(c, &e.ty),
             TKind::StaticReq { on, method, args } => {
                 let sig = self.e.sig(*method);
-                let mut vals = Vec::new();
-                for (a, pr) in args.iter().zip(sig.params.iter()) {
-                    let v = self.expr(a);
-                    let v = self.convert(v, self.repr(&a.ty), *pr);
-                    vals.push((v, *pr));
-                }
+                let vals = self.arguments(args, &sig.params);
                 let td = self.type_desc(on);
                 let f = self.tmp();
                 self.ins(&format!(
@@ -524,12 +541,7 @@ impl<'a, 'p> Func<'a, 'p> {
                     return Val::Unit;
                 }
                 let sig = self.e.ctor_sig(ctor.class, ctor.index);
-                let mut vals = Vec::new();
-                for (a, pr) in args.iter().zip(sig.params.iter()) {
-                    let v = self.expr(a);
-                    let v = self.convert(v, self.repr(&a.ty), *pr);
-                    vals.push((v, *pr));
-                }
+                let vals = self.arguments(args, &sig.params);
                 let td = self.type_desc(&e.ty.bare());
                 let o = self.tmp();
                 self.ins(&format!("{o} = call ptr @cl_new(ptr %ctx, ptr {td})"));
@@ -1049,7 +1061,10 @@ impl<'a, 'p> Func<'a, 'p> {
         let p = self.e.p;
         let md = p.method(c.method);
         // Arrays whose element type is known are read and written in place.
-        if md.intrinsic && c.method.class == p.wk.array && c.recv.is_some() {
+        if md.intrinsic
+            && c.method.class == p.wk.array
+            && let Some(array) = &c.recv
+        {
             let elem = c.class_args.first().and_then(|a| a.as_type()).cloned();
             let known = elem
                 .as_ref()
@@ -1057,7 +1072,7 @@ impl<'a, 'p> Func<'a, 'p> {
                 .unwrap_or(false);
             if md.name == "length" || known {
                 let er = elem.as_ref().map(|t| self.repr(t)).unwrap_or(Repr::Ref);
-                let a = self.expr(c.recv.as_ref().unwrap());
+                let a = self.expr(array);
                 match md.name.as_str() {
                     "length" => {
                         let a = self.val(&a);
@@ -1102,10 +1117,10 @@ impl<'a, 'p> Func<'a, 'p> {
                 }
             }
         }
-        if md.foreign {
-            if let Some(shim) = self.e.foreign_shim(c.method) {
-                return self.shim_call(c, &shim, want);
-            }
+        if md.foreign
+            && let Some(shim) = self.e.foreign_shim(c.method)
+        {
+            return self.shim_call(c, &shim, want);
         }
         if let Some(v) = self.inline_numeric(c, want) {
             return v;
@@ -1827,12 +1842,7 @@ impl<'a, 'p> Func<'a, 'p> {
             }
             TStmt::CtorCall { ctor, args } => {
                 let sig = self.e.ctor_sig(ctor.class, ctor.index);
-                let mut vals = Vec::new();
-                for (a, pr) in args.iter().zip(sig.params.iter()) {
-                    let v = self.expr(a);
-                    let v = self.convert(v, self.repr(&a.ty), *pr);
-                    vals.push((v, *pr));
-                }
+                let vals = self.arguments(args, &sig.params);
                 let this = self.this.clone();
                 let this = self.read(&this);
                 let this = self.val(&this);
@@ -2102,11 +2112,7 @@ impl<'a, 'p> Func<'a, 'p> {
                 f.this = f.new_store(r);
                 params.push((r, f.this.clone()));
             }
-            for (k, pr) in sig.params.iter().enumerate() {
-                params.push((*pr, f.locals[body.params[k] as usize].clone()));
-            }
-            f.stmts(&body.stmts);
-            f.close();
+            f.checked_body(body, &sig.params, &mut params);
             let init = if m.is_static { Some(id) } else { None };
             let text = f.assemble("", &name, sig.ret, sig.generic, &params, init);
             e.add_function(&text);
@@ -2120,11 +2126,7 @@ impl<'a, 'p> Func<'a, 'p> {
             f.this = f.new_store(Repr::Ref);
             f.allot(body);
             let mut params: Vec<(Repr, Store)> = vec![(Repr::Ref, f.this.clone())];
-            for (k, pr) in sig.params.iter().enumerate() {
-                params.push((*pr, f.locals[body.params[k] as usize].clone()));
-            }
-            f.stmts(&body.stmts);
-            f.close();
+            f.checked_body(body, &sig.params, &mut params);
             let text = f.assemble("", &name, Repr::Unit, false, &params, Some(id));
             e.add_function(&text);
         }

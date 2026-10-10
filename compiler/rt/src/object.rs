@@ -12,9 +12,9 @@ pub const SEL_EQUALS: u32 = 0;
 pub const SEL_HASH: u32 = 1;
 pub const SEL_TO_STRING: u32 = 2;
 
-/// The one `Unit` value.
-#[unsafe(no_mangle)]
-pub static mut cl_unit: Obj = std::ptr::null_mut();
+/// The one `Unit` value. Compiled code reads it as `cl_unit`.
+#[unsafe(export_name = "cl_unit")]
+pub static mut CL_UNIT: Obj = std::ptr::null_mut();
 
 pub unsafe fn at<T>(o: Obj, offset: usize) -> *mut T {
     unsafe { (o as *mut u8).add(offset) as *mut T }
@@ -117,15 +117,17 @@ pub unsafe fn to_rust(o: Obj) -> String {
 
 // ---- arrays ----
 
-pub fn array_type(elem: Td) -> Td {
-    types::intern(
-        types::wk(K_ARRAY),
-        vec![elem],
-        false,
-        Vec::new(),
-        0,
-        std::ptr::null(),
-    )
+pub unsafe fn array_type(elem: Td) -> Td {
+    unsafe {
+        types::intern(
+            types::wk(K_ARRAY),
+            vec![elem],
+            false,
+            Vec::new(),
+            0,
+            std::ptr::null(),
+        )
+    }
 }
 
 pub unsafe fn len(a: Obj) -> i64 {
@@ -905,7 +907,7 @@ pub unsafe extern "C" fn cl_start(program: *const Program) -> *mut Ctx {
             (**s).td = string;
             (**s).gc = GC_STATIC;
         }
-        cl_unit = gc::alloc_static(types::wk_type(K_UNIT), BODY);
+        CL_UNIT = gc::alloc_static(types::wk_type(K_UNIT), BODY);
         gc::new_ctx_sized(gc::main_stack())
     }
 }

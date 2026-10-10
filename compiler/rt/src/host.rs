@@ -562,7 +562,7 @@ pub unsafe extern "C" fn cl_Class_fieldGet_Int_Object(
     i: i64,
     target: Obj,
 ) -> Obj {
-    unsafe { (fields(c)[i as usize].get.expect("a field mirror"))(ctx, target) }
+    unsafe { fields(c)[i as usize].get.expect("a field mirror")(ctx, target) }
 }
 
 #[unsafe(no_mangle)]
@@ -573,7 +573,7 @@ pub unsafe extern "C" fn cl_Class_fieldSet_Int_Object_Object(
     target: Obj,
     value: Obj,
 ) {
-    unsafe { (fields(c)[i as usize].set.expect("a field mirror"))(ctx, target, value) }
+    unsafe { fields(c)[i as usize].set.expect("a field mirror")(ctx, target, value) }
 }
 
 #[unsafe(no_mangle)]
@@ -649,7 +649,7 @@ pub unsafe extern "C" fn cl_Class_methodInvoke_Int_Object_ObjectArray(
 ) -> Obj {
     unsafe {
         let _a = Temp::new(ctx, arguments);
-        (methods(c)[i as usize].invoke.expect("a method mirror"))(ctx, target, arguments)
+        methods(c)[i as usize].invoke.expect("a method mirror")(ctx, target, arguments)
     }
 }
 

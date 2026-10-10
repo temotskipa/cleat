@@ -233,10 +233,8 @@ fn collect(p: &mut Program) {
                     "a value class is final: `open`, `sealed` and `abstract` are rejected on it",
                 );
             }
-            if m.is_abstract && !is_class {
-                if d.kind != TypeKind::ValueClass {
-                    p.error(ui, d.pos, "`abstract` is written on a class");
-                }
+            if m.is_abstract && !is_class && d.kind != TypeKind::ValueClass {
+                p.error(ui, d.pos, "`abstract` is written on a class");
             }
             if m.is_final && (m.is_open || m.is_abstract) {
                 p.error(ui, d.pos, "`final` contradicts `open` and `abstract`");
@@ -444,22 +442,6 @@ fn imports(p: &mut Program) {
     }
 }
 
-/// The type of a class over its own type parameters.
-pub fn self_type_of(p: &Program, id: ClassId) -> Type {
-    let n = p.class(id).tparams.len();
-    Type::class(
-        id,
-        (0..n)
-            .map(|i| {
-                Arg::Ty(Type::var(Tv {
-                    owner: TvOwner::Class(id),
-                    index: i as u32,
-                }))
-            })
-            .collect(),
-    )
-}
-
 /// A type with every qualifier removed, at every depth: what distinguishes overloads.
 fn without_qualifiers(t: &Type) -> Type {
     let ty = match &t.ty {
@@ -544,16 +526,16 @@ fn signatures_are_nameable(p: &mut Program, id: ClassId) {
         for t in types {
             least_reach(p, t, &mut least);
         }
-        if let Some((r, hidden)) = least {
-            if r < reach.min(own) {
-                bad.push((
-                    pos,
-                    format!(
-                        "{what} can be seen where `{}` cannot be named, and its signature names it",
-                        p.class(hidden).name
-                    ),
-                ));
-            }
+        if let Some((r, hidden)) = least
+            && r < reach.min(own)
+        {
+            bad.push((
+                pos,
+                format!(
+                    "{what} can be seen where `{}` cannot be named, and its signature names it",
+                    p.class(hidden).name
+                ),
+            ));
         }
     };
     let mut supers: Vec<&Type> = c.interfaces.iter().collect();
@@ -668,7 +650,7 @@ fn overloads_differ(p: &mut Program, id: ClassId) {
 /// A method of the class or of a superclass that has the name and the signature of an
 /// interface method: the two are one method (section 7.8).
 fn class_method_like(p: &mut Program, class: ClassId, root: MethodRef) -> Option<MethodRef> {
-    let own = self_type_of(p, class);
+    let own = p.own_type(class);
     let up = p.supertype_at(&own, root.class)?;
     let rs = Subst::for_class(root.class, up.args());
     let r = p.method(root).clone();
@@ -785,10 +767,10 @@ pub fn lookup_simple(
 ) -> Option<ClassId> {
     let package = p.units[unit].package.join(".");
     // The same file.
-    if let Some(list) = p.by_name.get(&(package.clone(), name.to_string())) {
-        if let Some(id) = list.iter().copied().find(|id| p.class(*id).unit == unit) {
-            return Some(id);
-        }
+    if let Some(list) = p.by_name.get(&(package.clone(), name.to_string()))
+        && let Some(id) = list.iter().copied().find(|id| p.class(*id).unit == unit)
+    {
+        return Some(id);
     }
     // A type imported by name.
     let imports = p.units[unit].imports.clone();
@@ -811,19 +793,20 @@ pub fn lookup_simple(
         }
     }
     // The same package.
-    if let Some(id) = find_in_package(p, &package, name, unit) {
-        if type_visible(p, id, unit) {
-            return Some(id);
-        }
+    if let Some(id) = find_in_package(p, &package, name, unit)
+        && type_visible(p, id, unit)
+    {
+        return Some(id);
     }
     // A type imported by `*`.
     let mut starred = Vec::new();
     for imp in imports.iter().filter(|i| i.star) {
         let pkg = imp.path.join(".");
-        if let Some(id) = find_in_package(p, &pkg, name, unit) {
-            if p.class(id).aud == Aud::Public && !starred.contains(&id) {
-                starred.push(id);
-            }
+        if let Some(id) = find_in_package(p, &pkg, name, unit)
+            && p.class(id).aud == Aud::Public
+            && !starred.contains(&id)
+        {
+            starred.push(id);
         }
     }
     if starred.len() > 1 {
@@ -840,10 +823,10 @@ pub fn lookup_simple(
         return Some(*id);
     }
     // The prelude.
-    if let Some(id) = find_in_package(p, "cleat", name, unit) {
-        if type_visible(p, id, unit) {
-            return Some(id);
-        }
+    if let Some(id) = find_in_package(p, "cleat", name, unit)
+        && type_visible(p, id, unit)
+    {
+        return Some(id);
     }
     None
 }
@@ -990,13 +973,13 @@ pub fn resolve_type_anns(
 }
 
 fn resolve_named(p: &mut Program, cx: &TypeCx, t: &ast::TypeRef) -> Type {
-    if t.name.len() == 1 {
-        if let Some((_, tv)) = cx.tvars.iter().rev().find(|(n, _)| *n == t.name[0]) {
-            if t.args.is_some() {
-                p.error(cx.unit, t.pos, "a type parameter takes no type arguments");
-            }
-            return Type::var(*tv);
+    if t.name.len() == 1
+        && let Some((_, tv)) = cx.tvars.iter().rev().find(|(n, _)| *n == t.name[0])
+    {
+        if t.args.is_some() {
+            p.error(cx.unit, t.pos, "a type parameter takes no type arguments");
         }
+        return Type::var(*tv);
     }
     let Some(id) = lookup_class(p, cx.unit, &t.name, t.pos, true) else {
         return Type::error();
@@ -1145,10 +1128,11 @@ pub fn class_carries(p: &mut Program, id: ClassId, tag: ClassId) -> bool {
         return false;
     }
     for sup in p.direct_supers(id) {
-        if let Some(sid) = sup.class_id() {
-            if sid != id && class_carries(p, sid, tag) {
-                return true;
-            }
+        if let Some(sid) = sup.class_id()
+            && sid != id
+            && class_carries(p, sid, tag)
+        {
+            return true;
         }
     }
     false
@@ -1353,15 +1337,16 @@ fn headers(p: &mut Program) {
         // Sealed supertypes must permit this type, and permitted types must extend.
         for sup in p.direct_supers(id) {
             let Some(sid) = sup.class_id() else { continue };
-            if let Some(permits) = p.class(sid).permits.clone() {
-                if p.class(sid).is_sealed && !permits.contains(&id) {
-                    let name = p.class(sid).name.clone();
-                    p.error(
-                        unit,
-                        pos,
-                        format!("`{name}` is sealed and does not permit this type"),
-                    );
-                }
+            if let Some(permits) = p.class(sid).permits.clone()
+                && p.class(sid).is_sealed
+                && !permits.contains(&id)
+            {
+                let name = p.class(sid).name.clone();
+                p.error(
+                    unit,
+                    pos,
+                    format!("`{name}` is sealed and does not permit this type"),
+                );
             }
             if !type_visible(p, sid, unit) {
                 let name = p.class(sid).name.clone();
@@ -1574,18 +1559,7 @@ fn members(p: &mut Program) {
         let is_iface = kind == TypeKind::Interface;
         let cx_inst = TypeCx::for_class(p, id, true);
         let cx_static = TypeCx::for_class(p, id, false);
-        let self_type = {
-            let c = p.class(id);
-            let args = (0..c.tparams.len())
-                .map(|i| {
-                    Arg::Ty(Type::var(Tv {
-                        owner: TvOwner::Class(id),
-                        index: i as u32,
-                    }))
-                })
-                .collect();
-            Type::class(id, args)
-        };
+        let self_type = p.own_type(id);
 
         // Enum constants are public static final fields.
         for (i, k) in d.constants.iter().enumerate() {
@@ -2431,19 +2405,19 @@ pub fn impl_of(p: &mut Program, class: ClassId, root: MethodRef) -> ImplOf {
                     class: cid,
                     index: i as u32,
                 };
-                if mref == root || m.overrides.contains(&root) {
-                    if !(p.class(cid).is_interface() && m.is_abstract) {
-                        return ImplOf::Found(mref);
-                    }
+                if (mref == root || m.overrides.contains(&root))
+                    && !(p.class(cid).is_interface() && m.is_abstract)
+                {
+                    return ImplOf::Found(mref);
                 }
             }
         }
         cur = p.class(cid).superclass.as_ref().and_then(|t| t.class_id());
     }
-    if p.class(root.class).is_interface() {
-        if let Some(f) = class_method_like(p, class, root) {
-            return ImplOf::Found(f);
-        }
+    if p.class(root.class).is_interface()
+        && let Some(f) = class_method_like(p, class, root)
+    {
+        return ImplOf::Found(f);
     }
     // Then the bodies that interfaces provide.
     let mut found: Vec<MethodRef> = Vec::new();

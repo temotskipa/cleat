@@ -3363,8 +3363,9 @@ fn every_requirement_the_specification_states_has_a_case() {
     assert_eq!(all.len(), RULES.len());
     for r in RULES {
         let has_programs = !r.reject.is_empty() || !r.accept.is_empty();
-        assert!(
-            has_programs == r.note.is_empty(),
+        assert_eq!(
+            has_programs,
+            r.note.is_empty(),
             "`{}` needs programs or a reason, and not both",
             r.phrase
         );
@@ -3431,8 +3432,9 @@ fn every_restriction_the_specification_states_has_a_case() {
             ));
         }
         let has_programs = !r.reject.is_empty() || !r.accept.is_empty();
-        assert!(
-            has_programs == r.note.is_empty(),
+        assert_eq!(
+            has_programs,
+            r.note.is_empty(),
             "`{}` needs programs or a reason, and not both",
             r.phrase
         );
@@ -3787,9 +3789,7 @@ fn an_entry_class_declares_exactly_one_main() {
 #[test]
 fn a_deprecated_use_is_reported_from_another_unit() {
     let old = "==== Old.cleat\npublic class Old { @Deprecated(\"use fresh\") public static Int stale() { return 1; } public static Int own() { return stale(); } }\n";
-    let alone = analyze_sources(&files(old))
-        .ok()
-        .expect("the declaring unit");
+    let alone = analyze_sources(&files(old)).expect("the declaring unit");
     assert!(
         alone.warnings.is_empty(),
         "a use inside the declaring unit is not reported: {}",
@@ -3798,9 +3798,8 @@ fn a_deprecated_use_is_reported_from_another_unit() {
     let used = format!(
         "{old}==== User.cleat\npublic class User {{ public static Int f() {{ return Old.stale(); }} }}\n"
     );
-    let program = analyze_sources(&files(&used))
-        .ok()
-        .expect("a deprecated use does not reject the program");
+    let program =
+        analyze_sources(&files(&used)).expect("a deprecated use does not reject the program");
     assert_eq!(program.warnings.len(), 1);
     let w = &program.warnings[0];
     assert!(

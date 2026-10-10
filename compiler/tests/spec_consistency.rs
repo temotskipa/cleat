@@ -193,7 +193,7 @@ fn declarations(lines: &[String]) -> Vec<(String, String, BTreeSet<String>)> {
         let start = rest[..at].rfind('\n').map(|i| i + 1).unwrap_or(0);
         let after = &rest[at + keyword.len()..];
         let name: String = after.chars().take_while(|c| c.is_alphanumeric()).collect();
-        let end = after.find(|c| c == '{' || c == ';').unwrap_or(after.len());
+        let end = after.find(['{', ';']).unwrap_or(after.len());
         let header = format!("{}{}", &rest[start..at + keyword.len()], &after[..end])
             .split_whitespace()
             .collect::<Vec<_>>()
@@ -218,7 +218,7 @@ fn declarations(lines: &[String]) -> Vec<(String, String, BTreeSet<String>)> {
                 }
             }
             consumed = close;
-            for m in body.split(|c| c == ';' || c == '\n') {
+            for m in body.split([';', '\n']) {
                 let m = m.split_whitespace().collect::<Vec<_>>().join(" ");
                 if !m.is_empty() && !m.starts_with('@') {
                     members.insert(m);

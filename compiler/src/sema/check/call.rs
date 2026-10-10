@@ -10,6 +10,10 @@ use crate::sema::decl::ImplOf;
 use crate::sema::tir::{Call, Dispatch, TExpr, TKind};
 use crate::sema::types::{Arg, ClassId, MethodRef, Subst, Tv, TvOwner, Ty, Type};
 
+/// One way to read a method's parameters for a call: their types, and for a call that
+/// spreads its last arguments into a varargs array, where they start and the element type.
+type Shape = (Vec<Type>, Option<(usize, Type)>);
+
 /// An argument of a call: source still to be checked, or a value already checked.
 pub enum ArgIn<'a> {
     Ast(&'a ast::Expr),
@@ -165,6 +169,11 @@ impl<'p> Checker<'p> {
 
     fn drop_overridden(&self, cands: &mut Vec<(MethodRef, Subst)>) {
         let all: Vec<MethodRef> = cands.iter().map(|(m, _)| *m).collect();
+        self.drop_overridden_by(cands, &all);
+    }
+
+    /// Drops each candidate that another method of `all` overrides.
+    fn drop_overridden_by(&self, cands: &mut Vec<(MethodRef, Subst)>, all: &[MethodRef]) {
         cands.retain(|(f, _)| {
             !all.iter()
                 .any(|g| g != f && self.p.method(*g).overrides.contains(f))
@@ -266,7 +275,7 @@ impl<'p> Checker<'p> {
     ) -> Result<Applied, Why> {
         let c = &cands[ci];
         let (n, k) = (c.params.len(), pre.len());
-        let mut shapes: Vec<(Vec<Type>, Option<(usize, Type)>)> = Vec::new();
+        let mut shapes: Vec<Shape> = Vec::new();
         if k == n {
             shapes.push((c.params.clone(), None));
         }
@@ -305,16 +314,7 @@ impl<'p> Checker<'p> {
                     }
                 }
             };
-            let mut ms = Subst::new();
-            for (i, t) in targs.iter().enumerate() {
-                ms.bind(
-                    Tv {
-                        owner: TvOwner::Method(c.callee),
-                        index: i as u32,
-                    },
-                    t.clone(),
-                );
-            }
+            let ms = Subst::for_method(c.callee, &targs);
             let ptypes: Vec<Type> = ptypes.iter().map(|t| ms.apply(t)).collect();
             let ret = ms.apply(&c.ret);
             let spread = spread.map(|(from, elem)| (from, ms.apply(&elem)));
@@ -632,12 +632,12 @@ impl<'p> Checker<'p> {
             let mut ptys = Vec::new();
             for (lp, ft) in lparams.iter().zip(fparams.iter()) {
                 let mut t = ft.clone();
-                if mentions(&t) {
-                    if let Some(w) = &lp.ty {
-                        let wt = self.resolve(w);
-                        self.collect(owner, &mut b, &t, &wt, Dir::Inv);
-                        t = self.partial(owner, &b).apply(&t);
-                    }
+                if mentions(&t)
+                    && let Some(w) = &lp.ty
+                {
+                    let wt = self.resolve(w);
+                    self.collect(owner, &mut b, &t, &wt, Dir::Inv);
+                    t = self.partial(owner, &b).apply(&t);
                 }
                 if mentions(&t) {
                     return None;
@@ -645,10 +645,10 @@ impl<'p> Checker<'p> {
                 ptys.push(t);
             }
             let rt = self.partial(owner, &b).apply(&fret);
-            if mentions(&rt) {
-                if let Some(res) = self.lambda_result(e, &ptys) {
-                    self.collect(owner, &mut b, &rt, &res, Dir::Co);
-                }
+            if mentions(&rt)
+                && let Some(res) = self.lambda_result(e, &ptys)
+            {
+                self.collect(owner, &mut b, &rt, &res, Dir::Co);
             }
         }
         // Numeric literals, last.
@@ -659,13 +659,12 @@ impl<'p> Checker<'p> {
             if !is_literal_expr(e) {
                 continue;
             }
-            if let Ty::Var(tv) = &pts[i].ty {
-                if tv.owner == owner
-                    && !matches!(self.solve_one(&b[tv.index as usize]), Ok(Some(_)))
-                {
-                    let class = site.lit_hint.unwrap_or_else(|| self.default_class_of(e));
-                    b[tv.index as usize].lower.push(Type::simple(class));
-                }
+            if let Ty::Var(tv) = &pts[i].ty
+                && tv.owner == owner
+                && !matches!(self.solve_one(&b[tv.index as usize]), Ok(Some(_)))
+            {
+                let class = site.lit_hint.unwrap_or_else(|| self.default_class_of(e));
+                b[tv.index as usize].lower.push(Type::simple(class));
             }
         }
         let mut out = Vec::new();
@@ -676,16 +675,7 @@ impl<'p> Checker<'p> {
             }
         }
         // Each type is within the parameter's declared bound and carries its tags.
-        let mut ms = Subst::new();
-        for (i, t) in out.iter().enumerate() {
-            ms.bind(
-                Tv {
-                    owner: TvOwner::Method(c.callee),
-                    index: i as u32,
-                },
-                t.clone(),
-            );
-        }
+        let ms = Subst::for_method(c.callee, &out);
         let tparams = self.p.method(c.callee).tparams.clone();
         for (i, tp) in tparams.iter().enumerate() {
             for bound in &tp.bounds {
@@ -782,12 +772,12 @@ impl<'p> Checker<'p> {
             // call does: report its mistake.
             let mut reported = false;
             for (i, a) in site.args.iter().enumerate() {
-                if let (ArgIn::Ast(e), PreArg::Deferred) = (a, &pre[i]) {
-                    if matches!(e.kind, ExprKind::Call { .. }) {
-                        let before = self.p.diags.len();
-                        self.check_expr(e, None);
-                        reported |= self.p.diags.len() > before;
-                    }
+                if let (ArgIn::Ast(e), PreArg::Deferred) = (a, &pre[i])
+                    && matches!(e.kind, ExprKind::Call { .. })
+                {
+                    let before = self.p.diags.len();
+                    self.check_expr(e, None);
+                    reported |= self.p.diags.len() > before;
                 }
             }
             if reported {
@@ -877,7 +867,7 @@ impl<'p> Checker<'p> {
     fn finish_args(&mut self, a: &Applied, site: CallSite, pre: Vec<PreArg>) -> Vec<TExpr> {
         let mut out = Vec::new();
         let hint = site.lit_hint;
-        for (i, (arg, p)) in site.args.into_iter().zip(pre.into_iter()).enumerate() {
+        for (i, (arg, p)) in site.args.into_iter().zip(pre).enumerate() {
             let pt = &a.ptypes[i];
             let pos = match &arg {
                 ArgIn::Ast(e) => e.pos,
@@ -957,10 +947,11 @@ impl<'p> Checker<'p> {
     fn fail(&mut self, site: CallSite) -> TExpr {
         // Check what can still be checked, so mistakes inside the arguments are reported.
         for a in &site.args {
-            if let ArgIn::Ast(e) = a {
-                if !needs_expected(e) && !matches!(e.kind, ExprKind::Call { .. }) {
-                    self.check_expr(e, None);
-                }
+            if let ArgIn::Ast(e) = a
+                && !needs_expected(e)
+                && !matches!(e.kind, ExprKind::Call { .. })
+            {
+                self.check_expr(e, None);
             }
         }
         TExpr {
@@ -1084,16 +1075,14 @@ impl<'p> Checker<'p> {
             if is_virtual && !is_super {
                 dispatch = Dispatch::Virtual;
                 // A final class has one body for the signature, known here.
-                if let (Some(rc), false) = (r.ty.class_id(), self.p.may_be_null(&r.ty)) {
-                    if self.p.class(rc).is_final() {
-                        if let ImplOf::Found(f) = decl::impl_of(self.p, rc, m) {
-                            if !self.p.method(f).is_abstract {
-                                m = f;
-                                dispatch = Dispatch::Direct;
-                                is_virtual = false;
-                            }
-                        }
-                    }
+                if let (Some(rc), false) = (r.ty.class_id(), self.p.may_be_null(&r.ty))
+                    && self.p.class(rc).is_final()
+                    && let ImplOf::Found(f) = decl::impl_of(self.p, rc, m)
+                    && !self.p.method(f).is_abstract
+                {
+                    m = f;
+                    dispatch = Dispatch::Direct;
+                    is_virtual = false;
                 }
             }
             class_args = self.class_args(&r.ty, m.class);
@@ -1119,18 +1108,7 @@ impl<'p> Checker<'p> {
     pub fn call_static(&mut self, class: ClassId, name: &str, site: CallSite) -> TExpr {
         let pos = site.pos;
         let cname = self.p.class(class).name.clone();
-        let n = self.p.class(class).tparams.len();
-        let own = Type::class(
-            class,
-            (0..n)
-                .map(|i| {
-                    Arg::Ty(Type::var(Tv {
-                        owner: TvOwner::Class(class),
-                        index: i as u32,
-                    }))
-                })
-                .collect(),
-        );
+        let own = self.p.own_type(class);
         let all = self.method_candidates(&own, name);
         let mut cands = all.clone();
         cands.retain(|(m, _)| {
@@ -1435,10 +1413,7 @@ impl<'p> Checker<'p> {
             .map(|(m, _)| *m)
             .chain(bodies.iter().copied())
             .collect();
-        abstracts.retain(|(f, _)| {
-            !all.iter()
-                .any(|g| g != f && self.p.method(*g).overrides.contains(f))
-        });
+        self.drop_overridden_by(&mut abstracts, &all);
         if abstracts.len() == 1 {
             abstracts.pop()
         } else {

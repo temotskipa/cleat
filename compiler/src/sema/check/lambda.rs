@@ -289,10 +289,10 @@ impl<'p> Checker<'p> {
         });
         let mut values = Vec::new();
         for c in &captures {
-            if c.source == CapSource::This {
-                if let Some(l) = self.p.classes[class as usize].lambda.as_mut() {
-                    l.captures_this = Some(c.ty.clone());
-                }
+            if c.source == CapSource::This
+                && let Some(l) = self.p.classes[class as usize].lambda.as_mut()
+            {
+                l.captures_this = Some(c.ty.clone());
             }
             values.push(self.capture_value(c));
         }

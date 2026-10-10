@@ -10,7 +10,7 @@ use crate::sema::check::{Checker, CtorPhase, Flow, Label};
 use crate::sema::decl;
 use crate::sema::program::{Const, NumKind, Program};
 use crate::sema::tir::{ArmTest, LocalId, TCatch, TExpr, TKind, TStmt};
-use crate::sema::types::{Arg, ClassId, FieldRef, MethodRef, Tv, TvOwner, Ty, Type};
+use crate::sema::types::{ClassId, FieldRef, MethodRef, Tv, TvOwner, Ty, Type};
 
 // ---- the names a piece of code assigns ----
 
@@ -181,12 +181,12 @@ impl<'p> Checker<'p> {
     fn enter_loop(&mut self, names: &[String]) {
         let at = self.frames.len() - 1;
         for n in names {
-            if let Some((fi, id)) = self.find_local(n) {
-                if fi == at {
-                    let f = self.frame();
-                    f.flow.facts.remove(&id);
-                    f.flow.maybe.insert(id);
-                }
+            if let Some((fi, id)) = self.find_local(n)
+                && fi == at
+            {
+                let f = self.frame();
+                f.flow.facts.remove(&id);
+                f.flow.maybe.insert(id);
             }
         }
     }
@@ -194,10 +194,10 @@ impl<'p> Checker<'p> {
     fn kill_facts(&mut self, names: &[String]) {
         let at = self.frames.len() - 1;
         for n in names {
-            if let Some((fi, id)) = self.find_local(n) {
-                if fi == at {
-                    self.frame().flow.facts.remove(&id);
-                }
+            if let Some((fi, id)) = self.find_local(n)
+                && fi == at
+            {
+                self.frame().flow.facts.remove(&id);
             }
         }
     }
@@ -278,11 +278,11 @@ impl<'p> Checker<'p> {
             );
             return None;
         }
-        if let Some(mark) = self.frame_ref().in_finally.last() {
-            if i < *mark {
-                self.err(pos, format!("a `{word}` does not leave a `finally` block"));
-                return None;
-            }
+        if let Some(mark) = self.frame_ref().in_finally.last()
+            && i < *mark
+        {
+            self.err(pos, format!("a `{word}` does not leave a `finally` block"));
+            return None;
         }
         Some(i)
     }
@@ -294,18 +294,17 @@ impl<'p> Checker<'p> {
         breakable: bool,
         pos: Pos,
     ) -> u32 {
-        if let Some(n) = &name {
-            if self
+        if let Some(n) = &name
+            && self
                 .frame_ref()
                 .labels
                 .iter()
                 .any(|l| l.name.as_deref() == Some(n.as_str()))
-            {
-                self.err(
-                    pos,
-                    format!("the label `{n}` is already on an enclosing statement"),
-                );
-            }
+        {
+            self.err(
+                pos,
+                format!("the label `{n}` is already on an enclosing statement"),
+            );
         }
         let id = self.new_label();
         self.frame().labels.push(Label {
@@ -801,17 +800,19 @@ impl<'p> Checker<'p> {
 
     fn covers(&mut self, class: ClassId, arms: &[Type], depth: u32) -> bool {
         for a in arms {
-            if let Some(ac) = a.class_id() {
-                if self.p.is_subclass(class, ac) {
-                    return true;
-                }
+            if let Some(ac) = a.class_id()
+                && self.p.is_subclass(class, ac)
+            {
+                return true;
             }
         }
         let c = self.p.class(class);
-        if depth < 16 && c.is_sealed && (c.is_interface() || c.is_abstract) {
-            if let Some(list) = c.permits.clone() {
-                return !list.is_empty() && list.iter().all(|p| self.covers(*p, arms, depth + 1));
-            }
+        if depth < 16
+            && c.is_sealed
+            && (c.is_interface() || c.is_abstract)
+            && let Some(list) = c.permits.clone()
+        {
+            return !list.is_empty() && list.iter().all(|p| self.covers(*p, arms, depth + 1));
         }
         false
     }
@@ -1338,19 +1339,12 @@ fn check_foreign(p: &mut Program, id: ClassId, mi: usize) {
     }
 }
 
-fn own_type(p: &Program, id: ClassId) -> Type {
-    let n = p.class(id).tparams.len();
-    Type::class(
-        id,
-        (0..n)
-            .map(|i| {
-                Arg::Ty(Type::var(Tv {
-                    owner: TvOwner::Class(id),
-                    index: i as u32,
-                }))
-            })
-            .collect(),
-    )
+/// The statement that assigns `value` to a field of `this`.
+fn assign_field(this: &TExpr, field: FieldRef, value: TExpr, ty: &Type) -> TStmt {
+    TStmt::Expr(TExpr {
+        kind: TKind::AssignField(Box::new(this.clone()), field, Box::new(value)),
+        ty: ty.clone(),
+    })
 }
 
 pub fn check_class(p: &mut Program, id: ClassId) {
@@ -1383,7 +1377,7 @@ pub fn check_class(p: &mut Program, id: ClassId) {
         let this_ty = if m.is_static {
             None
         } else {
-            let mut t = own_type(ck.p, id);
+            let mut t = ck.p.own_type(id);
             t.nullable = m.recv_nullable;
             t.quals = m.recv_quals.clone();
             Some(t)
@@ -1413,7 +1407,7 @@ fn check_ctor(p: &mut Program, id: ClassId, ci: usize) {
         return;
     }
     let mut ck = Checker::new(p, id, false);
-    let this_ty = own_type(ck.p, id);
+    let this_ty = ck.p.own_type(id);
     ck.push_frame(None, Some(this_ty.clone()));
     ck.frame().is_ctor = true;
     let this = TExpr {
@@ -1440,10 +1434,7 @@ fn check_ctor(p: &mut Program, id: ClassId, ci: usize) {
                 class: id,
                 index: i as u32,
             };
-            stmts.push(TStmt::Expr(TExpr {
-                kind: TKind::AssignField(Box::new(this.clone()), fref, Box::new(read)),
-                ty: f.ty.clone(),
-            }));
+            stmts.push(assign_field(&this, fref, read, &f.ty));
             fi += 1;
         }
         ck.frame().ctor = CtorPhase::After;
@@ -1498,10 +1489,7 @@ fn check_ctor(p: &mut Program, id: ClassId, ci: usize) {
                 class: id,
                 index: i as u32,
             };
-            stmts.push(TStmt::Expr(TExpr {
-                kind: TKind::AssignField(Box::new(this.clone()), fref, Box::new(v)),
-                ty: f.ty.clone(),
-            }));
+            stmts.push(assign_field(&this, fref, v, &f.ty));
             let fl = &mut ck.frame().flow;
             fl.fields.insert(i as u32);
             fl.maybe_fields.insert(i as u32);
@@ -1578,15 +1566,14 @@ fn check_ctor(p: &mut Program, id: ClassId, ci: usize) {
         fields_assigned(&mut ck, body.end);
         let args: Vec<ArgIn> = hidden.iter().cloned().map(ArgIn::Done).collect();
         let was = ck.frame_ref().flow.reachable;
-        if c.superclass.is_some() {
-            if let Some((ctor, checked)) = ck.ctor_call(true, CallSite::new(args, k.pos)) {
-                if was {
-                    stmts.push(TStmt::CtorCall {
-                        ctor,
-                        args: checked,
-                    });
-                }
-            }
+        if c.superclass.is_some()
+            && let Some((ctor, checked)) = ck.ctor_call(true, CallSite::new(args, k.pos))
+            && was
+        {
+            stmts.push(TStmt::CtorCall {
+                ctor,
+                args: checked,
+            });
         }
     }
     let checked = ck.pop_frame(stmts);

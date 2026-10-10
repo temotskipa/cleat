@@ -622,7 +622,7 @@ impl<'p> Emitter<'p> {
         let mut at = 16usize;
         for (k, (f, r, _)) in fields.iter().enumerate() {
             let size = c_size(*r);
-            at = (at + size - 1) / size * size;
+            at = at.div_ceil(size) * size;
             if *r == Repr::Ref {
                 let inner = self.p.field(*f).ty.class_id().unwrap_or(id);
                 let iname = self.c_struct(inner);
@@ -1017,11 +1017,11 @@ impl<'p> Emitter<'p> {
                 supers.push(self.texpr(&Type::simple(*above), &tv).0);
             }
         } else {
-            if let Some(s) = &c.superclass {
-                if !c.is_annotation() {
-                    flags |= 64;
-                    supers.push(self.texpr(s, &tv).0);
-                }
+            if let Some(s) = &c.superclass
+                && !c.is_annotation()
+            {
+                flags |= 64;
+                supers.push(self.texpr(s, &tv).0);
             }
             for i in &c.interfaces {
                 supers.push(self.texpr(i, &tv).0);
@@ -1307,13 +1307,11 @@ impl<'p> Emitter<'p> {
         }
         let mut out = String::new();
         out.push_str(HEADER);
-        for l in &self.layouts {
-            if let Some(l) = l {
-                let fields: Vec<&str> = l.fields.iter().map(|(_, r, _)| r.ll()).collect();
-                let mut all = vec!["ptr", "i64"];
-                all.extend(fields);
-                let _ = writeln!(out, "{} = type {{ {} }}", l.ty, all.join(", "));
-            }
+        for l in self.layouts.iter().flatten() {
+            let fields: Vec<&str> = l.fields.iter().map(|(_, r, _)| r.ll()).collect();
+            let mut all = vec!["ptr", "i64"];
+            all.extend(fields);
+            let _ = writeln!(out, "{} = type {{ {} }}", l.ty, all.join(", "));
         }
         out.push('\n');
         for d in &self.decls {
@@ -1518,15 +1516,15 @@ pub fn emit(p: &mut Program, entry: ClassId) -> Result<(String, String), Vec<Str
                     index: i,
                 };
                 if selectors.contains_key(&r) {
-                    if let ImplOf::Found(f) = decl::impl_of(p, id, r) {
-                        if !p.method(f).is_abstract {
-                            vtables[id as usize].push((r, f));
-                        }
+                    if let ImplOf::Found(f) = decl::impl_of(p, id, r)
+                        && !p.method(f).is_abstract
+                    {
+                        vtables[id as usize].push((r, f));
                     }
-                } else if req_selectors.contains_key(&r) {
-                    if let Some(f) = decl::find_static_impl(p, id, r) {
-                        reqs[id as usize].push((r, f));
-                    }
+                } else if req_selectors.contains_key(&r)
+                    && let Some(f) = decl::find_static_impl(p, id, r)
+                {
+                    reqs[id as usize].push((r, f));
                 }
             }
         }
@@ -1585,25 +1583,25 @@ pub fn emit(p: &mut Program, entry: ClassId) -> Result<(String, String), Vec<Str
     }
 
     // A class whose initialization does nothing needs no guard.
-    let mut trivial = vec![true; n];
-    for id in 0..n {
-        let c = &p.classes[id];
-        trivial[id] = c
-            .static_init_checked
-            .as_ref()
-            .map(|b| b.stmts.is_empty())
-            .unwrap_or(true);
-    }
+    let mut trivial: Vec<bool> = p
+        .classes
+        .iter()
+        .map(|c| {
+            c.static_init_checked
+                .as_ref()
+                .map(|b| b.stmts.is_empty())
+                .unwrap_or(true)
+        })
+        .collect();
     loop {
         let mut changed = false;
         for id in 0..n {
-            if trivial[id] {
-                if let Some(s) = p.classes[id].superclass.as_ref().and_then(|t| t.class_id()) {
-                    if !trivial[s as usize] {
-                        trivial[id] = false;
-                        changed = true;
-                    }
-                }
+            if trivial[id]
+                && let Some(s) = p.classes[id].superclass.as_ref().and_then(|t| t.class_id())
+                && !trivial[s as usize]
+            {
+                trivial[id] = false;
+                changed = true;
             }
         }
         if !changed {
