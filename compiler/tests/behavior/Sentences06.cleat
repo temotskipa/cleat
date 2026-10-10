@@ -1,0 +1,444 @@
+// Chapter 6 at run time. tests/spec_rules/described_06.rs names a line of this
+// program's output for each sentence it shows.
+package t;
+
+class Trace {
+    public static String log = "";
+
+    @Discardable
+    public static Int note(String what) {
+        log = log + what + " ";
+        return 1;
+    }
+
+    public static String take() {
+        var all = log;
+        log = "";
+        return all;
+    }
+}
+
+// A class of the program that takes the operators of the numeric classes.
+value class Steps implements Numeric<Steps>, Ordered<Steps> {
+    public Int count;
+
+    @Override
+    public Steps plus(Steps other) {
+        Trace.note("plus");
+        return new Steps(count + other.count);
+    }
+
+    @Override
+    public Steps minus(Steps other) {
+        Trace.note("minus");
+        return new Steps(count - other.count);
+    }
+
+    @Override
+    public Steps times(Steps other) {
+        Trace.note("times");
+        return new Steps(count * other.count);
+    }
+
+    @Override
+    public Steps negate() {
+        Trace.note("negate");
+        return new Steps(-count);
+    }
+
+    @Override
+    public static Steps zero() {
+        return new Steps(0);
+    }
+
+    @Override
+    public static Steps one() {
+        return new Steps(1);
+    }
+
+    @Override
+    public Boolean lessThan(Steps other) {
+        Trace.note("lessThan");
+        return count < other.count;
+    }
+
+    @Override
+    public Boolean atMost(Steps other) {
+        Trace.note("atMost");
+        return count <= other.count;
+    }
+
+    @Override
+    public Boolean greaterThan(Steps other) {
+        Trace.note("greaterThan");
+        return count > other.count;
+    }
+
+    @Override
+    public Boolean atLeast(Steps other) {
+        Trace.note("atLeast");
+        return count >= other.count;
+    }
+
+    @Override
+    public Int compare(Steps other) {
+        return count.compare(other.count);
+    }
+}
+
+class Loud {
+    @Override
+    public Boolean equals(@Nullable Object other) {
+        Trace.note("equals");
+        return other instanceof Loud;
+    }
+
+    @Override
+    public Int hashCode() {
+        return 1;
+    }
+
+    @Override
+    public String toString() {
+        Trace.note("toString");
+        return "loud";
+    }
+}
+
+value class Pair {
+    public Int count;
+    public Boolean flag;
+}
+
+class Generic {
+    public static <T extends Numeric<T>> String both() {
+        return "" + T.zero() + " " + T.one();
+    }
+
+    public static <T> String name(T value) {
+        var list = new List<T>().getClass().getName();
+        return list.substring(11, list.length() - 1);
+    }
+}
+
+class Pick {
+    public static String small(UInt8 x) {
+        return "UInt8";
+    }
+
+    public static String small(Float64 x) {
+        return "Float64";
+    }
+
+    public static String whole(Int8 x) {
+        return "Int8";
+    }
+
+    public static String whole(Int x) {
+        return "Int";
+    }
+
+    public static String whole(Float64 x) {
+        return "Float64";
+    }
+
+    public static String part(Float64 x) {
+        return "Float64";
+    }
+
+    public static String part(Rational x) {
+        return "Rational";
+    }
+}
+
+public class Sentences06 {
+    static Int zero = 0;
+
+    static String raises(Function0<Unit> action) {
+        try {
+            action.invoke();
+            return "returns";
+        } catch (ArithmeticException e) {
+            return "raises";
+        }
+    }
+
+    static String bounds(Function0<Unit> action) {
+        try {
+            action.invoke();
+            return "returns";
+        } catch (IndexOutOfBoundsException e) {
+            return "raises";
+        }
+    }
+
+    static String sign(Int n) {
+        return n < 0 ? "negative" : n == 0 ? "zero" : "positive";
+    }
+
+    public static void main() {
+        // ---- 6.1 ----
+        Float32 single = 16777217;
+        Float64 tenth = 0.1;
+        Float64 fifth = 0.2;
+        Rational third = 1.0 / 3;
+        Rational sixth = 1.0 / 6;
+        Console.println("floats: " + (tenth + fifth) + " " + single);
+        Console.println("rationals: " + (third + sixth) + " " + (0.1 + 0.2 == 0.3));
+
+        // ---- 6.2 ----
+        Console.println("zero and one: " + Generic.<Int>both() + ", " + Generic.<UInt8>both() + ", " + Generic.<Float64>both() + ", " + Generic.<Rational>both() + ", " + Generic.<Steps>both());
+        var two = new Steps(2);
+        var five = new Steps(5);
+        var sum = two + five;
+        var less = two < five;
+        var rest = (five - two) * -two;
+        var others = two <= five && five >= two && five > two;
+        Console.println("operators: " + Trace.take() + "| " + sum.count + " " + less + " " + rest.count + " " + others);
+        Int32 most = 2147483647;
+        Int one = 1;
+        Console.println("mixed operands: " + (most + one) + " " + Generic.name(most + one));
+
+        // ---- 6.3 ----
+        var price = 19.99;
+        var i = 0;
+        var oneThird = 1.0 / 3;
+        Console.println("defaults: " + Generic.name(price) + " " + Generic.name(i) + " " + Generic.name(oneThird) + " " + price.numerator() + "/" + price.denominator() + " " + oneThird);
+        Float32 nearestSingle = 0.1;
+        Console.println("the nearest float: " + tenth + " " + (tenth == Float64.nearest(1.0 / 10)) + " " + single + " " + (Float64.from(nearestSingle) == tenth));
+        Console.println("overloads: " + Pick.small(0.5) + " " + Pick.small(300) + " " + Pick.whole(5) + " " + Pick.part(0.5));
+
+        // ---- 6.4 ----
+        Int8 least = -128;
+        UInt8 three = 3;
+        Int minusSeven = -7;
+        Int seven = 7;
+        Console.println("negate: " + raises(() -> {
+            var n = -least;
+        }) + " " + raises(() -> {
+            var n = -three;
+        }) + " " + -minusSeven);
+        Console.println("floorDiv: " + minusSeven.floorDiv(3) + " " + seven.floorDiv(-3) + " " + seven.floorDiv(3));
+        Console.println("mod: " + minusSeven.mod(3) + " " + seven.mod(-3) + " " + seven.mod(3) + " " + (6).mod(3) + " " + (minusSeven - minusSeven.floorDiv(3) * 3) + " " + (minusSeven % 3) + " " + (seven % -3));
+        Console.println("truncatingDiv: " + minusSeven.truncatingDiv(3) + " " + seven.truncatingDiv(-3));
+        Console.println("truncatingRem: " + minusSeven.truncatingRem(3) + " " + seven.truncatingRem(-3) + " " + (6).truncatingRem(3) + " " + (minusSeven - minusSeven.truncatingDiv(3) * 3));
+        Int8 small = 100;
+        Console.println("the receiver's class: " + Generic.name(small.floorDiv(7)) + " " + Generic.name(small.mod(7)) + " " + Generic.name(three.truncatingDiv(2)) + " " + Generic.name(three.truncatingRem(2)));
+        Console.println("a zero divisor: " + raises(() -> {
+            var q = seven.floorDiv(zero);
+        }) + " " + raises(() -> {
+            var q = seven.mod(zero);
+        }) + " " + raises(() -> {
+            var q = seven.truncatingDiv(zero);
+        }) + " " + raises(() -> {
+            var q = seven.truncatingRem(zero);
+        }));
+        Console.println("remainders: " + (-7 % 3) + " " + (-7).truncatingRem(3));
+        Int8 top = 127;
+        UInt8 high = 200;
+        Console.println("wrapping: " + top.wrappingPlus(1) + " " + least.wrappingMinus(1) + " " + small.wrappingTimes(3) + " " + high.wrappingPlus(100) + " " + three.wrappingMinus(5));
+        Int8 bits = 65;
+        UInt8 flag = 128;
+        Console.println("shifts: " + bits.shiftLeft(2) + " " + high.shiftLeft(1) + " " + least.shiftRight(1) + " " + flag.shiftRight(1) + " " + bits.and(3) + " " + bits.or(2) + " " + bits.xor(1) + " " + three.complement());
+        Console.println("a shift count: " + raises(() -> {
+            var s = bits.shiftLeft(zero - 1);
+        }) + " " + raises(() -> {
+            var s = bits.shiftLeft(zero + 8);
+        }) + " " + raises(() -> {
+            var s = flag.shiftRight(zero + 8);
+        }) + " " + bits.shiftLeft(zero + 7));
+
+        // ---- 6.5 ----
+        Float64 huge = 1.0e308;
+        Float64 none = 0.0;
+        Float64 unit = 1.0;
+        Float64 nan = none / none;
+        Float64 infinity = unit / none;
+        Float64 half = 2.5;
+        Console.println("ieee: " + (tenth + fifth) + " " + (tenth * 3.0) + " " + (unit / 3.0) + " " + -tenth + " " + (tenth - fifth));
+        Console.println("overflow: " + (huge * 10.0) + " " + (-huge * 10.0) + " " + (huge + huge));
+        Console.println("division by zero: " + (unit / none) + " " + (-unit / none) + " " + nan);
+        Console.println("no fraction: " + (-half).floor() + " " + (-half).ceil() + " " + (-half).truncate() + " " + (-half).round() + " " + Generic.name(half.floor()) + " " + Generic.name(nearestSingle.ceil()));
+        Float64 oneHalf = 1.5;
+        Float64 threeHalf = 3.5;
+        Float64 near = 2.4;
+        Console.println("round: " + oneHalf.round() + " " + half.round() + " " + threeHalf.round() + " " + near.round());
+        Console.println("unchanged: " + nan.floor() + " " + infinity.ceil() + " " + (-infinity).round() + " " + nan.truncate());
+        Float64 twoF = 2.0;
+        Float64 nine = 9.0;
+        Console.println("sqrt: " + twoF.sqrt() + " " + nine.sqrt());
+
+        // ---- 6.6 ----
+        Rational r = 0.5;
+        Console.println("exact results: " + (third + sixth) + " " + (third - sixth) + " " + (third * sixth) + " " + (third / sixth) + " " + -third);
+        Rational nothing = 0;
+        Console.println("a zero divisor of a rational: " + raises(() -> {
+            var q = r / nothing;
+        }));
+        Rational big = 18446744073709551616;
+        Rational tiny = 1.0 / 3;
+        Console.println("no overflow: " + (big * big) + " " + (tiny * tiny * tiny * tiny / big));
+        Rational sevenHalves = 3.5;
+        Rational negative = -3.5;
+        Rational whole = 4;
+        Rational reduced = 6.0 / 8;
+        Rational backwards = 3.0 / -4;
+        Console.println("isInteger: " + whole.isInteger() + " " + sevenHalves.isInteger());
+        Console.println("lowest terms: " + reduced.numerator() + " " + reduced.denominator() + " " + backwards.numerator() + " " + backwards.denominator() + " " + reduced.numerator().isInteger());
+        Console.println("nearest integers: " + negative.floor() + " " + negative.ceil() + " " + negative.truncate() + " " + sevenHalves.floor() + " " + sevenHalves.ceil() + " " + sevenHalves.truncate());
+        Rational fiveHalves = 2.5;
+        Console.println("round of a rational: " + sevenHalves.round() + " " + fiveHalves.round() + " " + negative.round());
+        Rational amount = 2.345;
+        Rational plenty = 1250;
+        Console.println("round to places: " + amount.round(2) + " " + amount.round(1) + " " + plenty.round(-2) + " " + (1.0 / 3).round(3));
+        Console.println("floorDiv and mod of rationals: " + sevenHalves.floorDiv(1.5) + " " + sevenHalves.mod(1.5) + " " + negative.floorDiv(1.5) + " " + negative.mod(1.5));
+        Console.println("toDecimal: " + amount.toDecimal(2) + " " + whole.toDecimal(3) + " " + (1.0 / 3).toDecimal(4) + " " + sevenHalves.toDecimal(0));
+        Console.println("toString of a rational: " + whole + " " + r + " " + negative);
+        Rational sameValue = 2.0 / 4;
+        Console.println("the value: " + (sameValue == r) + " " + (sameValue.hashCode() == r.hashCode()) + " " + sameValue);
+
+        // ---- 6.7 ----
+        UInt64 widest = 18446744073709551615;
+        Int16 wider = least;
+        Int32 widerStill = least;
+        Int widened = least;
+        Rational exact = least;
+        Rational exactWidest = widest;
+        Float64 doubled = nearestSingle;
+        Console.println("implicit conversions: " + wider + " " + widerStill + " " + widened + " " + exact + " " + exactWidest + " " + (Float32.nearest(doubled) == nearestSingle));
+        Int beyond = 2147483648;
+        Rational oneTenth = 1.0 / 10;
+        Console.println("from: " + Int.from(most) + " " + raises(() -> {
+            var n = Int32.from(beyond);
+        }) + " " + raises(() -> {
+            var f = Float64.from(oneTenth);
+        }) + " " + Float64.from(0.5));
+        Rational pastSingle = 1.0e39;
+        Rational pastDouble = 1.0e309;
+        Console.println("nearest: " + Float64.nearest(1.0 / 10) + " " + Float32.nearest(16777217) + " " + Float64.nearest(9007199254740993) + " " + Float32.nearest(pastSingle) + " " + Float64.nearest(-pastDouble));
+        Console.println("two steps: " + Int.from(half.floor()) + " " + Int.from(half.ceil()) + " " + Int.from((-half).floor()) + " " + raises(() -> {
+            var n = Int.from(half);
+        }));
+
+        // ---- 6.8 ----
+        var loud = new Loud();
+        var same = loud == new Loud();
+        Console.println("== is equals: " + Trace.take() + same);
+        Object fiveInt = 5;
+        Int8 fiveSmall = 5;
+        Object fiveSmallObject = fiveSmall;
+        Console.println("equals: " + (5).equals(5) + " " + (5).equals(6) + " " + fiveInt.equals(fiveSmallObject) + " " + r.equals(sameValue));
+        Float64 negativeZero = -none;
+        Console.println("float equals: " + (nan == nan) + " " + (none == negativeZero) + " " + nan.equals(nan));
+        Console.println("hashCode: " + (nan.hashCode() == (none / none).hashCode()) + " " + (none.hashCode() == negativeZero.hashCode()) + " " + ((5).hashCode() == (2 + 3).hashCode()));
+        Int32 fiveMiddle = 5;
+        Int fiveWide = 5;
+        Console.println("mixed ==: " + (fiveMiddle == fiveWide) + " " + (fiveSmall == fiveWide) + " " + (fiveSmall != fiveMiddle));
+        Console.println("mixed equals: " + fiveInt.equals(fiveSmallObject) + " " + fiveSmallObject.equals(fiveInt));
+        Console.println("comparisons: " + (seven < 8) + " " + (seven <= 7) + " " + (seven > 7) + " " + (seven >= 7) + " " + (tenth < fifth) + " " + (third > sixth));
+        Console.println("comparisons with NaN: " + (nan < unit) + " " + (nan <= unit) + " " + (nan > unit) + " " + (nan >= unit) + " " + (unit < nan) + " " + (nan <= nan));
+        Console.println("compare: " + sign(seven.compare(8)) + " " + sign(seven.compare(7)) + " " + sign(seven.compare(6)) + " " + sign(tenth.compare(fifth)) + " " + sign(third.compare(sixth)));
+        Console.println("compare and equals: " + sign(none.compare(negativeZero)) + " " + sign(nan.compare(nan)) + " " + sign(r.compare(sameValue)));
+        var floats = new List<Float64>();
+        floats.add(nan);
+        floats.add(infinity);
+        floats.add(unit);
+        floats.add(-infinity);
+        floats.add(none);
+        floats.sort((a, b) -> a.compare(b));
+        var sorted = "";
+        for (Float64 f : floats) {
+            sorted = sorted + f + " ";
+        }
+        Console.println("a total order: " + sign(nan.compare(infinity)) + " " + sign(infinity.compare(nan)) + " | " + sorted);
+        Console.println("totalOrder: " + sign(negativeZero.totalOrder(none)) + " " + sign(none.totalOrder(negativeZero)) + " " + sign(unit.totalOrder(unit)) + " " + (nan.totalOrder(-nan) != 0) + " " + (none == negativeZero));
+
+        // ---- 6.9 ----
+        Console.println("Char.from: " + Char.from(65) + " " + Char.from(1114111).code() + " " + raises(() -> {
+            var c = Char.from(55296 + zero);
+        }) + " " + raises(() -> {
+            var c = Char.from(1114112 + zero);
+        }) + " " + raises(() -> {
+            var c = Char.from(zero - 1);
+        }));
+        Console.println("code: " + 'a'.code() + " " + Generic.name('a'.code()));
+        Console.println("the order of Char: " + ('a' < 'b') + " " + ('b' <= 'a') + " " + sign('a'.compare('b')) + " " + sign('Z'.compare('a')));
+        var text = "a" + Char.from(128512) + "b";
+        Console.println("a sequence of Char: " + text.length() + " " + text[1].code() + " " + text[2]);
+        var hello = "hello";
+        Console.println("length: " + hello.length() + " " + "".length() + " " + Generic.name(hello.length()));
+        Console.println("get: " + hello.get(1) + " " + hello[1] + " " + hello.get(0) + " " + hello[4]);
+        Console.println("substring: " + hello.substring(1, 3) + " [" + hello.substring(2, 2) + "] " + hello.substring(0, 5));
+        @Nullable Object absent = null;
+        Console.println("plus: " + hello.plus(" there") + " " + hello.plus(5) + " " + hello.plus(absent) + " " + hello.plus(loud) + " " + Trace.take());
+        Console.println("indexOf: " + hello.indexOf('l') + " " + hello.indexOf("lo") + " " + hello.indexOf('z') + " " + hello.indexOf("xy") + " " + hello.indexOf(""));
+        Console.println("startsWith and endsWith: " + hello.startsWith("he") + " " + hello.startsWith("lo") + " " + hello.endsWith("lo") + " " + hello.endsWith("he"));
+        Console.println("isEmpty: " + "".isEmpty() + " " + hello.isEmpty());
+        var encoded = text.toUtf8();
+        var again = text.toUtf8();
+        Console.println("toUtf8: " + encoded.length() + " " + encoded[0] + " " + encoded[1] + " " + encoded[5] + " " + !encoded.identical(again));
+        Console.println("fromUtf8: " + String.fromUtf8(new UInt8[] { 104, 105 }) + " " + (String.fromUtf8(encoded) == text));
+        Console.println("outside the string: " + bounds(() -> {
+            var c = hello.get(5 + zero);
+        }) + " " + bounds(() -> {
+            var c = hello.get(zero - 1);
+        }) + " " + bounds(() -> {
+            var s = hello.substring(0, 6 + zero);
+        }) + " " + bounds(() -> {
+            var s = hello.substring(3, 2 + zero);
+        }));
+        var built = "hel" + "lo";
+        Console.println("the scalars of a string: " + (built == hello) + " " + (built.hashCode() == hello.hashCode()) + " " + (hello == "hellp"));
+        Console.println("the order of String: " + sign("abc".compare("abd")) + " " + sign("abd".compare("abc")) + " " + sign("ab".compare("abc")) + " " + sign("abc".compare("abc")) + " " + ("b" > "abc"));
+        var scalars = "";
+        for (Char c : text) {
+            scalars = scalars + c.code() + " ";
+        }
+        Console.println("a for statement over a string: " + scalars);
+        Console.println("string plus: " + ("count: " + seven) + " " + ("it is " + loud) + " " + Trace.take());
+
+        // ---- 6.10 ----
+        var grid = new Int[][] { new Int[] { 1, 2 }, new Int[] { 3 } };
+        Array<Int> row = grid[0];
+        var first = new Int[] { 1, 2, 3 };
+        var second = new Int[] { 1, 2, 3 };
+        var alias = first;
+        alias[0] = 9;
+        Console.println("a reference object: " + (first == second) + " " + (first == alias) + " " + first[0] + " " + grid.length() + " " + row.length() + " " + grid[1][0]);
+        Console.println("an array's bounds: " + bounds(() -> {
+            var x = first.get(3 + zero);
+        }) + " " + bounds(() -> {
+            var x = first[zero - 1];
+        }) + " " + bounds(() -> {
+            first.set(3 + zero, 1);
+        }) + " " + bounds(() -> {
+            first[zero - 1] = 1;
+        }) + " " + first.length());
+        second.set(1, 7);
+        var got = second.get(1);
+        second[2] = 8;
+        Console.println("indexing: " + got + " " + second[1] + " " + second.get(2) + " " + second[2]);
+        var visited = "";
+        for (Int x : second) {
+            visited = visited + x + " ";
+        }
+        Console.println("a for statement over an array: " + visited);
+        Console.println("a negative length: " + raises(() -> {
+            var a = new Int[zero - 1];
+        }) + " " + new Int[zero].length());
+        Console.println("the defaults: " + new @Nullable String[2][1] + " " + new Int[2][1] + " " + new Float64[2][1] + " " + new Rational[2][1] + " " + new UInt8[2][1] + " " + new Char[2][1].code() + " " + new Boolean[2][1] + " " + new Pair[2][1] + " " + new Int[3].length());
+        var listed = new Int[] { Trace.note("first"), Trace.note("second") + 1, Trace.note("third") + 2 };
+        Console.println("listed elements: " + Trace.take() + listed[0] + listed[1] + listed[2]);
+        var squares = Array.<Int>build(4, (index) -> {
+            Trace.note("" + index);
+            return index * index;
+        });
+        Console.println("build: " + Trace.take() + "| " + squares[0] + " " + squares[1] + " " + squares[2] + " " + squares[3] + " " + squares.length());
+
+        // ---- 6.11 ----
+        var yes = zero == 0;
+        var no = zero != 0;
+        Console.println("boolean operators: " + (yes & no) + " " + (yes | no) + " " + (yes ^ no) + " " + !yes + " | " + yes.and(no) + " " + yes.or(no) + " " + yes.xor(no) + " " + yes.not());
+        Console.println("boolean equals: " + (yes == true) + " " + (no == false) + " " + (yes == no) + " " + yes.equals(no) + " " + no.equals(false));
+    }
+}

@@ -1,0 +1,82 @@
+floats: 0.30000000000000004 16777216.0
+rationals: 1/2 true
+zero and one: 0 1, 0 1, 0.0 1.0, 0 1, Steps(0) Steps(1)
+operators: plus lessThan minus negate times atMost atLeast greaterThan | 7 true -6 true
+mixed operands: 2147483648 cleat.Int
+defaults: cleat.Rational cleat.Int cleat.Rational 1999/100 1/3
+the nearest float: 0.1 true 16777216.0 false
+overloads: Float64 Float64 Int Rational
+negate: raises raises 7
+floorDiv: -3 -3 2
+mod: 2 -2 1 0 2 2 -2
+truncatingDiv: -2 -2
+truncatingRem: -1 1 0 -1
+the receiver's class: cleat.Int8 cleat.Int8 cleat.UInt8 cleat.UInt8
+a zero divisor: raises raises raises raises
+remainders: 2 -1
+wrapping: -128 127 44 44 254
+shifts: 4 144 -64 64 1 67 64 252
+a shift count: raises raises raises -128
+ieee: 0.30000000000000004 0.30000000000000004 0.3333333333333333 -0.1 -0.1
+overflow: Infinity -Infinity Infinity
+division by zero: Infinity -Infinity NaN
+no fraction: -3.0 -2.0 -2.0 -2.0 cleat.Float64 cleat.Float32
+round: 2.0 2.0 4.0 2.0
+unchanged: NaN Infinity -Infinity NaN
+sqrt: 1.4142135623730951 3.0
+exact results: 1/2 1/6 1/18 2 -1/3
+a zero divisor of a rational: raises
+no overflow: 340282366920938463463374607431768211456 1/1494186269970473680896
+isInteger: true false
+lowest terms: 3 4 -3 4 true
+nearest integers: -4 -3 -3 3 4 3
+round of a rational: 4 2 -4
+round to places: 117/50 23/10 1200 333/1000
+floorDiv and mod of rationals: 2 1/2 -3 1
+toDecimal: 2.34 4.000 0.3333 4
+toString of a rational: 4 1/2 -7/2
+the value: true true 1/2
+implicit conversions: -128 -128 -128 -128 18446744073709551615 true
+from: 2147483647 raises raises 0.5
+nearest: 0.1 16777216.0 9007199254740992.0 Infinity -Infinity
+two steps: 2 3 -3 raises
+== is equals: equals true
+equals: true false false true
+float equals: true true true
+hashCode: true true true
+mixed ==: true true false
+mixed equals: false false
+comparisons: true true false true true true
+comparisons with NaN: false false false false false false
+compare: negative zero positive negative positive
+compare and equals: zero zero zero
+a total order: positive negative | -Infinity 0.0 1.0 Infinity NaN 
+totalOrder: negative positive zero true true
+Char.from: A 1114111 raises raises raises
+code: 97 cleat.Int
+the order of Char: true false negative negative
+a sequence of Char: 3 128512 b
+length: 5 0 cleat.Int
+get: e e h o
+substring: el [] hello
+plus: hello there hello5 hellonull helloloud toString 
+indexOf: 2 3 -1 -1 0
+startsWith and endsWith: true false true false
+isEmpty: true false
+toUtf8: 6 97 240 98 true
+fromUtf8: hi true
+outside the string: raises raises raises raises
+the scalars of a string: true true false
+the order of String: negative positive negative zero true
+a for statement over a string: 97 128512 98 
+string plus: count: 7 it is loud toString 
+a reference object: false true 9 2 2 3
+an array's bounds: raises raises raises raises 3
+indexing: 7 7 8 8
+a for statement over an array: 1 7 8 
+a negative length: raises 0
+the defaults: null 0 0.0 0 0 0 false Pair(0, false) 3
+listed elements: first second third 123
+build: 0 1 2 3 | 0 1 4 9 4
+boolean operators: false true true false | false true true false
+boolean equals: true true false false true
