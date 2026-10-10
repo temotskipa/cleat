@@ -118,6 +118,8 @@ mod described_02;
 mod described_03;
 #[path = "spec_rules/described_05.rs"]
 mod described_05;
+#[path = "spec_rules/described_09.rs"]
+mod described_09;
 #[path = "spec_rules/described_10.rs"]
 mod described_10;
 #[path = "spec_rules/described_11.rs"]
@@ -134,6 +136,7 @@ fn described() -> Vec<&'static Rule> {
         described_02::SENTENCES,
         described_03::SENTENCES,
         described_05::SENTENCES,
+        described_09::SENTENCES,
         described_10::SENTENCES,
         described_11::SENTENCES,
         described_12::SENTENCES,
@@ -143,7 +146,7 @@ fn described() -> Vec<&'static Rule> {
 }
 
 /// The chapters whose every sentence has a case.
-const DESCRIBED: &[&str] = &["01", "02", "03", "05", "10", "11", "12", "13"];
+const DESCRIBED: &[&str] = &["01", "02", "03", "05", "09", "10", "11", "12", "13"];
 
 /// A table that one test holds whole: the chapter, words of its header row, the file
 /// under `tests` and the test.

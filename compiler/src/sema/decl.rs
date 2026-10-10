@@ -1929,10 +1929,12 @@ fn members(p: &mut Program) {
                                 "an interface and an annotation declare no constructor",
                             );
                         }
+                        // A second compact form is reported and left out: the class
+                        // has the one constructor.
+                        (None, TypeKind::ValueClass) if compact_seen => {
+                            p.error(unit, cd.pos, "a value class has exactly one constructor");
+                        }
                         (None, TypeKind::ValueClass) => {
-                            if compact_seen {
-                                p.error(unit, cd.pos, "a value class has exactly one constructor");
-                            }
                             compact_seen = true;
                             p.classes[id as usize].ctors.push(Ctor {
                                 params: Vec::new(),

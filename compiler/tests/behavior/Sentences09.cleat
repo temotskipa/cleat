@@ -2,6 +2,17 @@
 // program's output for each sentence it shows.
 package t;
 
+@Target(Site.FIELD)
+annotation Mark;
+
+class Marked {
+    @Mark
+    Int hidden = 1;
+
+    @Mark
+    public final Int fixed = 2;
+}
+
 class Trace {
     public static String log = "";
 
@@ -15,6 +26,10 @@ class Trace {
         var all = log;
         log = "";
         return all;
+    }
+
+    public static void clear() {
+        log = "";
     }
 
     public static Int fail(String what) {
@@ -131,6 +146,23 @@ class ByCall {
 
     public static Int get() {
         return 1;
+    }
+}
+
+class ByAssign {
+    public static Int slot = Trace.note("ByAssign");
+}
+
+class Noted {
+    public @Nullable String note;
+    public Int n;
+
+    public Noted(Int n) {
+        this.n = n;
+    }
+
+    public void finalize() {
+        Trace.note("finalized");
     }
 }
 
@@ -259,6 +291,48 @@ public class Sentences09 {
             Console.println("from a call: " + e.message());
         }
 
+        // The table of 9.2: what raises each class.
+        Object text = "text";
+        try {
+            var number = (Int) text;
+        } catch (ClassCastException e) {
+            Console.println("a cast fails: ClassCastException");
+        }
+        var three = new Int[3];
+        var outside = "";
+        try {
+            var element = three[Trace.note("index") + 2];
+        } catch (IndexOutOfBoundsException e) {
+            outside = outside + "index ";
+        }
+        try {
+            var part = "abc".substring(Trace.note("from"), 9);
+        } catch (IndexOutOfBoundsException e) {
+            outside = outside + "range";
+        }
+        Trace.clear();
+        Console.println("outside its bounds: " + outside);
+        try {
+            assert Trace.note("assertion") == 2;
+        } catch (AssertionException e) {
+            Console.println("an assertion is false: AssertionException");
+        }
+        Trace.clear();
+        var marked = new Marked();
+        var mirrors = Marked.class.<Mark>getAnnotatedFields();
+        var refused = "";
+        try {
+            var hidden = mirrors[0].get(marked);
+        } catch (IllegalAccessException e) {
+            refused = refused + "not public, ";
+        }
+        try {
+            mirrors[1].set(marked, 5);
+        } catch (IllegalAccessException e) {
+            refused = refused + "final";
+        }
+        Console.println("a mirror is refused: " + refused);
+
         // ---- 9.3 ----
         try {
             Trace.note("try");
@@ -342,13 +416,28 @@ public class Sentences09 {
             Console.println("an initializer raises: " + e.message() + " [" + Trace.take() + "]");
         }
 
+        try {
+            using (Resource one = new Resource("p", true), Resource two = new Resource("q", true)) {
+                throw new IllegalStateException("from the block");
+            }
+        } catch (IllegalStateException e) {
+            var held = e.suppressed();
+            Console.println("suppressed: " + held.length() + " in order, " + held[0].message() + " and " + held[1].message() + ", and a new array " + !held.identical(e.suppressed()));
+        }
+        Trace.clear();
+
         // ---- 9.5 ----
         var d = new Derived(5);
         Console.println("construction: " + Trace.take());
 
+        var noted = new Noted(7);
+        Console.println("a nullable field: " + (noted.note == null));
+
         // ---- 9.6 ----
         var v = new Vec3(Trace.note("x"), Trace.note("y") + 1, Trace.note("z") + 2);
         Console.println("value constructor: " + Trace.take() + v);
+        Console.println("equal arguments: " + new Vec3(1, 2, 3).equals(new Vec3(1, 2, 3)) + " " + (new Vec3(1, 2, 3) == v) + " " + new Vec3(1, 2, 4).equals(v));
+        Trace.clear();
         var range = new Range(2, 9);
         Console.println("compact form: " + Trace.take());
         try {
@@ -365,7 +454,8 @@ public class Sentences09 {
         var called = ByCall.get();
         var read = ByField.ready;
         var again = new ByNew();
-        var calledAgain = ByCall.get() + ByField.ready;
+        ByAssign.slot = 4;
+        var calledAgain = ByCall.get() + ByField.ready + ByAssign.slot;
         Console.println("first uses: " + Trace.take());
         var below = Below.get();
         Console.println("order: " + Trace.take());
@@ -399,6 +489,14 @@ public class Sentences09 {
             @Nullable Throwable cause = e.cause();
             Console.println("a failed class: " + (cause == null ? "no cause" : cause.message()));
         }
+
+        // ---- 9.8 ----
+        var dropped = 0;
+        for (var i = 0; i < 3000; i++) {
+            var gone = new Noted(i);
+            dropped += gone.n - i + 1;
+        }
+        Console.println("storage: kept " + noted.n + " through " + dropped + " objects that were dropped, and no finalizer ran [" + Trace.take() + "]");
 
         // ---- 9.10 ----
         try {

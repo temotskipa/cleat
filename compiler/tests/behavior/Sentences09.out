@@ -1,0 +1,42 @@
+operands: left right 
+call: receiver first second method 
+raised in an expression: before 
+message: [why] []
+cause: true true
+toString: t.MyError | t.MyError: why
+propagates: loop-0 after-0 loop-1 caught out
+from a call: from the callee
+a cast fails: ClassCastException
+outside its bounds: index range
+an assertion is false: AssertionException
+a mirror is refused: not public, final
+try: try clause for thrown finally 
+no clause: goes on to the outer, inner
+in a catch block: raised in a catch block []
+finally after return: returned finally 
+finally after break: left the loop finally 
+finally after continue: left the loop finally finally 
+finally after an exception: raised finally 
+finally raises: from finally, suppressed 1: earlier
+using: open-a block close-a 
+block and close raise: from the block, suppressed 1: close of b [open-b close-b ]
+close raises: close of c [open-c block close-c ]
+two resources: open-1 open-2 block close-2 close-1 
+an initializer raises: no 2 [open-1 close-1 ]
+suppressed: 2 in order, close of q and close of p, and a new array true
+construction: Base sees size 5 Derived done 
+a nullable field: true
+value constructor: x y z Vec3(1, 2, 3)
+equal arguments: true true false
+compact form: range 2..7 
+compact form raises: low is above high
+no fields: true true
+before any use: []
+first uses: ByNew ByCall ByField ByAssign 
+order: Above first block second own-method 
+two threads: 1 7 7
+read too early: raises
+failed initialization: the initializer failed
+a failed class: the initializer failed
+storage: kept 7 through 3000 objects that were dropped, and no finalizer ran []
+exit status: 256 raises
