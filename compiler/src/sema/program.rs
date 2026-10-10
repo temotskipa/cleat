@@ -645,7 +645,8 @@ impl Program {
         a == b || (self.is_subtype(a, b) && self.is_subtype(b, a))
     }
 
-    fn param_bound(&self, class: ClassId, index: usize) -> Type {
+    /// The bound that `?` stands for as an argument of this parameter.
+    pub fn param_bound(&self, class: ClassId, index: usize) -> Type {
         let p = &self.class(class).tparams[index];
         // A bound that mentions a type parameter of its own class has no closed form,
         // so the widest type stands in for it.

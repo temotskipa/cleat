@@ -245,9 +245,12 @@ impl<'a> Parser<'a> {
             pos: self.pos(),
             ..Mods::default()
         };
+        let mut after_modifier = false;
         loop {
             if self.is_punct("@") {
-                m.annotations.push(self.annotation()?);
+                let mut a = self.annotation()?;
+                a.after_modifier = after_modifier;
+                m.annotations.push(a);
                 continue;
             }
             let Tok::Ident(w) = self.tok().clone() else {
@@ -332,6 +335,7 @@ impl<'a> Parser<'a> {
                 }
                 _ => break,
             }
+            after_modifier = true;
         }
         Ok(m)
     }
@@ -382,7 +386,12 @@ impl<'a> Parser<'a> {
             }
             self.expect_punct(")")?;
         }
-        Ok(AnnotationUse { name, args, pos })
+        Ok(AnnotationUse {
+            name,
+            args,
+            after_modifier: false,
+            pos,
+        })
     }
 
     fn ann_value(&mut self) -> R<AnnValue> {

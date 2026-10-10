@@ -887,6 +887,9 @@ pub fn apply_annotations(
     decl: bool,
 ) -> Vec<ast::AnnotationUse> {
     let mut rest = Vec::new();
+    // The qualifiers these annotations have named so far. They are the annotations
+    // of one position, and each is written there once.
+    let mut written: Vec<ClassId> = Vec::new();
     for a in anns {
         let Some(id) = lookup_class(p, cx.unit, &a.name, a.pos, true) else {
             continue;
@@ -917,24 +920,25 @@ pub fn apply_annotations(
         if !matches!(a.args, ast::AnnArgs::None) {
             p.error(cx.unit, a.pos, "a qualifier has no elements");
         }
+        // Among the modifiers of a declaration the type may have the qualifier
+        // already, where a type parameter stands for a type that has it, so only a
+        // second writing here is counted.
+        let on_type = if id == p.wk.nullable {
+            ty.nullable
+        } else {
+            ty.quals.contains(&id)
+        };
+        if written.contains(&id) || on_type && !decl {
+            p.error(
+                cx.unit,
+                a.pos,
+                "an annotation is written at most once in one position",
+            );
+        }
+        written.push(id);
         if id == p.wk.nullable {
-            if ty.nullable && !decl {
-                // Written twice in one position.
-                p.error(
-                    cx.unit,
-                    a.pos,
-                    "an annotation is written at most once in one position",
-                );
-            }
             ty.nullable = true;
         } else {
-            if ty.quals.contains(&id) && !decl {
-                p.error(
-                    cx.unit,
-                    a.pos,
-                    "an annotation is written at most once in one position",
-                );
-            }
             ty.add_qual(id);
         }
     }

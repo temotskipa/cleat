@@ -794,6 +794,9 @@ pub fn evaluate_annotations(p: &mut Program) {
                         ck.err(a.pos, format!("`@{name}` is a qualifier: it is written before a type, and the declaration of a type is not one"));
                         continue;
                     }
+                    if a.after_modifier {
+                        ck.err(a.pos, "a declaration annotation is written before the modifiers of the declaration it marks");
+                    }
                     if anns.iter().any(|o: &AnnValue| o.class == v.class) {
                         ck.err(
                             a.pos,
@@ -878,6 +881,9 @@ pub fn evaluate_annotations(p: &mut Program) {
                         let name = ck.p.class(v.class).name.clone();
                         ck.err(a.pos, format!("`@{name}` is a qualifier: it is written before a type, and there is none here"));
                         continue;
+                    }
+                    if a.after_modifier {
+                        ck.err(a.pos, "a declaration annotation is written before the modifiers of the declaration it marks");
                     }
                     if anns.iter().any(|o| o.class == v.class) {
                         ck.err(

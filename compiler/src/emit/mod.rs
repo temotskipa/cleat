@@ -549,12 +549,14 @@ impl<'p> Emitter<'p> {
             }
             Ty::Class(id, args) => {
                 let mut items = Vec::new();
-                for a in args {
+                for (i, a) in args.iter().enumerate() {
                     items.push(match a {
                         Arg::Ty(at) => self.texpr(at, tv),
                         Arg::Wild(e, s) => {
                             let (bound, lower) = match (e, s) {
                                 (_, Some(l)) => (Some(self.texpr(l, tv)), 1),
+                                // Section 7.4: `? extends` the parameter's own bound is `?`.
+                                (Some(u), None) if **u == self.p.param_bound(*id, i) => (None, 0),
                                 (Some(u), None) => (Some(self.texpr(u, tv)), 0),
                                 (None, None) => (None, 0),
                             };

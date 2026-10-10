@@ -51,6 +51,8 @@ cases![
     sentences_01 => "Sentences01",
     sentences_02 => "Sentences02",
     sentences_05 => "Sentences05",
+    sentences_07 => "Sentences07",
+    sentences_08 => "Sentences08",
     sentences_09 => "Sentences09",
     sentences_11 => "Sentences11",
     sentences_13 => "Sentences13",

@@ -157,6 +157,23 @@ pub const SENTENCES: &[Rule] = &[
     ),
     rule(
         "11",
+        "Chapter 8 places it before the first modifier, so an annotation that follows a modifier is a qualifier",
+        &[
+            (
+                "annotation M; class A { public @M Int f() { return 1; } }",
+                "a declaration annotation is written before the modifiers of the declaration it marks",
+            ),
+            (
+                "open class B { public open void f() { } } class D extends B { public @Override void f() { } }",
+                "a declaration annotation is written before the modifiers of the declaration it marks",
+            ),
+        ],
+        &[
+            "annotation M; class A { @M public @Nullable String f() { return null; } public final @Nullable String s = null; }",
+        ],
+    ),
+    rule(
+        "11",
         "A declaration annotation belongs to the declaration",
         &[(
             "@Target(Site.TYPE) annotation M; class A { @M public Int f() { return 1; } }",

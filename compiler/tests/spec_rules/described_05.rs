@@ -118,10 +118,13 @@ pub const SENTENCES: &[Rule] = &[
     ),
     rule(
         "05",
-        "Writing `@Nullable` twice on one type use is the same as writing it once",
-        &[],
+        "`@Nullable` applied to a type that already contains `null` is that same type",
+        &[(
+            "class Box<T> { public @Nullable T get() { return null; } } class A { String f(Box<@Nullable String> b) { return b.get(); } }",
+            "`@Nullable String` is not assignable to `String`",
+        )],
         &[
-            "class A { @Nullable @Nullable String f(@Nullable String s) { return s; } @Nullable String g(@Nullable @Nullable String s) { return s; } }",
+            "class Box<T> { public @Nullable T get() { return null; } public T same(@Nullable T x, T y) { return y; } } class A { @Nullable String f(Box<@Nullable String> b, @Nullable String s) { @Nullable String got = b.get(); return b.same(s, got); } }",
         ],
     ),
     rule(

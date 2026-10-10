@@ -36,7 +36,7 @@ An annotation declaration is a type declaration under the file rules of [chapter
 
 A qualifier may also be written among the modifiers of a field, a method, a parameter or a local. It then means what it would mean directly before that declaration's type, which for a method is its result type. `@Nullable public String find(String key)` and `public @Nullable String find(String key)` are the same declaration.
 
-An annotation is written at most once in one position.
+An annotation is written at most once in one position. A declaration's modifiers and the annotations directly before its type are one position, and so are the annotations directly before any other type or before one pair of brackets.
 
 **Targets.** `@Target` on the declaration of a declaration annotation lists the sites where it may be written. A use at any other site is rejected. The sites are the constants of the prelude enum `Site`:
 

@@ -424,6 +424,29 @@ impl<'p> Checker<'p> {
         if at.is_error() || pt.is_error() {
             return;
         }
+        // Section 7.5: where the argument's own type has a wildcard, an `out` position
+        // finds the wildcard's upper bound and an `in` position its lower bound, and a
+        // wildcard with no lower bound gives no constraint. Only an invariant position
+        // takes the unknown type itself.
+        let bound;
+        let at = match &at.ty {
+            Ty::Var(tv) if matches!(tv.owner, TvOwner::Capture(_)) && dir != Dir::Inv => {
+                let TvOwner::Capture(n) = tv.owner else {
+                    return;
+                };
+                let side = match dir {
+                    Dir::Co => self.p.bounds_of(*tv).into_iter().next(),
+                    _ => self.p.captures[n as usize].lower.clone(),
+                };
+                let Some(mut side) = side else {
+                    return;
+                };
+                side.nullable |= at.nullable;
+                bound = side;
+                &bound
+            }
+            _ => at,
+        };
         match &pt.ty {
             Ty::Var(tv) if tv.owner == owner => {
                 if at.is_null_literal() {

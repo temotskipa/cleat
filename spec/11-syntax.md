@@ -123,7 +123,7 @@ element         = type identifier ["=" annotation-value]
 
 Each chapter says which modifiers a declaration accepts, and a modifier is written at most once. A method ends in `;` in place of a block when it is abstract, `foreign` or `@Intrinsic`, or when it is an interface method with no body. A constructor ends in `;` only when it is `@Intrinsic`. A constructor's identifier is the name of its class.
 
-An annotation at the end of `modifiers` could also be read as the first annotation of the `type` that follows. For a qualifier the two readings mean the same, as [chapter 8](08-annotations.md#82-declaring-and-writing-an-annotation) says. A declaration annotation belongs to the declaration.
+An annotation at the end of `modifiers` could also be read as the first annotation of the `type` that follows. For a qualifier the two readings mean the same, as [chapter 8](08-annotations.md#82-declaring-and-writing-an-annotation) says. A declaration annotation belongs to the declaration. Chapter 8 places it before the first modifier, so an annotation that follows a modifier is a qualifier.
 
 ## 11.5 Statements
 

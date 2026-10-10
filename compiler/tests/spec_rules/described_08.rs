@@ -3,7 +3,9 @@
 use super::{DISCARDED, Rule, SITE, held, ran, rule, stated};
 
 const RUN: &str = "Sentences08";
-const ONCE: &str = "a declaration annotation is written at most once on one declaration";
+const ONCE: &str = "an annotation is written at most once in one position";
+const BEFORE: &str =
+    "a declaration annotation is written before the modifiers of the declaration it marks";
 const ELEMENT: &str = "an element is a numeric class, Boolean, Char, String, an enum, Class, an annotation, or an array of one of those";
 const IMPLICIT: &str = "an `@Implicit` method is a static method of a value class `T` with one parameter of another value class, the result `T`, and no type parameters";
 const NULLABLE_SEND: &str = "`length` is sent to a `@Nullable String`";
@@ -205,11 +207,23 @@ pub const SENTENCES: &[Rule] = &[
     ),
     rule(
         "08",
-        "A declaration annotation is written among the modifiers of the declaration it marks, in any order with them",
-        &[],
+        "A declaration annotation is written before the modifiers of the declaration it marks",
+        &[
+            ("annotation M; class A { public @M Int x = 1; }", BEFORE),
+            (
+                "annotation M; class A { public @M static void f() { } }",
+                BEFORE,
+            ),
+            (
+                "annotation M; class A { void f(final @M Int p) { } }",
+                BEFORE,
+            ),
+            ("annotation M; class A { public @M A() { } }", BEFORE),
+            ("annotation M; open @M class A { }", BEFORE),
+        ],
         &[
             "annotation M; @M class A { @M Int x = 1; @M A() { } @M void f(@M Int p) { } } @M interface I { } @M enum E { @M ONE } @M annotation N;",
-            "annotation M; class A { public @M Int x = 1; public @M static void f(final @M Int p) { } public @M A() { } } open @M class B { }",
+            "annotation M; class A { @M public final Int x = 1; @M public static void f(@M final Int p) { } @M public A() { } } @M open class B { }",
         ],
     ),
     rule(
@@ -289,24 +303,40 @@ pub const SENTENCES: &[Rule] = &[
     ),
     rule(
         "08",
-        "A declaration annotation is written at most once on one declaration",
+        "An annotation is written at most once in one position",
         &[
             ("annotation M; @M @M class A { }", ONCE),
-            ("annotation M; class A { @M public @M Int x = 1; }", ONCE),
             (
                 "annotation M(Int n = 0); class A { void f(@M(1) @M(2) Int p) { } }",
                 ONCE,
             ),
+            ("class A { @Nullable @Nullable String s; }", ONCE),
         ],
-        &["annotation M; annotation N; @M @N class A { @M Int x = 1; @M void f(@M Int p) { } }"],
+        &[
+            "annotation M; annotation N; @M @N class A { @M Int x = 1; @M void f(@M @Nullable String p) { } }",
+        ],
     ),
     rule(
         "08",
-        "A qualifier written twice on one type is the same as the qualifier written once",
-        &[],
+        "A declaration's modifiers and the annotations directly before its type are one position",
         &[
-            "class A { @Nullable @Nullable String s; @Nullable public @Nullable String t; String @Nullable @Nullable [] xs; void f(List<@Nullable @Nullable String> a) { @Nullable @Nullable String l = null; List<@Nullable String> same = a; } }",
-            "@Refines annotation P; class A { static Int need(@P Int n) { return n; } Int f(@P @P Int n) { @P Int once = n; return need(once); } }",
+            ("class A { @Nullable public @Nullable String s; }", ONCE),
+            (
+                "@Refines annotation P; class A { Int f(@P @P Int n) { return n; } }",
+                ONCE,
+            ),
+            (
+                "class A { void f() { @Nullable @Nullable String s = null; } }",
+                ONCE,
+            ),
+            (
+                "class A { void f(List<@Nullable @Nullable String> xs) { } }",
+                ONCE,
+            ),
+            ("class A { String @Nullable @Nullable [] xs; }", ONCE),
+        ],
+        &[
+            "class A { @Nullable String @Nullable [] xs; void f(List<@Nullable String> a, @Nullable List<@Nullable String> b) { } }",
         ],
     ),
     rule(

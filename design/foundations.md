@@ -364,6 +364,8 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 - `@Implicit` is limited to keep it tame. The method sits in the target class, both classes are value classes, it is not generic, and at most one conversion applies to a value. That it is exact and never raises is a promise by its author, which the language does not check.
 - Integers do not convert implicitly to floats, because the everyday `Int` does not fit a float exactly.
 - With mixed numeric operands, `i == n` compares after conversion while `i.equals(n)` is `false`, as in Java.
+- `@Nullable` is an annotation like any other, so the rule that an annotation is written once in one position holds for it and for every qualifier: `@Nullable @Nullable String` is rejected, among the modifiers and before a type alike. The owner said on 2026-10-10 that `@Nullable` was not being treated as a proper annotation. Decision 1's sentence that writing it twice changes nothing is read of the type: `@Nullable` on a type that already contains `null` is the same type.
+- Only a qualifier stands next to the type of a declaration. A declaration annotation is written before the modifiers, as section 8.2 says, and `public @Route("/x") void f()` is rejected. Section 11.4's grammar lets annotations and modifiers alternate, and the checker now enforces the order.
 
 **Chapter 12, flow.**
 
@@ -437,6 +439,8 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 - A use of a wildcard's unknown type as part of a larger explicit type argument is reported as not supported. Standing alone, as in `swap(items, 0, 1)`, it is the type argument of the object passed.
 - A reserved word used as a name is rejected, and the message may point at the start of the statement.
 - Section 4.2 gives an override the same type parameters as the method it overrides, and section 7.8 the same bounds. The checker also asks for the same required tags.
+- In inference, an `out` position opposite a wildcard of the argument's own type finds the wildcard's upper bound, and that is the parameter's bound when the wildcard writes none, because section 7.4 makes `?` the same argument as `? extends B`. An `in` position finds a lower bound only when the wildcard writes one. Only an invariant position takes the unknown type itself.
+- A run-time type writes `? extends B` as `?` when `B` is the parameter's own bound, so the two spellings of section 7.4 are one class with one name.
 - Section 3.4 lets an override keep "a list drawn from" the `only` list of the method it overrides. The overriding class may also name itself there.
 - Where a subclass declares a method with the name and signature of a superclass method it may not name, section 3.4 makes that a new method. A call through the subclass's type reaches the subclass's method, and the superclass's own calls reach its own.
 
@@ -462,3 +466,5 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 - Section 11.6: the grammar derives `name(args)`, a call with no receiver.
 - Section 11.6: in the head of a switch arm a `(` does not begin a lambda. Section 12.1 makes a parenthesized constant a constant, and the lambda rule read `case (1) -> x` as a lambda.
 - Section 2.6 says that the method a class declares for a static requirement carries `@Override`, as section 8.8 asks of every method that implements an interface method.
+- Section 5.1 said that `@Nullable` written twice on one type use is the same as written once, and section 8.2 says that an annotation is written at most once in one position. Section 5.1 now speaks of `@Nullable` applied to a type that already contains `null`, and section 8.2 says what one position is. The checker had accepted a repeated qualifier among the modifiers of a declaration and rejects it now.
+- Section 11.4 says that an annotation after a modifier is a qualifier, as section 8.2 places a declaration annotation before the modifiers. The checker had accepted `public @Route("/x") void f()`.

@@ -15,7 +15,7 @@ The type `@Nullable T` contains every value of `T`, and `null`. A type written w
 - `T` is a subtype of `@Nullable T`. `@Nullable T` is not a subtype of `T`.
 - `Null` is a subtype of `@Nullable T` for every `T`. It is a subtype of no other type except itself.
 - `@Nullable Object` is a supertype of every type.
-- Writing `@Nullable` twice on one type use is the same as writing it once.
+- `@Nullable` applied to a type that already contains `null` is that same type: where `T` stands for `@Nullable String`, `@Nullable T` is `@Nullable String`.
 
 `String s = null` is rejected. `@Nullable String s = null` is legal. A `String` may be passed where a `@Nullable String` is expected.
 

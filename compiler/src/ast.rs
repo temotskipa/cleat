@@ -45,6 +45,8 @@ pub struct Mods {
 pub struct AnnotationUse {
     pub name: Vec<String>,
     pub args: AnnArgs,
+    /// Whether a modifier stands before it among the modifiers of a declaration.
+    pub after_modifier: bool,
     pub pos: Pos,
 }
 
