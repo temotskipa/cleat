@@ -72,8 +72,7 @@ with a small integer that says how to continue afterwards.
 The collector is precise, non-moving mark and sweep, in `rt/src/gc.rs`. Each compiled
 function keeps every pointer it holds in a frame of slots linked from the context (a
 shadow stack), so the collector sees exactly the live roots. Threads stop for a
-collection at allocations, at loop back edges, and around blocking calls. `vendor/mmtk`
-is the earlier attempt on MMTk and is not linked.
+collection at allocations, at loop back edges, and around blocking calls.
 
 ## Foreign calls
 

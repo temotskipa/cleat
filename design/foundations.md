@@ -444,7 +444,7 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 
 - `cleatc check <path>...` and `cleatc build <path>... --entry pkg.Type -o out.exe [--link file]...`. `--entry` names the entry class and `--link` the libraries or objects for foreign methods. A deprecated use is printed as a warning.
 - A source file given to the compiler that declares the package `cleat` is read as prelude source in place of the prelude's file of that name. That is how `design/programs/List.cleat` is built and run. Any other file that declares `cleat` is rejected, as section 1.4 says.
-- The collector is precise, non-moving mark and sweep, in the Rust runtime. It replaces MMTk, which cannot reserve its side-metadata range on Windows: that is the failing test recorded in the first commit of this branch. `compiler/vendor/mmtk` is no longer linked and is still in the tree.
+- The collector is precise, non-moving mark and sweep, in the Rust runtime. It replaces MMTk, which cannot reserve its side-metadata range on Windows: that is the failing test recorded in the first commit of this branch. `compiler/vendor/mmtk`, the copy of MMTk that was no longer linked, has been deleted from the tree.
 - A machine number, `Boolean`, `Char` and `Pointer` are held unboxed where their static type says what they are. Every other value is a pointer to an object, a value class the program declares included.
 - Generic code is compiled once. Type arguments are passed at run time, and an array stores machine numbers unboxed.
 - Each thread has 16 MB of stack. A call that finds less than 1 MB left ends the program with status 1.
