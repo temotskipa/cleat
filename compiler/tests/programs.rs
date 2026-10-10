@@ -18,10 +18,18 @@ fn built(test: &str, files: &[&str], entry: &str) -> (std::path::PathBuf, std::p
 fn calc() {
     let (_, exe) = built("calc", &["Calc"], "demo.Calc");
     expect(&exe, &["1/3 + 1/6"], 0, "1/3 + 1/6 = 1/2\n");
-    expect(&exe, &["2 * (3 + 4) - 5", "-(1.5 - 2)", "0.1 + 0.2"], 0, "2 * (3 + 4) - 5 = 9\n-(1.5 - 2) = 1/2\n0.1 + 0.2 = 3/10\n");
+    expect(
+        &exe,
+        &["2 * (3 + 4) - 5", "-(1.5 - 2)", "0.1 + 0.2"],
+        0,
+        "2 * (3 + 4) - 5 = 9\n-(1.5 - 2) = 1/2\n0.1 + 0.2 = 3/10\n",
+    );
     // A mistake in the text and a division by zero are reported, and the rest still run.
     let r = expect(&exe, &["2 +", "1 / 0", "7"], 0, "7 = 7\n");
-    assert_eq!(r.err, "2 +: expected a number at 3\n1 / 0: division by zero\n");
+    assert_eq!(
+        r.err,
+        "2 +: expected a number at 3\n1 / 0: division by zero\n"
+    );
 }
 
 #[test]
@@ -51,11 +59,21 @@ fn ledger() {
 #[test]
 fn list() {
     // The program is the prelude's own list: the two files are the same text.
-    let ours = std::fs::read_to_string(program("List")).unwrap().replace("\r\n", "\n");
-    let preludes = std::fs::read_to_string(repo().join("prelude").join("List.cleat")).unwrap().replace("\r\n", "\n");
-    assert_eq!(ours, preludes, "design/programs/List.cleat and prelude/List.cleat differ");
+    let ours = std::fs::read_to_string(program("List"))
+        .unwrap()
+        .replace("\r\n", "\n");
+    let preludes = std::fs::read_to_string(repo().join("prelude").join("List.cleat"))
+        .unwrap()
+        .replace("\r\n", "\n");
+    assert_eq!(
+        ours, preludes,
+        "design/programs/List.cleat and prelude/List.cleat differ"
+    );
     let dir = scratch("list");
-    let driver = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests").join("data").join("ListDriver.cleat");
+    let driver = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("data")
+        .join("ListDriver.cleat");
     let exe = build("list", &dir, &[program("List"), driver], "demo.ListDriver");
     expect(
         &exe,
@@ -75,19 +93,37 @@ fn nbody() {
         assert_eq!(lines.len(), 2, "{}", r.out);
         // Kinetic 74.5, potential -100 - 50 - 1/30.
         assert_eq!(lines[0], "energy before: -75.533333");
-        let after: f64 = lines[1].strip_prefix("energy after:  ").expect("the second line").parse().expect("a number");
-        assert!((after - -75.533333).abs() < 0.01, "energy is not conserved: {after}");
+        let after: f64 = lines[1]
+            .strip_prefix("energy after:  ")
+            .expect("the second line")
+            .parse()
+            .expect("a number");
+        assert!(
+            (after - -75.533333).abs() < 0.01,
+            "energy is not conserved: {after}"
+        );
     }
 }
 
 #[test]
 fn parallel_count() {
-    let (dir, exe) = built("parallel_count", &["ParallelCount", "WordCount"], "demo.ParallelCount");
+    let (dir, exe) = built(
+        "parallel_count",
+        &["ParallelCount", "WordCount"],
+        "demo.ParallelCount",
+    );
     let a = dir.join("a.txt");
     let b = dir.join("b.txt");
     std::fs::write(&a, "the quick brown fox jumps over the lazy dog\n").unwrap();
-    std::fs::write(&b, "Extraordinary claims require extraordinary evidence, the fox said.\n").unwrap();
-    let (a, b) = (a.to_string_lossy().to_string(), b.to_string_lossy().to_string());
+    std::fs::write(
+        &b,
+        "Extraordinary claims require extraordinary evidence, the fox said.\n",
+    )
+    .unwrap();
+    let (a, b) = (
+        a.to_string_lossy().to_string(),
+        b.to_string_lossy().to_string(),
+    );
     for stress in [false, true] {
         let r = run(&exe, &[&a, &b], stress);
         assert_eq!(r.status, 0, "{}", r.err);
@@ -96,8 +132,14 @@ fn parallel_count() {
         // The two tasks finish in either order.
         let mut counted: Vec<String> = lines.drain(..2).map(|l| l.to_string()).collect();
         counted.sort();
-        let mut want = vec![format!("counted {a} (1 of 2)"), format!("counted {b} (2 of 2)")];
-        let mut other = vec![format!("counted {a} (2 of 2)"), format!("counted {b} (1 of 2)")];
+        let mut want = vec![
+            format!("counted {a} (1 of 2)"),
+            format!("counted {b} (2 of 2)"),
+        ];
+        let mut other = vec![
+            format!("counted {a} (2 of 2)"),
+            format!("counted {b} (1 of 2)"),
+        ];
         want.sort();
         other.sort();
         assert!(counted == want || counted == other, "{}", r.out);
@@ -126,9 +168,17 @@ fn shapes() {
 fn shares() {
     let (_, exe) = built("shares", &["Shares"], "demo.Shares");
     // 120.50 among 4 is 30.125 each, which rounds to the even cent.
-    expect(&exe, &["120.50", "4"], 0, "splitting 120.50 among 4\neach pays 30.12\n");
+    expect(
+        &exe,
+        &["120.50", "4"],
+        0,
+        "splitting 120.50 among 4\neach pays 30.12\n",
+    );
     let r = expect(&exe, &["10", "0"], 2, "");
-    assert_eq!(r.err, "shares: the total must be a number and the people a positive integer\n");
+    assert_eq!(
+        r.err,
+        "shares: the total must be a number and the people a positive integer\n"
+    );
     let r = expect(&exe, &["10"], 2, "");
     assert_eq!(r.err, "usage: shares <total> <people>\n");
 }
@@ -140,7 +190,12 @@ fn word_count() {
     std::fs::write(&text, "the quick brown fox jumps over the lazy dog. The dog barks; the fox runs.\nA quick fox, a quick dog.\n").unwrap();
     let path = text.to_string_lossy().to_string();
     // Ties keep the order of first appearance.
-    expect(&exe, &[&path], 0, "the 4\nquick 3\nfox 3\ndog 3\na 2\nbrown 1\njumps 1\nover 1\nlazy 1\nbarks 1\n");
+    expect(
+        &exe,
+        &[&path],
+        0,
+        "the 4\nquick 3\nfox 3\ndog 3\na 2\nbrown 1\njumps 1\nover 1\nlazy 1\nbarks 1\n",
+    );
     let r = expect(&exe, &[], 2, "");
     assert_eq!(r.err, "usage: wordcount <file>\n");
 }
@@ -148,7 +203,17 @@ fn word_count() {
 /// Every program in the directory has a test above.
 #[test]
 fn every_program_has_a_test() {
-    let tested = ["Calc", "Checks", "Ledger", "List", "NBody", "ParallelCount", "Shapes", "Shares", "WordCount"];
+    let tested = [
+        "Calc",
+        "Checks",
+        "Ledger",
+        "List",
+        "NBody",
+        "ParallelCount",
+        "Shapes",
+        "Shares",
+        "WordCount",
+    ];
     let mut found: Vec<String> = std::fs::read_dir(repo().join("design").join("programs"))
         .unwrap()
         .map(|e| e.unwrap().file_name().to_string_lossy().to_string())

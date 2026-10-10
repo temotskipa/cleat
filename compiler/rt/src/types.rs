@@ -42,7 +42,14 @@ static TABLE: Mutex<Option<HashMap<Key, usize>>> = Mutex::new(None);
 
 pub type Td = *const TypeDesc;
 
-pub fn intern(class: *const ClassInfo, args: Vec<Td>, nullable: bool, mut quals: Vec<*const ClassInfo>, wild: u8, bound: Td) -> Td {
+pub fn intern(
+    class: *const ClassInfo,
+    args: Vec<Td>,
+    nullable: bool,
+    mut quals: Vec<*const ClassInfo>,
+    wild: u8,
+    bound: Td,
+) -> Td {
     quals.sort();
     quals.dedup();
     let key = Key {
@@ -114,14 +121,35 @@ pub unsafe fn eval(e: *const TypeExpr, env: *const Td) -> Td {
                 // The qualifiers written on the use join those of the argument.
                 let mut all = base.quals.clone();
                 all.extend(quals);
-                intern(base.class, base.args.clone(), base.nullable || e.nullable != 0, all, base.wild, base.bound)
+                intern(
+                    base.class,
+                    base.args.clone(),
+                    base.nullable || e.nullable != 0,
+                    all,
+                    base.wild,
+                    base.bound,
+                )
             }
             TE_WILD => {
-                let bound = if e.bound.is_null() { std::ptr::null() } else { eval(e.bound, env) };
-                intern(std::ptr::null(), Vec::new(), false, Vec::new(), if e.lower != 0 { 2 } else { 1 }, bound)
+                let bound = if e.bound.is_null() {
+                    std::ptr::null()
+                } else {
+                    eval(e.bound, env)
+                };
+                intern(
+                    std::ptr::null(),
+                    Vec::new(),
+                    false,
+                    Vec::new(),
+                    if e.lower != 0 { 2 } else { 1 },
+                    bound,
+                )
             }
             _ => {
-                let args: Vec<Td> = slice(e.args, e.nargs).iter().map(|a| eval(*a, env)).collect();
+                let args: Vec<Td> = slice(e.args, e.nargs)
+                    .iter()
+                    .map(|a| eval(*a, env))
+                    .collect();
                 intern(e.class, args, e.nullable != 0, quals, 0, std::ptr::null())
             }
         }
@@ -159,12 +187,21 @@ impl TypeDesc {
         }
         // Every class but `Null` is a subclass of `Object`, an interface included.
         if unsafe { (*class).kind } == K_OBJECT {
-            return if self.class().kind == K_NULL { None } else { Some(unsafe { &*wk_type(K_OBJECT) }) };
+            return if self.class().kind == K_NULL {
+                None
+            } else {
+                Some(unsafe { &*wk_type(K_OBJECT) })
+            };
         }
-        if self.class().is(F_ANNOTATION) && (self.class().is(F_REFINES) || self.class().is(F_WIDENS)) {
+        if self.class().is(F_ANNOTATION)
+            && (self.class().is(F_REFINES) || self.class().is(F_WIDENS))
+        {
             return None;
         }
-        self.supers().iter().map(|t| unsafe { &**t }).find(|t| t.class == class)
+        self.supers()
+            .iter()
+            .map(|t| unsafe { &**t })
+            .find(|t| t.class == class)
     }
 
     /// The name section 7.7 gives the type.
@@ -174,7 +211,11 @@ impl TypeDesc {
             if self.wild != 0 {
                 s.push('?');
                 if !self.bound.is_null() {
-                    s.push_str(if self.wild == 2 { " super " } else { " extends " });
+                    s.push_str(if self.wild == 2 {
+                        " super "
+                    } else {
+                        " extends "
+                    });
                     s.push_str((*self.bound).name());
                 }
                 return s;
@@ -211,7 +252,10 @@ unsafe fn refines(low: *const ClassInfo, high: *const ClassInfo) -> bool {
         if low == high {
             return true;
         }
-        (*low).supers().iter().any(|above| refines((**above).class, high))
+        (*low)
+            .supers()
+            .iter()
+            .any(|above| refines((**above).class, high))
     }
 }
 
@@ -228,7 +272,12 @@ pub unsafe fn is_subtype(s: &'static TypeDesc, t: &'static TypeDesc) -> bool {
             return false;
         }
         for q in &t.quals {
-            if (**q).is(F_REFINES) && !s.quals.iter().any(|sq| (**sq).is(F_REFINES) && refines(*sq, *q)) {
+            if (**q).is(F_REFINES)
+                && !s
+                    .quals
+                    .iter()
+                    .any(|sq| (**sq).is(F_REFINES) && refines(*sq, *q))
+            {
                 return false;
             }
         }
@@ -237,11 +286,17 @@ pub unsafe fn is_subtype(s: &'static TypeDesc, t: &'static TypeDesc) -> bool {
                 return false;
             }
         }
-        let Some(up) = s.super_at(t.class) else { return false };
+        let Some(up) = s.super_at(t.class) else {
+            return false;
+        };
         let c = t.class();
         for i in 0..t.args.len() {
             let (sa, ta) = (&*up.args[i], &*t.args[i]);
-            let variance = if c.variances.is_null() { 0 } else { *c.variances.add(i) };
+            let variance = if c.variances.is_null() {
+                0
+            } else {
+                *c.variances.add(i)
+            };
             if !contains(ta, sa, variance) {
                 return false;
             }
@@ -263,14 +318,22 @@ unsafe fn contains(outer: &'static TypeDesc, inner: &'static TypeDesc, variance:
         match variance {
             1 => {
                 // out: the upper limits decide.
-                let o = if outer.wild == 1 { &*outer.bound } else { outer };
+                let o = if outer.wild == 1 {
+                    &*outer.bound
+                } else {
+                    outer
+                };
                 if inner.wild == 1 {
                     return !inner.bound.is_null() && is_subtype(&*inner.bound, o);
                 }
                 inner.wild == 0 && outer.wild != 2 && is_subtype(inner, o)
             }
             2 => {
-                let o = if outer.wild == 2 { &*outer.bound } else { outer };
+                let o = if outer.wild == 2 {
+                    &*outer.bound
+                } else {
+                    outer
+                };
                 if inner.wild == 2 {
                     return is_subtype(o, &*inner.bound);
                 }
@@ -334,7 +397,18 @@ pub unsafe extern "C" fn cl_instance_of(o: Obj, t: Td) -> u8 {
         }
         let t = &*t;
         // The test is on the class: the qualifiers of the type itself are not a value's.
-        let bare = if t.nullable || !t.quals.is_empty() { &*intern(t.class, t.args.clone(), false, Vec::new(), 0, std::ptr::null()) } else { t };
+        let bare = if t.nullable || !t.quals.is_empty() {
+            &*intern(
+                t.class,
+                t.args.clone(),
+                false,
+                Vec::new(),
+                0,
+                std::ptr::null(),
+            )
+        } else {
+            t
+        };
         is_subtype(&*(*o).td, bare) as u8
     }
 }
@@ -351,7 +425,11 @@ pub unsafe extern "C" fn cl_cast(ctx: *mut Ctx, o: Obj, t: Td) -> Obj {
             return o;
         }
         if cl_instance_of(o, t) == 0 {
-            crate::object::raise(ctx, X_CLASS_CAST, &format!("a {} is not a {}", (*(*o).td).name(), (*t).name()));
+            crate::object::raise(
+                ctx,
+                X_CLASS_CAST,
+                &format!("a {} is not a {}", (*(*o).td).name(), (*t).name()),
+            );
         }
         o
     }
@@ -372,10 +450,17 @@ pub unsafe fn find(entries: *const MethodEntry, n: u32, selector: u32) -> *const
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn cl_lookup(o: Obj, selector: u32) -> *const u8 {
     unsafe {
-        let c = if o.is_null() { &*wk(K_NULL) } else { (*(*o).td).class() };
+        let c = if o.is_null() {
+            &*wk(K_NULL)
+        } else {
+            (*(*o).td).class()
+        };
         let f = find(c.methods, c.nmethods, selector);
         if f.is_null() {
-            eprintln!("cleat: internal error: {} has no method for selector {selector}", c.name());
+            eprintln!(
+                "cleat: internal error: {} has no method for selector {selector}",
+                c.name()
+            );
             std::process::exit(70);
         }
         f
@@ -389,7 +474,10 @@ pub unsafe extern "C" fn cl_static_req(t: Td, selector: u32) -> *const u8 {
         let c = (*t).class();
         let f = find(c.reqs, c.nreqs, selector);
         if f.is_null() {
-            eprintln!("cleat: internal error: {} has no static method for requirement {selector}", c.name());
+            eprintln!(
+                "cleat: internal error: {} has no static method for requirement {selector}",
+                c.name()
+            );
             std::process::exit(70);
         }
         f

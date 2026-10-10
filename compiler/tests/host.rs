@@ -1,10 +1,9 @@
 //! How a program meets its host: foreign structs, the ways a program ends (section
 //! 9.10), and the reports that do not reject a program.
 
-mod common;
-
-use common::*;
+use crate::common::{build_text, expect, run, scratch};
 use std::path::PathBuf;
+mod common;
 
 fn write(dir: &std::path::Path, name: &str, text: &str) -> PathBuf {
     let path = dir.join(name);
@@ -74,8 +73,14 @@ public class Structs {
 "#,
     );
     let exe = dir.join("structs.exe");
-    cleatc::build_with(&[source.as_path()], "t.Structs", &exe, &[c]).unwrap_or_else(|e| panic!("{}", e[0].message));
-    expect(&exe, &[], 0, "Vec(3.0, -4.0)\nSeg(Vec(0.0, 0.0), Vec(3.0, 4.0), 7)\n32.0\nVec(-1.0, -2.0)Vec(-1.0, -2.0)Vec(1.0, 2.0)\n");
+    cleatc::build_with(&[source.as_path()], "t.Structs", &exe, &[c])
+        .unwrap_or_else(|e| panic!("{}", e[0].message));
+    expect(
+        &exe,
+        &[],
+        0,
+        "Vec(3.0, -4.0)\nSeg(Vec(0.0, 0.0), Vec(3.0, 4.0), 7)\n32.0\nVec(-1.0, -2.0)Vec(-1.0, -2.0)Vec(1.0, 2.0)\n",
+    );
 }
 
 #[test]
@@ -117,7 +122,11 @@ fn exit_ends_the_program_at_once() {
         "package t;\npublic class Leaves {\n    public static void main() {\n        Process.exit(256);\n    }\n}\n",
     );
     let r = expect(&exe, &[], 1, "");
-    assert!(r.err.starts_with("cleat.IllegalArgumentException"), "{}", r.err);
+    assert!(
+        r.err.starts_with("cleat.IllegalArgumentException"),
+        "{}",
+        r.err
+    );
 }
 
 #[test]
@@ -128,11 +137,25 @@ fn main_may_take_no_arguments_and_must_be_one() {
         "Both.cleat",
         "package t;\npublic class Both {\n    public static void main() { }\n    public static void main(String[] args) { }\n}\n",
     );
-    let err = cleatc::build_roots(&[both.as_path()], "t.Both", &dir.join("both.exe")).expect_err("two mains");
-    assert!(err[0].message.contains("not an entry class"), "{}", err[0].message);
-    let none = write(&dir, "Nothing.cleat", "package t;\npublic class Nothing {\n    static void main() { }\n}\n");
-    let err = cleatc::build_roots(&[none.as_path()], "t.Nothing", &dir.join("none.exe")).expect_err("a private main");
-    assert!(err[0].message.contains("not an entry class"), "{}", err[0].message);
+    let err = cleatc::build_roots(&[both.as_path()], "t.Both", &dir.join("both.exe"))
+        .expect_err("two mains");
+    assert!(
+        err[0].message.contains("not an entry class"),
+        "{}",
+        err[0].message
+    );
+    let none = write(
+        &dir,
+        "Nothing.cleat",
+        "package t;\npublic class Nothing {\n    static void main() { }\n}\n",
+    );
+    let err = cleatc::build_roots(&[none.as_path()], "t.Nothing", &dir.join("none.exe"))
+        .expect_err("a private main");
+    assert!(
+        err[0].message.contains("not an entry class"),
+        "{}",
+        err[0].message
+    );
 }
 
 #[test]
@@ -149,9 +172,19 @@ fn a_use_of_a_deprecated_declaration_is_reported_and_not_rejected() {
         "package t;\npublic class User {\n    public static void main() {\n        Console.println(Old.stale() + Old.own());\n    }\n}\n",
     );
     let exe = dir.join("user.exe");
-    let warnings = cleatc::build_roots(&[old.as_path(), user.as_path()], "t.User", &exe).unwrap_or_else(|e| panic!("{}", e[0].message));
+    let warnings = cleatc::build_roots(&[old.as_path(), user.as_path()], "t.User", &exe)
+        .unwrap_or_else(|e| panic!("{}", e[0].message));
     // The use in another file is reported, and the use in the declaring file is not.
-    assert_eq!(warnings.len(), 1, "{:?}", warnings.iter().map(|w| &w.message).collect::<Vec<_>>());
-    assert!(warnings[0].file.ends_with("User.cleat") && warnings[0].message.contains("use fresh"), "{}", warnings[0].message);
+    assert_eq!(
+        warnings.len(),
+        1,
+        "{:?}",
+        warnings.iter().map(|w| &w.message).collect::<Vec<_>>()
+    );
+    assert!(
+        warnings[0].file.ends_with("User.cleat") && warnings[0].message.contains("use fresh"),
+        "{}",
+        warnings[0].message
+    );
     expect(&exe, &[], 0, "2\n");
 }

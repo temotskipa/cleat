@@ -4,13 +4,17 @@
 
 mod common;
 
-use common::*;
+use crate::common::{build, build_text, expect, run, scratch};
 use std::path::Path;
 
 fn case(name: &str) {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests").join("behavior");
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("behavior");
     let source = dir.join(format!("{name}.cleat"));
-    let want = std::fs::read_to_string(dir.join(format!("{name}.out"))).unwrap().replace("\r\n", "\n");
+    let want = std::fs::read_to_string(dir.join(format!("{name}.out")))
+        .unwrap()
+        .replace("\r\n", "\n");
     let test = format!("behavior_{name}");
     let scratch = scratch(&test);
     let exe = build(&test, &scratch, &[source], &format!("t.{name}"));
@@ -61,7 +65,10 @@ fn a_method_a_class_cannot_name_is_not_overridden() {
             "a/Base.cleat",
             "package a;\n\npublic open class Base {\n    package open Int rank() { return 1; }\n    private Int own() { return 10; }\n    public Int viaBase() { return rank() + own(); }\n    public static Int through(Base b) { return b.rank(); }\n    public static Int mine(b.Derived d) { return d.own() + d.rank(); }\n}\n",
         ),
-        ("b/Derived.cleat", "package b;\n\nimport a.Base;\n\npublic class Derived extends Base {\n    public Int rank() { return 2; }\n    public Int own() { return 20; }\n}\n"),
+        (
+            "b/Derived.cleat",
+            "package b;\n\nimport a.Base;\n\npublic class Derived extends Base {\n    public Int rank() { return 2; }\n    public Int own() { return 20; }\n}\n",
+        ),
         (
             "Main.cleat",
             "import a.Base;\nimport b.Derived;\n\npublic class Main {\n    public static void main() {\n        var d = new Derived();\n        Console.println(d.rank());\n        Console.println(d.own());\n        Console.println(d.viaBase());\n        Console.println(Base.through(d));\n        Console.println(Base.mine(d));\n    }\n}\n",
@@ -112,7 +119,11 @@ fn an_exception_that_leaves_a_thread_is_written_to_the_error_stream() {
     let text = "public class Loud {\n    public static void main() {\n        var t = Thread.start(() -> {\n            throw new IllegalStateException(\"the body failed\");\n        });\n        t.join();\n        Console.println(\"main goes on\");\n    }\n}\n";
     let (_, exe) = build_text("behavior_thread_error", "Loud", text);
     let run = expect(&exe, &[], 0, "main goes on\n");
-    assert!(run.err.contains("IllegalStateException: the body failed"), "{}", run.err);
+    assert!(
+        run.err.contains("IllegalStateException: the body failed"),
+        "{}",
+        run.err
+    );
 }
 
 /// The default `equals`, `hashCode` and `identical` of values follow a chain of them in
@@ -124,5 +135,10 @@ fn a_long_chain_of_values_compares_without_filling_the_stack() {
     let text = "value class Link {\n    Int value;\n    @Nullable Link next;\n}\npublic class Chain {\n    static Link chain(Int length, Int last) {\n        var head = new Link(last, null);\n        for (var i = 1; i < length; i++) {\n            head = new Link(i, head);\n        }\n        return head;\n    }\n    public static void main() {\n        var a = chain(1000000, 0);\n        var b = chain(1000000, 0);\n        var c = chain(1000000, 1);\n        Console.println(\"\" + a.equals(b) + \" \" + a.identical(b) + \" \" + (a.hashCode() == b.hashCode()) + \" \" + a.equals(c) + \" \" + a.identical(c));\n    }\n}\n";
     let (_, exe) = build_text("behavior_value_chain", "Chain", text);
     let r = run(&exe, &[], false);
-    assert_eq!((r.status, r.out.as_str()), (0, "true true true false false\n"), "{}", r.err);
+    assert_eq!(
+        (r.status, r.out.as_str()),
+        (0, "true true true false false\n"),
+        "{}",
+        r.err
+    );
 }

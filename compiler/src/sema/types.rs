@@ -64,7 +64,11 @@ pub enum Arg {
 
 impl Type {
     pub fn class(id: ClassId, args: Vec<Arg>) -> Type {
-        Type { ty: Ty::Class(id, args), nullable: false, quals: Vec::new() }
+        Type {
+            ty: Ty::Class(id, args),
+            nullable: false,
+            quals: Vec::new(),
+        }
     }
 
     pub fn simple(id: ClassId) -> Type {
@@ -72,15 +76,27 @@ impl Type {
     }
 
     pub fn var(tv: Tv) -> Type {
-        Type { ty: Ty::Var(tv), nullable: false, quals: Vec::new() }
+        Type {
+            ty: Ty::Var(tv),
+            nullable: false,
+            quals: Vec::new(),
+        }
     }
 
     pub fn error() -> Type {
-        Type { ty: Ty::Error, nullable: false, quals: Vec::new() }
+        Type {
+            ty: Ty::Error,
+            nullable: false,
+            quals: Vec::new(),
+        }
     }
 
     pub fn null() -> Type {
-        Type { ty: Ty::Null, nullable: true, quals: Vec::new() }
+        Type {
+            ty: Ty::Null,
+            nullable: true,
+            quals: Vec::new(),
+        }
     }
 
     pub fn is_error(&self) -> bool {
@@ -122,7 +138,11 @@ impl Type {
 
     /// The type with every qualifier removed.
     pub fn bare(&self) -> Type {
-        Type { ty: self.ty.clone(), nullable: false, quals: Vec::new() }
+        Type {
+            ty: self.ty.clone(),
+            nullable: false,
+            quals: Vec::new(),
+        }
     }
 
     pub fn add_qual(&mut self, q: ClassId) {
@@ -168,7 +188,9 @@ pub struct Subst {
 
 impl Subst {
     pub fn new() -> Subst {
-        Subst { map: HashMap::new() }
+        Subst {
+            map: HashMap::new(),
+        }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -183,7 +205,13 @@ impl Subst {
     pub fn for_class(class: ClassId, args: &[Arg]) -> Subst {
         let mut s = Subst::new();
         for (i, a) in args.iter().enumerate() {
-            s.map.insert(Tv { owner: TvOwner::Class(class), index: i as u32 }, a.clone());
+            s.map.insert(
+                Tv {
+                    owner: TvOwner::Class(class),
+                    index: i as u32,
+                },
+                a.clone(),
+            );
         }
         s
     }

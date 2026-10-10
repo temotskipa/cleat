@@ -16,7 +16,10 @@ pub fn repo() -> PathBuf {
 }
 
 pub fn program(name: &str) -> PathBuf {
-    repo().join("design").join("programs").join(format!("{name}.cleat"))
+    repo()
+        .join("design")
+        .join("programs")
+        .join(format!("{name}.cleat"))
 }
 
 /// A directory of this test's own, emptied.
@@ -32,7 +35,18 @@ pub fn build(test: &str, dir: &Path, roots: &[PathBuf], entry: &str) -> PathBuf 
     let exe = dir.join(format!("{test}.exe"));
     let roots: Vec<&Path> = roots.iter().map(|p| p.as_path()).collect();
     if let Err(errors) = cleatc::build_roots(&roots, entry, &exe) {
-        let text: Vec<String> = errors.iter().map(|d| format!("{}:{}:{}: {}", d.file.display(), d.line, d.column, d.message)).collect();
+        let text: Vec<String> = errors
+            .iter()
+            .map(|d| {
+                format!(
+                    "{}:{}:{}: {}",
+                    d.file.display(),
+                    d.line,
+                    d.column,
+                    d.message
+                )
+            })
+            .collect();
         panic!("{test} does not build:\n{}", text.join("\n"));
     }
     exe
@@ -58,7 +72,9 @@ pub fn run(exe: &Path, args: &[&str], stress: bool) -> Run {
     } else {
         cmd.env_remove("CLEAT_GC_STRESS");
     }
-    let output = cmd.output().unwrap_or_else(|e| panic!("cannot run {}: {e}", exe.display()));
+    let output = cmd
+        .output()
+        .unwrap_or_else(|e| panic!("cannot run {}: {e}", exe.display()));
     Run {
         status: output.status.code().unwrap_or(-1),
         out: String::from_utf8_lossy(&output.stdout).replace("\r\n", "\n"),
@@ -71,9 +87,25 @@ pub fn expect(exe: &Path, args: &[&str], status: i32, out: &str) -> Run {
     let mut last = None;
     for stress in [false, true] {
         let r = run(exe, args, stress);
-        let how = if stress { " (with a collection at every allocation)" } else { "" };
-        assert_eq!(r.out, out, "the output of {}{how}\nstderr: {}", exe.display(), r.err);
-        assert_eq!(r.status, status, "the exit status of {}{how}\nstderr: {}", exe.display(), r.err);
+        let how = if stress {
+            " (with a collection at every allocation)"
+        } else {
+            ""
+        };
+        assert_eq!(
+            r.out,
+            out,
+            "the output of {}{how}\nstderr: {}",
+            exe.display(),
+            r.err
+        );
+        assert_eq!(
+            r.status,
+            status,
+            "the exit status of {}{how}\nstderr: {}",
+            exe.display(),
+            r.err
+        );
         last = Some(r);
     }
     last.unwrap()

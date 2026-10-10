@@ -6,7 +6,13 @@ const USAGE: &str = "usage: cleatc check <path>...\n       cleatc build <path>..
 
 fn show(d: &Diagnostic, warning: bool) {
     let kind = if warning { "warning: " } else { "" };
-    eprintln!("{}:{}:{}: {kind}{}", d.file.display(), d.line, d.column, d.message);
+    eprintln!(
+        "{}:{}:{}: {kind}{}",
+        d.file.display(),
+        d.line,
+        d.column,
+        d.message
+    );
 }
 
 fn main() -> ExitCode {

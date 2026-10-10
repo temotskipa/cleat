@@ -2,9 +2,9 @@
 
 use super::tir::Body;
 use super::types::*;
+use crate::Diagnostic;
 use crate::ast;
 use crate::lex::{self, Pos};
-use crate::Diagnostic;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -146,7 +146,8 @@ pub struct Method {
 impl Method {
     /// Whether a call of the method selects its body by the receiver's class.
     pub fn is_virtual(&self, in_interface: bool) -> bool {
-        !self.is_static && (self.is_open || self.is_abstract || (in_interface && !self.is_final_written))
+        !self.is_static
+            && (self.is_open || self.is_abstract || (in_interface && !self.is_final_written))
     }
 }
 
@@ -229,7 +230,10 @@ impl Class {
     }
 
     pub fn is_value(&self) -> bool {
-        matches!(self.kind, ast::TypeKind::ValueClass | ast::TypeKind::Annotation)
+        matches!(
+            self.kind,
+            ast::TypeKind::ValueClass | ast::TypeKind::Annotation
+        )
     }
 
     pub fn is_enum(&self) -> bool {
@@ -329,7 +333,11 @@ impl Program {
         let u = &self.units[unit];
         let d = lex::diag(&u.file, &u.text, pos, message);
         // One message for one place: a second mistake found at the same position adds nothing.
-        if !self.diags.iter().any(|e| e.file == d.file && e.line == d.line && e.column == d.column) {
+        if !self
+            .diags
+            .iter()
+            .any(|e| e.file == d.file && e.line == d.line && e.column == d.column)
+        {
             self.diags.push(d);
         }
     }
@@ -409,7 +417,10 @@ impl Program {
         let written: Vec<Type> = match tv.owner {
             TvOwner::Capture(n) => self.captures[n as usize].upper.clone(),
             TvOwner::Infer(_) => Vec::new(),
-            _ => self.tparam(tv).map(|p| p.bounds.clone()).unwrap_or_default(),
+            _ => self
+                .tparam(tv)
+                .map(|p| p.bounds.clone())
+                .unwrap_or_default(),
         };
         if written.is_empty() {
             vec![self.object().nullable()]
@@ -455,7 +466,12 @@ impl Program {
         if from == target {
             let c = self.class(from);
             let args = (0..c.tparams.len())
-                .map(|i| Arg::Ty(Type::var(Tv { owner: TvOwner::Class(from), index: i as u32 })))
+                .map(|i| {
+                    Arg::Ty(Type::var(Tv {
+                        owner: TvOwner::Class(from),
+                        index: i as u32,
+                    }))
+                })
                 .collect();
             return Some(Type::class(from, args));
         }
@@ -466,7 +482,9 @@ impl Program {
         self.supertype_cache.insert((from, target), None);
         let mut found = None;
         for sup in self.direct_supers(from) {
-            let Ty::Class(sid, sargs) = &sup.ty else { continue };
+            let Ty::Class(sid, sargs) = &sup.ty else {
+                continue;
+            };
             if let Some(up) = self.generic_super(*sid, target) {
                 found = Some(Subst::for_class(*sid, sargs).apply(&up));
                 break;
@@ -507,7 +525,11 @@ impl Program {
         if low == high {
             return true;
         }
-        self.class(low).refines_above.clone().iter().any(|a| self.refines(*a, high))
+        self.class(low)
+            .refines_above
+            .clone()
+            .iter()
+            .any(|a| self.refines(*a, high))
     }
 
     fn quals_ok(&self, s: &Type, t: &Type) -> bool {
@@ -588,7 +610,9 @@ impl Program {
                 bounds.iter().any(|bd| self.base_subtype(&bd.bare(), t))
             }
             (Ty::Class(_, _), Ty::Class(tid, targs)) => {
-                let Some(up) = self.supertype_at(s, *tid) else { return false };
+                let Some(up) = self.supertype_at(s, *tid) else {
+                    return false;
+                };
                 let sargs = up.args().to_vec();
                 let targs = targs.clone();
                 for (i, (sa, ta)) in sargs.iter().zip(targs.iter()).enumerate() {
@@ -637,7 +661,11 @@ impl Program {
                 Arg::Ty(t) => (Some(t.clone()), Some(t.clone()), true),
                 Arg::Wild(e, s) => (
                     s.as_ref().map(|t| (**t).clone()),
-                    Some(e.as_ref().map(|t| (**t).clone()).unwrap_or_else(|| bound.clone())),
+                    Some(
+                        e.as_ref()
+                            .map(|t| (**t).clone())
+                            .unwrap_or_else(|| bound.clone()),
+                    ),
                     false,
                 ),
             }
@@ -678,7 +706,9 @@ impl Program {
                     if !iexact {
                         return false;
                     }
-                    let (Some(o), Some(i)) = (ohigh, ihigh) else { return false };
+                    let (Some(o), Some(i)) = (ohigh, ihigh) else {
+                        return false;
+                    };
                     return self.same_type(&o, &i);
                 }
                 // The outer wildcard's range must enclose the inner range.

@@ -5,15 +5,25 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn run(cmd: &mut Command) -> Result<(), String> {
-    let output = cmd.output().map_err(|err| format!("cannot run {}: {err}", cmd.get_program().to_string_lossy()))?;
+    let output = cmd
+        .output()
+        .map_err(|err| format!("cannot run {}: {err}", cmd.get_program().to_string_lossy()))?;
     if output.status.success() {
         return Ok(());
     }
-    let mut detail = format!("{}{}", String::from_utf8_lossy(&output.stderr), String::from_utf8_lossy(&output.stdout));
+    let mut detail = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stderr),
+        String::from_utf8_lossy(&output.stdout)
+    );
     if detail.len() > 6000 {
         detail = format!("{}\n...", &detail[..6000]);
     }
-    Err(format!("{} failed with {}:\n{detail}", cmd.get_program().to_string_lossy(), output.status))
+    Err(format!(
+        "{} failed with {}:\n{detail}",
+        cmd.get_program().to_string_lossy(),
+        output.status
+    ))
 }
 
 /// clang: where `CLEAT_CLANG` points, the usual install, a copy under
@@ -56,14 +66,20 @@ pub fn runtime() -> Result<PathBuf, String> {
     }
     let mut best: Option<(std::time::SystemTime, PathBuf)> = None;
     for d in &dirs {
-        let Ok(entries) = std::fs::read_dir(d) else { continue };
+        let Ok(entries) = std::fs::read_dir(d) else {
+            continue;
+        };
         for e in entries.flatten() {
             let name = e.file_name().to_string_lossy().to_string();
-            let is_lib = (name.starts_with("cleatrt") && name.ends_with(".lib")) || (name.starts_with("libcleatrt") && name.ends_with(".a"));
+            let is_lib = (name.starts_with("cleatrt") && name.ends_with(".lib"))
+                || (name.starts_with("libcleatrt") && name.ends_with(".a"));
             if !is_lib {
                 continue;
             }
-            let modified = e.metadata().and_then(|m| m.modified()).unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+            let modified = e
+                .metadata()
+                .and_then(|m| m.modified())
+                .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
             if best.as_ref().map(|(t, _)| modified >= *t).unwrap_or(true) {
                 best = Some((modified, e.path()));
             }
@@ -75,7 +91,10 @@ pub fn runtime() -> Result<PathBuf, String> {
 /// Compiles the module, and the C shim when there is one, and links them with the
 /// runtime and with the files the program was built with.
 pub fn link(ir: &str, shim: &str, output: &Path, extra: &[PathBuf]) -> Result<(), String> {
-    let dir = output.parent().filter(|d| !d.as_os_str().is_empty()).unwrap_or_else(|| Path::new("."));
+    let dir = output
+        .parent()
+        .filter(|d| !d.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
     std::fs::create_dir_all(dir).map_err(|err| err.to_string())?;
     let ll = output.with_extension("ll");
     std::fs::write(&ll, ir).map_err(|err| format!("cannot write {}: {err}", ll.display()))?;
@@ -89,7 +108,16 @@ pub fn link(ir: &str, shim: &str, output: &Path, extra: &[PathBuf]) -> Result<()
     }
     cmd.args(extra).arg(&rt).arg("-o").arg(output);
     if cfg!(windows) {
-        for lib in ["kernel32", "ntdll", "userenv", "ws2_32", "dbghelp", "advapi32", "bcrypt", "synchronization"] {
+        for lib in [
+            "kernel32",
+            "ntdll",
+            "userenv",
+            "ws2_32",
+            "dbghelp",
+            "advapi32",
+            "bcrypt",
+            "synchronization",
+        ] {
             cmd.arg(format!("-l{lib}"));
         }
         // The main thread recurses as deep as any other.

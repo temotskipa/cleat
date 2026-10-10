@@ -82,10 +82,23 @@ pub enum TKind {
     StaticField(FieldRef),
     Call(Box<Call>),
     /// A static requirement called through a type parameter: `T.zero()`.
-    StaticReq { on: Type, method: MethodRef, args: Vec<TExpr> },
-    New { ctor: MethodRef, args: Vec<TExpr> },
-    NewArray { elem: Type, len: Box<TExpr> },
-    ArrayLit { elem: Type, elems: Vec<TExpr> },
+    StaticReq {
+        on: Type,
+        method: MethodRef,
+        args: Vec<TExpr>,
+    },
+    New {
+        ctor: MethodRef,
+        args: Vec<TExpr>,
+    },
+    NewArray {
+        elem: Type,
+        len: Box<TExpr>,
+    },
+    ArrayLit {
+        elem: Type,
+        elems: Vec<TExpr>,
+    },
     ClassLit(Type),
     Lambda(Box<Lambda>),
     And(Box<TExpr>, Box<TExpr>),
@@ -110,7 +123,11 @@ pub enum TKind {
     /// Binds a temporary and evaluates the body.
     Let(LocalId, Box<TExpr>, Box<TExpr>),
     Seq(Vec<TExpr>, Box<TExpr>),
-    Switch { selector: Box<TExpr>, temp: LocalId, arms: Vec<(ArmTest, TExpr)> },
+    Switch {
+        selector: Box<TExpr>,
+        temp: LocalId,
+        arms: Vec<(ArmTest, TExpr)>,
+    },
     /// Raises the value. It appears as the value of a switch arm.
     Throw(Box<TExpr>),
 }
@@ -131,18 +148,43 @@ pub enum TStmt {
     If(TExpr, Vec<TStmt>, Vec<TStmt>),
     /// A loop. `label` names it for `Break` and `Continue`. `update` runs after the
     /// body and after a `continue`.
-    Loop { label: u32, cond: Option<TExpr>, update: Vec<TExpr>, body: Vec<TStmt> },
+    Loop {
+        label: u32,
+        cond: Option<TExpr>,
+        update: Vec<TExpr>,
+        body: Vec<TStmt>,
+    },
     /// A statement that a `break label` may leave.
-    Labeled { label: u32, body: Vec<TStmt> },
-    Switch { label: u32, selector: TExpr, temp: LocalId, arms: Vec<(ArmTest, Vec<TStmt>)> },
-    Try { body: Vec<TStmt>, catches: Vec<TCatch>, finally: Option<Vec<TStmt>> },
+    Labeled {
+        label: u32,
+        body: Vec<TStmt>,
+    },
+    Switch {
+        label: u32,
+        selector: TExpr,
+        temp: LocalId,
+        arms: Vec<(ArmTest, Vec<TStmt>)>,
+    },
+    Try {
+        body: Vec<TStmt>,
+        catches: Vec<TCatch>,
+        finally: Option<Vec<TStmt>>,
+    },
     /// `using`: the resource is bound, the body runs, and `close` is called. `close`
     /// is the checked call on the resource's local.
-    Using { local: LocalId, init: TExpr, close: TExpr, body: Vec<TStmt> },
+    Using {
+        local: LocalId,
+        init: TExpr,
+        close: TExpr,
+        body: Vec<TStmt>,
+    },
     Return(Option<TExpr>),
     Break(u32),
     Continue(u32),
     Throw(TExpr),
     /// `super(args)` or `this(args)` in a constructor.
-    CtorCall { ctor: MethodRef, args: Vec<TExpr> },
+    CtorCall {
+        ctor: MethodRef,
+        args: Vec<TExpr>,
+    },
 }

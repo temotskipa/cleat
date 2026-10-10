@@ -192,7 +192,12 @@ pub struct ClassInfo {
 
 impl ClassInfo {
     pub fn name(&self) -> &'static str {
-        unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(self.name, self.name_len as usize)) }
+        unsafe {
+            std::str::from_utf8_unchecked(std::slice::from_raw_parts(
+                self.name,
+                self.name_len as usize,
+            ))
+        }
     }
 
     pub fn simple_name(&self) -> &'static str {

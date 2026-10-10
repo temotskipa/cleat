@@ -165,7 +165,8 @@ impl<'a, 'p> Func<'a, 'p> {
     fn alloca(&mut self, r: Repr) -> String {
         self.ntmp += 1;
         let n = format!("%v{}", self.ntmp);
-        self.allocas.push_str(&format!("  {n} = alloca {}\n", r.ll()));
+        self.allocas
+            .push_str(&format!("  {n} = alloca {}\n", r.ll()));
         n
     }
 
@@ -180,7 +181,9 @@ impl<'a, 'p> Func<'a, 'p> {
 
     fn slot_addr(&mut self, k: u32) -> String {
         let t = self.tmp();
-        self.ins(&format!("{t} = getelementptr inbounds ptr, ptr %slots, i64 {k}"));
+        self.ins(&format!(
+            "{t} = getelementptr inbounds ptr, ptr %slots, i64 {k}"
+        ));
         t
     }
 
@@ -250,7 +253,10 @@ impl<'a, 'p> Func<'a, 'p> {
     // ---- exceptions ----
 
     fn handler(&self) -> String {
-        self.handlers.last().cloned().unwrap_or_else(|| "unwind".to_string())
+        self.handlers
+            .last()
+            .cloned()
+            .unwrap_or_else(|| "unwind".to_string())
     }
 
     /// After a call: goes to the handler when an exception is raised.
@@ -268,7 +274,9 @@ impl<'a, 'p> Func<'a, 'p> {
     fn jump(&mut self, t: Target) {
         let depth = match &t {
             Target::Return => 0,
-            Target::Break(l) | Target::Continue(l) => self.jumps.get(l).map(|j| j.depth).unwrap_or(0),
+            Target::Break(l) | Target::Continue(l) => {
+                self.jumps.get(l).map(|j| j.depth).unwrap_or(0)
+            }
         };
         if self.scopes.len() > depth {
             // Through the innermost `finally` first: it continues the jump afterwards.
@@ -282,8 +290,16 @@ impl<'a, 'p> Func<'a, 'p> {
         }
         let to = match &t {
             Target::Return => "ret".to_string(),
-            Target::Break(l) => self.jumps.get(l).map(|j| j.brk.clone()).unwrap_or_else(|| "ret".into()),
-            Target::Continue(l) => self.jumps.get(l).and_then(|j| j.cont.clone()).unwrap_or_else(|| "ret".into()),
+            Target::Break(l) => self
+                .jumps
+                .get(l)
+                .map(|j| j.brk.clone())
+                .unwrap_or_else(|| "ret".into()),
+            Target::Continue(l) => self
+                .jumps
+                .get(l)
+                .and_then(|j| j.cont.clone())
+                .unwrap_or_else(|| "ret".into()),
         };
         self.br(&to);
     }
@@ -299,8 +315,12 @@ impl<'a, 'p> Func<'a, 'p> {
     fn to_bits(&mut self, v: &str, m: Repr) -> String {
         let t = self.tmp();
         match m {
-            Repr::I8 | Repr::I16 | Repr::I32 => self.ins(&format!("{t} = sext {} {v} to i64", m.ll())),
-            Repr::U8 | Repr::U16 | Repr::U32 | Repr::Bool | Repr::Char => self.ins(&format!("{t} = zext {} {v} to i64", m.ll())),
+            Repr::I8 | Repr::I16 | Repr::I32 => {
+                self.ins(&format!("{t} = sext {} {v} to i64", m.ll()))
+            }
+            Repr::U8 | Repr::U16 | Repr::U32 | Repr::Bool | Repr::Char => {
+                self.ins(&format!("{t} = zext {} {v} to i64", m.ll()))
+            }
             Repr::F64 => self.ins(&format!("{t} = bitcast double {v} to i64")),
             Repr::F32 => {
                 let b = self.tmp();
@@ -324,7 +344,10 @@ impl<'a, 'p> Func<'a, 'p> {
             (m, Repr::Ref) if m.is_machine() => {
                 let bits = self.to_bits(v, m);
                 let t = self.tmp();
-                self.ins(&format!("{t} = call ptr @cl_box(ptr %ctx, i32 {}, i64 {bits})", m.kind()));
+                self.ins(&format!(
+                    "{t} = call ptr @cl_box(ptr %ctx, i32 {}, i64 {bits})",
+                    m.kind()
+                ));
                 t
             }
             (Repr::Ref, m) if m.is_machine() => {
@@ -364,20 +387,24 @@ impl<'a, 'p> Func<'a, 'p> {
     fn type_desc(&mut self, t: &Type) -> String {
         let env = self.env.clone();
         let missing = std::cell::Cell::new(false);
-        let (sym, open) = self.e.texpr(t, &|tv| match env.iter().position(|e| *e == tv) {
-            Some(i) => Some(i as u32),
-            None => {
-                missing.set(true);
-                None
-            }
-        });
+        let (sym, open) = self
+            .e
+            .texpr(t, &|tv| match env.iter().position(|e| *e == tv) {
+                Some(i) => Some(i as u32),
+                None => {
+                    missing.set(true);
+                    None
+                }
+            });
         if missing.get() {
             self.e.errors.push("this program uses the unknown type of a wildcard where the compiler cannot yet name it at run time".into());
         }
         let x = self.tmp();
         if open {
             self.uses_env = true;
-            self.ins(&format!("{x} = call ptr @cl_type_eval(ptr {sym}, ptr %env)"));
+            self.ins(&format!(
+                "{x} = call ptr @cl_type_eval(ptr {sym}, ptr %env)"
+            ));
         } else {
             let slot = self.e.cached_type(&sym);
             self.ins(&format!("{x} = load ptr, ptr {slot}"));
@@ -414,7 +441,9 @@ impl<'a, 'p> Func<'a, 'p> {
     fn rational(&mut self, text: &str) -> Val {
         let (slot, s) = self.e.rational_const(text);
         let t = self.tmp();
-        self.ins(&format!("{t} = call ptr @cleat_rational(ptr %ctx, ptr {slot}, ptr {s})"));
+        self.ins(&format!(
+            "{t} = call ptr @cleat_rational(ptr %ctx, ptr {slot}, ptr {s})"
+        ));
         self.check();
         Val::Imm(Repr::Ref, t)
     }
@@ -461,7 +490,11 @@ impl<'a, 'p> Func<'a, 'p> {
                 let s = self.e.static_sym(*f);
                 let t = self.tmp();
                 self.ins(&format!("{t} = load {}, ptr {s}", decl.ll()));
-                let v = if decl == Repr::Ref { self.root(&t) } else { Val::Imm(decl, t) };
+                let v = if decl == Repr::Ref {
+                    self.root(&t)
+                } else {
+                    Val::Imm(decl, t)
+                };
                 self.convert(v, decl, r)
             }
             TKind::Call(c) => self.call(c, &e.ty),
@@ -475,7 +508,10 @@ impl<'a, 'p> Func<'a, 'p> {
                 }
                 let td = self.type_desc(on);
                 let f = self.tmp();
-                self.ins(&format!("{f} = call ptr @cl_static_req(ptr {td}, i32 {})", self.e.req_selector(*method)));
+                self.ins(&format!(
+                    "{f} = call ptr @cl_static_req(ptr {td}, i32 {})",
+                    self.e.req_selector(*method)
+                ));
                 let mut all = vec!["ptr %ctx".to_string()];
                 for (v, pr) in &vals {
                     let x = self.val(v);
@@ -515,10 +551,15 @@ impl<'a, 'p> Func<'a, 'p> {
                 let n = self.val(&n);
                 let td = self.type_desc(&e.ty.bare());
                 let a = self.tmp();
-                self.ins(&format!("{a} = call ptr @cl_array_new(ptr %ctx, ptr {td}, i64 {n})"));
+                self.ins(&format!(
+                    "{a} = call ptr @cl_array_new(ptr %ctx, ptr {td}, i64 {n})"
+                ));
                 self.check();
                 let arr = self.root(&a);
-                if self.repr(elem) == Repr::Ref && !elem.nullable && matches!(elem.ty, Ty::Class(..)) {
+                if self.repr(elem) == Repr::Ref
+                    && !elem.nullable
+                    && matches!(elem.ty, Ty::Class(..))
+                {
                     // Every element is the default value of the class.
                     if let Some(d) = self.default_value(elem, 0) {
                         let (a, d) = (self.val(&arr), self.val(&d));
@@ -530,7 +571,10 @@ impl<'a, 'p> Func<'a, 'p> {
             TKind::ArrayLit { elem, elems } => {
                 let td = self.type_desc(&e.ty.bare());
                 let a = self.tmp();
-                self.ins(&format!("{a} = call ptr @cl_array_new(ptr %ctx, ptr {td}, i64 {})", elems.len()));
+                self.ins(&format!(
+                    "{a} = call ptr @cl_array_new(ptr %ctx, ptr {td}, i64 {})",
+                    elems.len()
+                ));
                 self.check();
                 let arr = self.root(&a);
                 let er = self.repr(elem);
@@ -566,7 +610,10 @@ impl<'a, 'p> Func<'a, 'p> {
                     let v = self.convert(v, self.repr(&cap.ty), fr);
                     vals.push((v, fr));
                 }
-                let ty = Type::class(l.class, env.iter().map(|tv| Arg::Ty(Type::var(*tv))).collect());
+                let ty = Type::class(
+                    l.class,
+                    env.iter().map(|tv| Arg::Ty(Type::var(*tv))).collect(),
+                );
                 let td = self.lambda_type(l.class, &ty, &env);
                 let o = self.tmp();
                 self.ins(&format!("{o} = call ptr @cl_new(ptr %ctx, ptr {td})"));
@@ -577,9 +624,17 @@ impl<'a, 'p> Func<'a, 'p> {
                         continue;
                     }
                     let (o, x) = (self.val(&obj), self.val(v));
-                    let (lty, index, _) = self.e.field_place(l.class, FieldRef { class: l.class, index: i as u32 });
+                    let (lty, index, _) = self.e.field_place(
+                        l.class,
+                        FieldRef {
+                            class: l.class,
+                            index: i as u32,
+                        },
+                    );
                     let p = self.tmp();
-                    self.ins(&format!("{p} = getelementptr inbounds {lty}, ptr {o}, i32 0, i32 {index}"));
+                    self.ins(&format!(
+                        "{p} = getelementptr inbounds {lty}, ptr {o}, i32 0, i32 {index}"
+                    ));
                     self.ins(&format!("store {} {x}, ptr {p}", fr.ll()));
                 }
                 obj
@@ -618,7 +673,11 @@ impl<'a, 'p> Func<'a, 'p> {
                 let k = self.expr(c);
                 let k = self.val(&k);
                 let k = self.truth(&k);
-                let (yes, no, done) = (self.new_label("then"), self.new_label("else"), self.new_label("cond.end"));
+                let (yes, no, done) = (
+                    self.new_label("then"),
+                    self.new_label("else"),
+                    self.new_label("cond.end"),
+                );
                 self.cond_br(&k, &yes, &no);
                 self.label(&yes);
                 let x = self.expr(a);
@@ -638,7 +697,11 @@ impl<'a, 'p> Func<'a, 'p> {
                 let xv = self.val(&x);
                 let c = self.tmp();
                 self.ins(&format!("{c} = icmp ne ptr {xv}, null"));
-                let (have, none, done) = (self.new_label("have"), self.new_label("none"), self.new_label("coalesce.end"));
+                let (have, none, done) = (
+                    self.new_label("have"),
+                    self.new_label("none"),
+                    self.new_label("coalesce.end"),
+                );
                 self.cond_br(&c, &have, &none);
                 self.label(&have);
                 let x = self.convert(x, Repr::Ref, r);
@@ -671,7 +734,9 @@ impl<'a, 'p> Func<'a, 'p> {
                 let x = self.convert(x, self.repr(&v.ty), fr);
                 let (o, xv) = (self.val(&o), self.val(&x));
                 let p = self.tmp();
-                self.ins(&format!("{p} = getelementptr inbounds {lty}, ptr {o}, i32 0, i32 {index}"));
+                self.ins(&format!(
+                    "{p} = getelementptr inbounds {lty}, ptr {o}, i32 0, i32 {index}"
+                ));
                 self.ins(&format!("store {} {xv}, ptr {p}", fr.ll()));
                 self.convert(x, fr, r)
             }
@@ -685,7 +750,11 @@ impl<'a, 'p> Func<'a, 'p> {
                     let s = self.e.static_sym(*f);
                     self.ins(&format!("store {} {xv}, ptr {s}", decl.ll()));
                     let c = self.e.p.class(f.class);
-                    self.ins(&format!("store i8 1, ptr @\"set.{}.{}\"", sym(&c.qname), sym(&c.fields[f.index as usize].name)));
+                    self.ins(&format!(
+                        "store i8 1, ptr @\"set.{}.{}\"",
+                        sym(&c.qname),
+                        sym(&c.fields[f.index as usize].name)
+                    ));
                 }
                 self.convert(x, decl, r)
             }
@@ -698,7 +767,9 @@ impl<'a, 'p> Func<'a, 'p> {
                 let td = self.type_desc(&e.ty);
                 let o = self.val(&v);
                 let t = self.tmp();
-                self.ins(&format!("{t} = call ptr @cl_cast(ptr %ctx, ptr {o}, ptr {td})"));
+                self.ins(&format!(
+                    "{t} = call ptr @cl_cast(ptr %ctx, ptr {o}, ptr {td})"
+                ));
                 self.check();
                 self.convert(v, Repr::Ref, r)
             }
@@ -720,7 +791,10 @@ impl<'a, 'p> Func<'a, 'p> {
                 }
                 let o = self.val(&v);
                 let c = self.tmp();
-                self.ins(&format!("{c} = icmp {} ptr {o}, null", if *is_eq { "eq" } else { "ne" }));
+                self.ins(&format!(
+                    "{c} = icmp {} ptr {o}, null",
+                    if *is_eq { "eq" } else { "ne" }
+                ));
                 Val::Imm(Repr::Bool, self.bool_of(&c))
             }
             TKind::Coerce(inner) => {
@@ -765,7 +839,11 @@ impl<'a, 'p> Func<'a, 'p> {
                 }
                 self.expr(last)
             }
-            TKind::Switch { selector, temp, arms } => {
+            TKind::Switch {
+                selector,
+                temp,
+                arms,
+            } => {
                 let out = self.new_store(r);
                 let end = self.new_label("switch.end");
                 let sel = self.expr(selector);
@@ -809,10 +887,16 @@ impl<'a, 'p> Func<'a, 'p> {
         }
         let (lty, index, fr) = self.e.field_place(owner, f);
         let p = self.tmp();
-        self.ins(&format!("{p} = getelementptr inbounds {lty}, ptr {o}, i32 0, i32 {index}"));
+        self.ins(&format!(
+            "{p} = getelementptr inbounds {lty}, ptr {o}, i32 0, i32 {index}"
+        ));
         let t = self.tmp();
         self.ins(&format!("{t} = load {}, ptr {p}", fr.ll()));
-        let v = if fr == Repr::Ref { self.root(&t) } else { Val::Imm(fr, t) };
+        let v = if fr == Repr::Ref {
+            self.root(&t)
+        } else {
+            Val::Imm(fr, t)
+        };
         self.convert(v, fr, want)
     }
 
@@ -824,7 +908,11 @@ impl<'a, 'p> Func<'a, 'p> {
         self.ins(&format!("{s} = load i32, ptr {rec}"));
         let d = self.tmp();
         self.ins(&format!("{d} = icmp eq i32 {s}, 2"));
-        let (fast, chk, bad) = (self.new_label("st.ok"), self.new_label("st.chk"), self.new_label("st.bad"));
+        let (fast, chk, bad) = (
+            self.new_label("st.ok"),
+            self.new_label("st.chk"),
+            self.new_label("st.bad"),
+        );
         self.cond_br(&d, &fast, &chk);
         self.label(&chk);
         let b = self.tmp();
@@ -833,7 +921,9 @@ impl<'a, 'p> Func<'a, 'p> {
         self.cond_br(&z, &fast, &bad);
         self.label(&bad);
         let (bytes, len) = self.e.byte_string(&format!("{}.{name}", c.qname));
-        self.ins(&format!("call void @cl_static_unassigned(ptr %ctx, ptr {bytes}, i64 {len})"));
+        self.ins(&format!(
+            "call void @cl_static_unassigned(ptr %ctx, ptr {bytes}, i64 {len})"
+        ));
         let h = self.handler();
         self.br(&h);
         self.label(&fast);
@@ -842,7 +932,9 @@ impl<'a, 'p> Func<'a, 'p> {
     /// The default value `new T[n]` gives an element whose class is not `@Nullable`
     /// and is held as a pointer: `Rational` zero, or a value class built from defaults.
     fn default_value(&mut self, t: &Type, depth: u32) -> Option<Val> {
-        let Ty::Class(id, args) = &t.ty else { return None };
+        let Ty::Class(id, args) = &t.ty else {
+            return None;
+        };
         if *id == self.e.p.wk.rational {
             let v = self.rational("0/1");
             return Some(v);
@@ -864,9 +956,17 @@ impl<'a, 'p> Func<'a, 'p> {
             let ft = s.apply(&f.ty);
             if let Some(d) = self.default_value(&ft, depth + 1) {
                 let (o, d) = (self.val(&obj), self.val(&d));
-                let (lty, index, _) = self.e.field_place(*id, FieldRef { class: *id, index: i as u32 });
+                let (lty, index, _) = self.e.field_place(
+                    *id,
+                    FieldRef {
+                        class: *id,
+                        index: i as u32,
+                    },
+                );
                 let p = self.tmp();
-                self.ins(&format!("{p} = getelementptr inbounds {lty}, ptr {o}, i32 0, i32 {index}"));
+                self.ins(&format!(
+                    "{p} = getelementptr inbounds {lty}, ptr {o}, i32 0, i32 {index}"
+                ));
                 self.ins(&format!("store ptr {d}, ptr {p}"));
             }
         }
@@ -884,15 +984,22 @@ impl<'a, 'p> Func<'a, 'p> {
 
     fn elem_addr(&mut self, arr: &str, index: &str, r: Repr) -> String {
         let base = self.tmp();
-        self.ins(&format!("{base} = getelementptr inbounds i8, ptr {arr}, i64 24"));
+        self.ins(&format!(
+            "{base} = getelementptr inbounds i8, ptr {arr}, i64 24"
+        ));
         let p = self.tmp();
-        self.ins(&format!("{p} = getelementptr inbounds {}, ptr {base}, i64 {index}", r.ll()));
+        self.ins(&format!(
+            "{p} = getelementptr inbounds {}, ptr {base}, i64 {index}",
+            r.ll()
+        ));
         p
     }
 
     fn bounds_check(&mut self, arr: &str, index: &str) {
         let lp = self.tmp();
-        self.ins(&format!("{lp} = getelementptr inbounds i8, ptr {arr}, i64 16"));
+        self.ins(&format!(
+            "{lp} = getelementptr inbounds i8, ptr {arr}, i64 16"
+        ));
         let n = self.tmp();
         self.ins(&format!("{n} = load i64, ptr {lp}"));
         let c = self.tmp();
@@ -900,7 +1007,9 @@ impl<'a, 'p> Func<'a, 'p> {
         let (ok, bad) = (self.new_label("in"), self.new_label("out"));
         self.cond_br(&c, &ok, &bad);
         self.label(&bad);
-        self.ins(&format!("call void @cl_index_fail(ptr %ctx, i64 {index}, i64 {n})"));
+        self.ins(&format!(
+            "call void @cl_index_fail(ptr %ctx, i64 {index}, i64 {n})"
+        ));
         let h = self.handler();
         self.br(&h);
         self.label(&ok);
@@ -916,7 +1025,11 @@ impl<'a, 'p> Func<'a, 'p> {
             Val::Unit
         } else {
             let t = self.tmp();
-            self.ins(&format!("{t} = call {} {callee}({})", sig.ret.ll(), args.join(", ")));
+            self.ins(&format!(
+                "{t} = call {} {callee}({})",
+                sig.ret.ll(),
+                args.join(", ")
+            ));
             Val::Imm(sig.ret, t)
         };
         if sig.foreign {
@@ -938,7 +1051,10 @@ impl<'a, 'p> Func<'a, 'p> {
         // Arrays whose element type is known are read and written in place.
         if md.intrinsic && c.method.class == p.wk.array && c.recv.is_some() {
             let elem = c.class_args.first().and_then(|a| a.as_type()).cloned();
-            let known = elem.as_ref().map(|t| t.nullable || !matches!(t.ty, Ty::Var(_))).unwrap_or(false);
+            let known = elem
+                .as_ref()
+                .map(|t| t.nullable || !matches!(t.ty, Ty::Var(_)))
+                .unwrap_or(false);
             if md.name == "length" || known {
                 let er = elem.as_ref().map(|t| self.repr(t)).unwrap_or(Repr::Ref);
                 let a = self.expr(c.recv.as_ref().unwrap());
@@ -946,7 +1062,9 @@ impl<'a, 'p> Func<'a, 'p> {
                     "length" => {
                         let a = self.val(&a);
                         let lp = self.tmp();
-                        self.ins(&format!("{lp} = getelementptr inbounds i8, ptr {a}, i64 16"));
+                        self.ins(&format!(
+                            "{lp} = getelementptr inbounds i8, ptr {a}, i64 16"
+                        ));
                         let n = self.tmp();
                         self.ins(&format!("{n} = load i64, ptr {lp}"));
                         return self.convert(Val::Imm(Repr::I64, n), Repr::I64, want);
@@ -961,7 +1079,11 @@ impl<'a, 'p> Func<'a, 'p> {
                         let ep = self.elem_addr(&a, &i, er);
                         let t = self.tmp();
                         self.ins(&format!("{t} = load {}, ptr {ep}", er.ll()));
-                        let v = if er == Repr::Ref { self.root(&t) } else { Val::Imm(er, t) };
+                        let v = if er == Repr::Ref {
+                            self.root(&t)
+                        } else {
+                            Val::Imm(er, t)
+                        };
                         return self.convert(v, er, want);
                     }
                     "set" => {
@@ -988,7 +1110,11 @@ impl<'a, 'p> Func<'a, 'p> {
         if let Some(v) = self.inline_numeric(c, want) {
             return v;
         }
-        let target = if c.dispatch == Dispatch::Virtual { self.e.root_of(c.method) } else { c.method };
+        let target = if c.dispatch == Dispatch::Virtual {
+            self.e.root_of(c.method)
+        } else {
+            c.method
+        };
         let sig = self.e.sig(target);
         let recv = match (&c.recv, sig.recv) {
             (Some(r), Some(want)) => {
@@ -1025,14 +1151,17 @@ impl<'a, 'p> Func<'a, 'p> {
             let n = c.targs.len();
             self.ntmp += 1;
             let arr = format!("%v{}", self.ntmp);
-            self.allocas.push_str(&format!("  {arr} = alloca [{n} x ptr]\n"));
+            self.allocas
+                .push_str(&format!("  {arr} = alloca [{n} x ptr]\n"));
             for (i, t) in c.targs.iter().enumerate() {
                 let td = match self.capture_source(t, c, &vals) {
                     Some(td) => td,
                     None => self.type_desc(t),
                 };
                 let p = self.tmp();
-                self.ins(&format!("{p} = getelementptr inbounds ptr, ptr {arr}, i64 {i}"));
+                self.ins(&format!(
+                    "{p} = getelementptr inbounds ptr, ptr {arr}, i64 {i}"
+                ));
                 self.ins(&format!("store ptr {td}, ptr {p}"));
             }
             all.push(format!("ptr {arr}"));
@@ -1041,7 +1170,10 @@ impl<'a, 'p> Func<'a, 'p> {
             let (rv, _) = recv.as_ref().expect("a virtual call has a receiver");
             let o = self.val(rv);
             let f = self.tmp();
-            self.ins(&format!("{f} = call ptr @cl_lookup(ptr {o}, i32 {})", self.e.selector(target)));
+            self.ins(&format!(
+                "{f} = call ptr @cl_lookup(ptr {o}, i32 {})",
+                self.e.selector(target)
+            ));
             f
         } else {
             self.e.fn_symbol(target)
@@ -1055,7 +1187,10 @@ impl<'a, 'p> Func<'a, 'p> {
             all.push(format!("{} {x}", pr.ll()));
         }
         if c.recv.is_none() && !md.is_static {
-            self.e.errors.push(format!("internal: the instance method `{}` is called without a receiver", md.name));
+            self.e.errors.push(format!(
+                "internal: the instance method `{}` is called without a receiver",
+                md.name
+            ));
         }
         self.finish_call(&callee, &sig, all, want)
     }
@@ -1077,12 +1212,23 @@ impl<'a, 'p> Func<'a, 'p> {
         if !r.is_machine() || matches!(r, Repr::Bool | Repr::Char | Repr::Ptr) {
             return None;
         }
-        if self.repr(&recv.ty) != r || self.repr(&c.args[0].ty) != r || self.repr(&md.params[0].ty) != r {
+        if self.repr(&recv.ty) != r
+            || self.repr(&c.args[0].ty) != r
+            || self.repr(&md.params[0].ty) != r
+        {
             return None;
         }
         let float = matches!(r, Repr::F32 | Repr::F64);
         let signed = matches!(r, Repr::I8 | Repr::I16 | Repr::I32 | Repr::I64);
-        let pick = |f: &'static str, s: &'static str, u: &'static str| if float { f } else if signed { s } else { u };
+        let pick = |f: &'static str, s: &'static str, u: &'static str| {
+            if float {
+                f
+            } else if signed {
+                s
+            } else {
+                u
+            }
+        };
         let op = match (md.name.as_str(), float) {
             ("plus", false) => Op::Checked(if signed { "sadd" } else { "uadd" }),
             ("minus", false) => Op::Checked(if signed { "ssub" } else { "usub" }),
@@ -1119,9 +1265,13 @@ impl<'a, 'p> Func<'a, 'p> {
                 (self.bool_of(&t), Repr::Bool)
             }
             Op::Checked(i) => {
-                self.e.declare(format!("declare {{ {ty}, i1 }} @llvm.{i}.with.overflow.{ty}({ty}, {ty})"));
+                self.e.declare(format!(
+                    "declare {{ {ty}, i1 }} @llvm.{i}.with.overflow.{ty}({ty}, {ty})"
+                ));
                 let pair = self.tmp();
-                self.ins(&format!("{pair} = call {{ {ty}, i1 }} @llvm.{i}.with.overflow.{ty}({ty} {a}, {ty} {b})"));
+                self.ins(&format!(
+                    "{pair} = call {{ {ty}, i1 }} @llvm.{i}.with.overflow.{ty}({ty} {a}, {ty} {b})"
+                ));
                 let (v, o) = (self.tmp(), self.tmp());
                 self.ins(&format!("{v} = extractvalue {{ {ty}, i1 }} {pair}, 0"));
                 self.ins(&format!("{o} = extractvalue {{ {ty}, i1 }} {pair}, 1"));
@@ -1131,7 +1281,9 @@ impl<'a, 'p> Func<'a, 'p> {
                 // The runtime does the operation again, and raises with its message.
                 let slow = self.e.fn_symbol(c.method);
                 let unused = self.tmp();
-                self.ins(&format!("{unused} = call {ty} {slow}(ptr %ctx, {ty} {a}, {ty} {b})"));
+                self.ins(&format!(
+                    "{unused} = call {ty} {slow}(ptr %ctx, {ty} {a}, {ty} {b})"
+                ));
                 let h = self.handler();
                 self.br(&h);
                 self.label(&fine);
@@ -1174,7 +1326,11 @@ impl<'a, 'p> Func<'a, 'p> {
                 }
             }
         }
-        let result = if shim.ret_struct { self.default_value(&ret_ty, 0) } else { None };
+        let result = if shim.ret_struct {
+            self.default_value(&ret_ty, 0)
+        } else {
+            None
+        };
         let mut all: Vec<String> = Vec::new();
         if let Some(r) = &result {
             let o = self.val(r);
@@ -1195,7 +1351,9 @@ impl<'a, 'p> Func<'a, 'p> {
                 Piece::Length(v) => {
                     let o = self.val(v);
                     let lp = self.tmp();
-                    self.ins(&format!("{lp} = getelementptr inbounds i8, ptr {o}, i64 16"));
+                    self.ins(&format!(
+                        "{lp} = getelementptr inbounds i8, ptr {o}, i64 16"
+                    ));
                     let n = self.tmp();
                     self.ins(&format!("{n} = load i64, ptr {lp}"));
                     all.push(format!("i64 {n}"));
@@ -1208,7 +1366,12 @@ impl<'a, 'p> Func<'a, 'p> {
             None
         } else {
             let t = self.tmp();
-            self.ins(&format!("{t} = call {} {}({})", shim.ret.ll(), shim.symbol, all.join(", ")));
+            self.ins(&format!(
+                "{t} = call {} {}({})",
+                shim.ret.ll(),
+                shim.symbol,
+                all.join(", ")
+            ));
             Some(t)
         };
         self.ins("call void @cl_foreign_leave(ptr %ctx)");
@@ -1227,13 +1390,17 @@ impl<'a, 'p> Func<'a, 'p> {
             return None;
         }
         for (i, a) in c.args.iter().enumerate() {
-            let Ty::Class(g, args) = &a.ty.ty else { continue };
+            let Ty::Class(g, args) = &a.ty.ty else {
+                continue;
+            };
             for (j, arg) in args.iter().enumerate() {
                 if matches!(arg, Arg::Ty(at) if at.ty == Ty::Var(*tv)) {
                     let o = self.val(&vals[i].0);
                     let ci = self.e.class_info(*g);
                     let x = self.tmp();
-                    self.ins(&format!("{x} = call ptr @cl_type_arg(ptr {o}, ptr {ci}, i32 {j})"));
+                    self.ins(&format!(
+                        "{x} = call ptr @cl_type_arg(ptr {o}, ptr {ci}, i32 {j})"
+                    ));
                     return Some(x);
                 }
             }
@@ -1256,7 +1423,11 @@ impl<'a, 'p> Func<'a, 'p> {
                         let t = self.tmp();
                         self.ins(&format!("{t} = icmp eq {} {a}, {b}", sr.ll()));
                         t
-                    } else if sty.class_id().map(|id| self.e.p.class(id).is_enum()).unwrap_or(false) {
+                    } else if sty
+                        .class_id()
+                        .map(|id| self.e.p.class(id).is_enum())
+                        .unwrap_or(false)
+                    {
                         let (a, b) = (self.val(&s), self.val(&kv));
                         let t = self.tmp();
                         self.ins(&format!("{t} = icmp eq ptr {a}, {b}"));
@@ -1264,7 +1435,9 @@ impl<'a, 'p> Func<'a, 'p> {
                     } else {
                         let (a, b) = (self.val(&s), self.val(&kv));
                         let t = self.tmp();
-                        self.ins(&format!("{t} = call i8 @cl_Object_equals_Object(ptr %ctx, ptr {a}, ptr {b})"));
+                        self.ins(&format!(
+                            "{t} = call i8 @cl_Object_equals_Object(ptr %ctx, ptr {a}, ptr {b})"
+                        ));
                         self.truth(&t)
                     };
                     let more = self.new_label("arm.more");
@@ -1322,7 +1495,11 @@ impl<'a, 'p> Func<'a, 'p> {
         let saved = Store::Slot(self.new_slot());
         self.write(&saved, &Val::Imm(Repr::Ref, "null".into()));
         let label = self.new_label("finally");
-        self.scopes.push(Scope { label: label.clone(), sel: sel.clone(), targets: Vec::new() });
+        self.scopes.push(Scope {
+            label: label.clone(),
+            sel: sel.clone(),
+            targets: Vec::new(),
+        });
         (sel, saved, label)
     }
 
@@ -1343,7 +1520,11 @@ impl<'a, 'p> Func<'a, 'p> {
         let s = self.tmp();
         self.ins(&format!("{s} = load i32, ptr {}", scope.sel));
         let rethrow = self.new_label("rethrow");
-        let labels: Vec<String> = scope.targets.iter().map(|_| self.new_label("leave")).collect();
+        let labels: Vec<String> = scope
+            .targets
+            .iter()
+            .map(|_| self.new_label("leave"))
+            .collect();
         let mut cases = format!("i32 1, label %{rethrow}");
         for (i, l) in labels.iter().enumerate() {
             cases.push_str(&format!(" i32 {}, label %{l}", i + 2));
@@ -1363,7 +1544,9 @@ impl<'a, 'p> Func<'a, 'p> {
     }
 
     fn suppress(&mut self, on: &str, other: &str) {
-        self.ins(&format!("call void @cleat_suppress(ptr %ctx, ptr {on}, ptr {other})"));
+        self.ins(&format!(
+            "call void @cleat_suppress(ptr %ctx, ptr {on}, ptr {other})"
+        ));
     }
 
     fn stmt(&mut self, s: &TStmt) {
@@ -1389,7 +1572,11 @@ impl<'a, 'p> Func<'a, 'p> {
                 let k = self.expr(c);
                 let k = self.val(&k);
                 let k = self.truth(&k);
-                let (yes, no, done) = (self.new_label("if"), self.new_label("else"), self.new_label("endif"));
+                let (yes, no, done) = (
+                    self.new_label("if"),
+                    self.new_label("else"),
+                    self.new_label("endif"),
+                );
                 self.cond_br(&k, &yes, if b.is_empty() { &done } else { &no });
                 self.label(&yes);
                 self.stmts(a);
@@ -1400,9 +1587,26 @@ impl<'a, 'p> Func<'a, 'p> {
                 }
                 self.label(&done);
             }
-            TStmt::Loop { label, cond, update, body } => {
-                let (head, top, cont, exit) = (self.new_label("loop"), self.new_label("body"), self.new_label("next"), self.new_label("done"));
-                self.jumps.insert(*label, Jump { brk: exit.clone(), cont: Some(cont.clone()), depth: self.scopes.len() });
+            TStmt::Loop {
+                label,
+                cond,
+                update,
+                body,
+            } => {
+                let (head, top, cont, exit) = (
+                    self.new_label("loop"),
+                    self.new_label("body"),
+                    self.new_label("next"),
+                    self.new_label("done"),
+                );
+                self.jumps.insert(
+                    *label,
+                    Jump {
+                        brk: exit.clone(),
+                        cont: Some(cont.clone()),
+                        depth: self.scopes.len(),
+                    },
+                );
                 self.label(&head);
                 self.poll();
                 let mark = self.slots_next;
@@ -1426,13 +1630,32 @@ impl<'a, 'p> Func<'a, 'p> {
             }
             TStmt::Labeled { label, body } => {
                 let end = self.new_label("labeled.end");
-                self.jumps.insert(*label, Jump { brk: end.clone(), cont: None, depth: self.scopes.len() });
+                self.jumps.insert(
+                    *label,
+                    Jump {
+                        brk: end.clone(),
+                        cont: None,
+                        depth: self.scopes.len(),
+                    },
+                );
                 self.stmts(body);
                 self.label(&end);
             }
-            TStmt::Switch { label, selector, temp, arms } => {
+            TStmt::Switch {
+                label,
+                selector,
+                temp,
+                arms,
+            } => {
                 let end = self.new_label("switch.end");
-                self.jumps.insert(*label, Jump { brk: end.clone(), cont: None, depth: self.scopes.len() });
+                self.jumps.insert(
+                    *label,
+                    Jump {
+                        brk: end.clone(),
+                        cont: None,
+                        depth: self.scopes.len(),
+                    },
+                );
                 let sel = self.expr(selector);
                 let st = self.locals[*temp as usize].clone();
                 self.write(&st, &sel);
@@ -1446,7 +1669,11 @@ impl<'a, 'p> Func<'a, 'p> {
                 }
                 self.label(&end);
             }
-            TStmt::Try { body, catches, finally } => {
+            TStmt::Try {
+                body,
+                catches,
+                finally,
+            } => {
                 let after = self.new_label("try.end");
                 let scope = finally.as_ref().map(|_| self.open_scope());
                 let raised = self.new_label("try.raised");
@@ -1458,7 +1685,11 @@ impl<'a, 'p> Func<'a, 'p> {
                     None => f.br(&after),
                 };
                 let catch = self.new_label("catch");
-                self.handlers.push(if catches.is_empty() { raised.clone() } else { catch.clone() });
+                self.handlers.push(if catches.is_empty() {
+                    raised.clone()
+                } else {
+                    catch.clone()
+                });
                 self.stmts(body);
                 self.handlers.pop();
                 done(self);
@@ -1529,7 +1760,12 @@ impl<'a, 'p> Func<'a, 'p> {
                 }
                 self.label(&after);
             }
-            TStmt::Using { local, init, close, body } => {
+            TStmt::Using {
+                local,
+                init,
+                close,
+                body,
+            } => {
                 let v = self.expr(init);
                 let st = self.locals[*local as usize].clone();
                 self.write(&st, &v);
@@ -1629,7 +1865,15 @@ impl<'a, 'p> Func<'a, 'p> {
 
     /// Puts the pieces of a function together. `params` are the parameters after the
     /// context, each with the storage its value goes to.
-    fn assemble(&mut self, linkage: &str, name: &str, ret: Repr, generic: bool, params: &[(Repr, Store)], init: Option<ClassId>) -> String {
+    fn assemble(
+        &mut self,
+        linkage: &str,
+        name: &str,
+        ret: Repr,
+        generic: bool,
+        params: &[(Repr, Store)],
+        init: Option<ClassId>,
+    ) -> String {
         let mut text = String::new();
         let mut plist = vec!["ptr %ctx".to_string()];
         if generic {
@@ -1638,7 +1882,12 @@ impl<'a, 'p> Func<'a, 'p> {
         for (i, (r, _)) in params.iter().enumerate() {
             plist.push(format!("{} %p{i}", r.ll()));
         }
-        let _ = writeln!(text, "define {linkage}{} {name}({}) {{", ret.ll(), plist.join(", "));
+        let _ = writeln!(
+            text,
+            "define {linkage}{} {name}({}) {{",
+            ret.ll(),
+            plist.join(", ")
+        );
         text.push_str("entry:\n");
         text.push_str(&self.allocas);
         let n = self.slots_max;
@@ -1658,7 +1907,11 @@ impl<'a, 'p> Func<'a, 'p> {
         text.push_str("setup:\n");
         text.push_str("  %poll = getelementptr inbounds i8, ptr %ctx, i64 16\n");
         if n > 0 {
-            let _ = writeln!(text, "  call void @llvm.memset.p0.i64(ptr %frame, i8 0, i64 {}, i1 false)", 16 + 8 * n as u64);
+            let _ = writeln!(
+                text,
+                "  call void @llvm.memset.p0.i64(ptr %frame, i8 0, i64 {}, i1 false)",
+                16 + 8 * n as u64
+            );
             text.push_str("  %top = getelementptr inbounds i8, ptr %ctx, i64 8\n");
             text.push_str("  %prev = load ptr, ptr %top\n");
             text.push_str("  store ptr %prev, ptr %frame\n");
@@ -1670,7 +1923,10 @@ impl<'a, 'p> Func<'a, 'p> {
         for (i, (r, s)) in params.iter().enumerate() {
             match s {
                 Store::Slot(k) => {
-                    let _ = writeln!(text, "  %ps{i} = getelementptr inbounds ptr, ptr %slots, i64 {k}");
+                    let _ = writeln!(
+                        text,
+                        "  %ps{i} = getelementptr inbounds ptr, ptr %slots, i64 {k}"
+                    );
                     let _ = writeln!(text, "  store ptr %p{i}, ptr %ps{i}");
                 }
                 Store::Alloca(a, _) => {
@@ -1682,17 +1938,37 @@ impl<'a, 'p> Func<'a, 'p> {
         if self.uses_env {
             match self.env_src {
                 EnvSrc::None => text.push_str("  %env = inttoptr i64 0 to ptr\n"),
-                EnvSrc::Targs => text.push_str("  %env = getelementptr inbounds i8, ptr %targs, i64 0\n"),
+                EnvSrc::Targs => {
+                    text.push_str("  %env = getelementptr inbounds i8, ptr %targs, i64 0\n")
+                }
                 EnvSrc::This(c) => {
-                    let _ = writeln!(text, "  %env = call ptr @cl_env(ptr %p0, ptr {})", self.e.class_info(c));
+                    let _ = writeln!(
+                        text,
+                        "  %env = call ptr @cl_env(ptr %p0, ptr {})",
+                        self.e.class_info(c)
+                    );
                 }
                 EnvSrc::Both(c, nc, nm) => {
-                    let _ = writeln!(text, "  %cenv = call ptr @cl_env(ptr %p0, ptr {})", self.e.class_info(c));
+                    let _ = writeln!(
+                        text,
+                        "  %cenv = call ptr @cl_env(ptr %p0, ptr {})",
+                        self.e.class_info(c)
+                    );
                     for i in 0..nc + nm {
-                        let (src, j) = if i < nc { ("%cenv", i) } else { ("%targs", i - nc) };
-                        let _ = writeln!(text, "  %e.s{i} = getelementptr inbounds ptr, ptr {src}, i64 {j}");
+                        let (src, j) = if i < nc {
+                            ("%cenv", i)
+                        } else {
+                            ("%targs", i - nc)
+                        };
+                        let _ = writeln!(
+                            text,
+                            "  %e.s{i} = getelementptr inbounds ptr, ptr {src}, i64 {j}"
+                        );
                         let _ = writeln!(text, "  %e.v{i} = load ptr, ptr %e.s{i}");
-                        let _ = writeln!(text, "  %e.d{i} = getelementptr inbounds ptr, ptr %env, i64 {i}");
+                        let _ = writeln!(
+                            text,
+                            "  %e.d{i} = getelementptr inbounds ptr, ptr %env, i64 {i}"
+                        );
                         let _ = writeln!(text, "  store ptr %e.v{i}, ptr %e.d{i}");
                     }
                 }
@@ -1718,11 +1994,18 @@ impl<'a, 'p> Func<'a, 'p> {
         }
         text.push_str("body:\n");
         text.push_str(&self.body);
-        let pop = if n > 0 { "  store ptr %prev, ptr %top\n" } else { "" };
+        let pop = if n > 0 {
+            "  store ptr %prev, ptr %top\n"
+        } else {
+            ""
+        };
         text.push_str("ret:\n");
         match &self.ret_store {
             Store::Slot(k) => {
-                let _ = writeln!(text, "  %ret.s = getelementptr inbounds ptr, ptr %slots, i64 {k}");
+                let _ = writeln!(
+                    text,
+                    "  %ret.s = getelementptr inbounds ptr, ptr %slots, i64 {k}"
+                );
                 text.push_str("  %ret.v = load ptr, ptr %ret.s\n");
                 text.push_str(pop);
                 text.push_str("  ret ptr %ret.v\n");
@@ -1764,17 +2047,29 @@ impl<'a, 'p> Func<'a, 'p> {
         let c = self.e.p.class(class);
         if let Some(l) = &c.lambda {
             self.env = l.env.clone();
-            self.env_src = if self.env.is_empty() { EnvSrc::None } else { EnvSrc::This(class) };
+            self.env_src = if self.env.is_empty() {
+                EnvSrc::None
+            } else {
+                EnvSrc::This(class)
+            };
             return;
         }
         let nc = if is_static { 0 } else { c.tparams.len() };
-        let nm = method.map(|m| self.e.p.method(m).tparams.len()).unwrap_or(0);
+        let nm = method
+            .map(|m| self.e.p.method(m).tparams.len())
+            .unwrap_or(0);
         for i in 0..nc {
-            self.env.push(Tv { owner: TvOwner::Class(class), index: i as u32 });
+            self.env.push(Tv {
+                owner: TvOwner::Class(class),
+                index: i as u32,
+            });
         }
         if let Some(m) = method {
             for i in 0..nm {
-                self.env.push(Tv { owner: TvOwner::Method(m), index: i as u32 });
+                self.env.push(Tv {
+                    owner: TvOwner::Method(m),
+                    index: i as u32,
+                });
             }
         }
         self.env_src = match (nc, nm) {
@@ -1791,7 +2086,10 @@ impl<'a, 'p> Func<'a, 'p> {
         let c = p.class(id);
         for (i, m) in c.methods.iter().enumerate() {
             let Some(body) = &m.checked else { continue };
-            let mref = MethodRef { class: id, index: i as u32 };
+            let mref = MethodRef {
+                class: id,
+                index: i as u32,
+            };
             let sig = e.sig(mref);
             let name = e.fn_symbol(mref);
             let mut f = Func::bare(e);
@@ -1831,7 +2129,11 @@ impl<'a, 'p> Func<'a, 'p> {
             e.add_function(&text);
         }
         if !e.is_trivial(id) {
-            let body = c.static_init_checked.clone().unwrap_or(Body { locals: Vec::new(), params: Vec::new(), stmts: Vec::new() });
+            let body = c.static_init_checked.clone().unwrap_or(Body {
+                locals: Vec::new(),
+                params: Vec::new(),
+                stmts: Vec::new(),
+            });
             let name = format!("@\"{}.clinit\"", sym(&c.qname));
             let mut f = Func::bare(e);
             f.allot(&body);
@@ -1876,7 +2178,10 @@ impl<'a, 'p> Func<'a, 'p> {
                 let er = self.repr(&elem);
                 let td = self.type_desc(&ty.bare());
                 let a = self.tmp();
-                self.ins(&format!("{a} = call ptr @cl_array_new(ptr %ctx, ptr {td}, i64 {})", items.len()));
+                self.ins(&format!(
+                    "{a} = call ptr @cl_array_new(ptr %ctx, ptr {td}, i64 {})",
+                    items.len()
+                ));
                 self.check();
                 let arr = self.root(&a);
                 for (i, it) in items.iter().enumerate() {
@@ -1902,9 +2207,17 @@ impl<'a, 'p> Func<'a, 'p> {
             let fr = self.repr(&el.ty);
             let x = self.konst(v, &el.ty);
             let (o, x) = (self.val(&obj), self.val(&x));
-            let (lty, index, _) = self.e.field_place(a.class, FieldRef { class: a.class, index: i as u32 });
+            let (lty, index, _) = self.e.field_place(
+                a.class,
+                FieldRef {
+                    class: a.class,
+                    index: i as u32,
+                },
+            );
             let p = self.tmp();
-            self.ins(&format!("{p} = getelementptr inbounds {lty}, ptr {o}, i32 0, i32 {index}"));
+            self.ins(&format!(
+                "{p} = getelementptr inbounds {lty}, ptr {o}, i32 0, i32 {index}"
+            ));
             self.ins(&format!("store {} {x}, ptr {p}", fr.ll()));
         }
         obj
@@ -1926,7 +2239,9 @@ impl<'a, 'p> Func<'a, 'p> {
 
     fn refuse(&mut self, kind: u32, message: &str) {
         let (bytes, len) = self.e.byte_string(message);
-        self.ins(&format!("call void @cl_mirror_fail(ptr %ctx, i32 {kind}, ptr {bytes}, i64 {len})"));
+        self.ins(&format!(
+            "call void @cl_mirror_fail(ptr %ctx, i32 {kind}, ptr {bytes}, i64 {len})"
+        ));
         self.br("unwind");
     }
 
@@ -1961,7 +2276,10 @@ impl<'a, 'p> Func<'a, 'p> {
                     let t = f.read(&target);
                     let t = f.val(&t);
                     let x = f.tmp();
-                    f.ins(&format!("{x} = call ptr @cl_cast_class(ptr %ctx, ptr {t}, ptr {})", f.e.class_info(fref.class)));
+                    f.ins(&format!(
+                        "{x} = call ptr @cl_cast_class(ptr %ctx, ptr {t}, ptr {})",
+                        f.e.class_info(fref.class)
+                    ));
                     f.check();
                 }
                 let place = |f: &mut Func| -> String {
@@ -1972,7 +2290,9 @@ impl<'a, 'p> Func<'a, 'p> {
                         let t = f.val(&t);
                         let (lty, index, _) = f.e.field_place(fref.class, fref);
                         let ptr = f.tmp();
-                        f.ins(&format!("{ptr} = getelementptr inbounds {lty}, ptr {t}, i32 0, i32 {index}"));
+                        f.ins(&format!(
+                            "{ptr} = getelementptr inbounds {lty}, ptr {t}, i32 0, i32 {index}"
+                        ));
                         ptr
                     }
                 };
@@ -1981,7 +2301,9 @@ impl<'a, 'p> Func<'a, 'p> {
                     let v = f.read(&value);
                     let vv = f.val(&v);
                     let x = f.tmp();
-                    f.ins(&format!("{x} = call ptr @cl_cast(ptr %ctx, ptr {vv}, ptr {td})"));
+                    f.ins(&format!(
+                        "{x} = call ptr @cl_cast(ptr %ctx, ptr {vv}, ptr {td})"
+                    ));
                     f.check();
                     let v = f.convert(v, Repr::Ref, decl);
                     if decl != Repr::Unit {
@@ -1997,7 +2319,11 @@ impl<'a, 'p> Func<'a, 'p> {
                         let ptr = place(&mut f);
                         let t = f.tmp();
                         f.ins(&format!("{t} = load {}, ptr {ptr}", decl.ll()));
-                        if decl == Repr::Ref { f.root(&t) } else { Val::Imm(decl, t) }
+                        if decl == Repr::Ref {
+                            f.root(&t)
+                        } else {
+                            Val::Imm(decl, t)
+                        }
                     };
                     let v = f.convert(v, decl, Repr::Ref);
                     let st = f.ret_store.clone();
@@ -2005,9 +2331,20 @@ impl<'a, 'p> Func<'a, 'p> {
                     f.br("ret");
                 }
             }
-            let params: Vec<(Repr, Store)> = if is_set { vec![(Repr::Ref, target), (Repr::Ref, value)] } else { vec![(Repr::Ref, target)] };
+            let params: Vec<(Repr, Store)> = if is_set {
+                vec![(Repr::Ref, target), (Repr::Ref, value)]
+            } else {
+                vec![(Repr::Ref, target)]
+            };
             let ret = if is_set { Repr::Unit } else { Repr::Ref };
-            let text = f.assemble("internal ", if is_set { &set } else { &get }, ret, false, &params, None);
+            let text = f.assemble(
+                "internal ",
+                if is_set { &set } else { &get },
+                ret,
+                false,
+                &params,
+                None,
+            );
             e.add_function(&text);
         }
         (get, set)
@@ -2030,7 +2367,12 @@ impl<'a, 'p> Func<'a, 'p> {
         if md.aud != Aud::Public {
             f.refuse(5, &format!("the method {what} is not public"));
         } else if !md.tparams.is_empty() {
-            f.refuse(3, &format!("the method {what} is generic, and a mirror does not call a generic method"));
+            f.refuse(
+                3,
+                &format!(
+                    "the method {what} is generic, and a mirror does not call a generic method"
+                ),
+            );
         } else if md.is_abstract && c.is_interface() && false {
             f.refuse(3, "");
         } else {
@@ -2038,7 +2380,9 @@ impl<'a, 'p> Func<'a, 'p> {
             let a = f.read(&args);
             let a = f.val(&a);
             let lp = f.tmp();
-            f.ins(&format!("{lp} = getelementptr inbounds i8, ptr {a}, i64 16"));
+            f.ins(&format!(
+                "{lp} = getelementptr inbounds i8, ptr {a}, i64 16"
+            ));
             let n = f.tmp();
             f.ins(&format!("{n} = load i64, ptr {lp}"));
             let ok = f.tmp();
@@ -2052,7 +2396,10 @@ impl<'a, 'p> Func<'a, 'p> {
                 let t = f.read(&target);
                 let t = f.val(&t);
                 let x = f.tmp();
-                f.ins(&format!("{x} = call ptr @cl_cast_class(ptr %ctx, ptr {t}, ptr {})", f.e.class_info(mref.class)));
+                f.ins(&format!(
+                    "{x} = call ptr @cl_cast_class(ptr %ctx, ptr {t}, ptr {})",
+                    f.e.class_info(mref.class)
+                ));
                 f.check();
             }
             // Each argument is tested as a cast would test it, and then held as the
@@ -2068,16 +2415,31 @@ impl<'a, 'p> Func<'a, 'p> {
                 let td = f.type_desc(&prm.ty);
                 let hv = f.val(&held);
                 let x = f.tmp();
-                f.ins(&format!("{x} = call ptr @cl_cast(ptr %ctx, ptr {hv}, ptr {td})"));
+                f.ins(&format!(
+                    "{x} = call ptr @cl_cast(ptr %ctx, ptr {hv}, ptr {td})"
+                ));
                 f.check();
                 let pr = f.repr(&prm.ty);
                 let v = f.convert(held, Repr::Ref, pr);
                 let st = f.new_store(pr);
                 f.write(&st, &v);
                 f.locals.push(st);
-                locals.push(TExpr { kind: TKind::Local(f.locals.len() as u32 - 1), ty: prm.ty.clone() });
+                locals.push(TExpr {
+                    kind: TKind::Local(f.locals.len() as u32 - 1),
+                    ty: prm.ty.clone(),
+                });
             }
-            let mut self_ty = Type::class(mref.class, (0..c.tparams.len()).map(|i| Arg::Ty(Type::var(Tv { owner: TvOwner::Class(mref.class), index: i as u32 }))).collect());
+            let mut self_ty = Type::class(
+                mref.class,
+                (0..c.tparams.len())
+                    .map(|i| {
+                        Arg::Ty(Type::var(Tv {
+                            owner: TvOwner::Class(mref.class),
+                            index: i as u32,
+                        }))
+                    })
+                    .collect(),
+            );
             self_ty.nullable = md.recv_nullable;
             let is_virtual = md.is_virtual(c.is_interface());
             let call = Call {
@@ -2085,14 +2447,24 @@ impl<'a, 'p> Func<'a, 'p> {
                 recv: if md.is_static {
                     None
                 } else {
-                    let object = TExpr { kind: TKind::This, ty: Type::simple(p.wk.object).nullable() };
-                    Some(TExpr { kind: TKind::Coerce(Box::new(object)), ty: self_ty })
+                    let object = TExpr {
+                        kind: TKind::This,
+                        ty: Type::simple(p.wk.object).nullable(),
+                    };
+                    Some(TExpr {
+                        kind: TKind::Coerce(Box::new(object)),
+                        ty: self_ty,
+                    })
                 },
                 method: mref,
                 class_args: Vec::new(),
                 targs: Vec::new(),
                 args: locals,
-                dispatch: if is_virtual { Dispatch::Virtual } else { Dispatch::Direct },
+                dispatch: if is_virtual {
+                    Dispatch::Virtual
+                } else {
+                    Dispatch::Direct
+                },
             };
             let v = f.call(&call, &md.ret);
             let v = f.convert(v, f.repr(&md.ret), Repr::Ref);
@@ -2100,7 +2472,14 @@ impl<'a, 'p> Func<'a, 'p> {
             f.write(&st, &v);
             f.br("ret");
         }
-        let text = f.assemble("internal ", &name, Repr::Ref, false, &[(Repr::Ref, target), (Repr::Ref, args)], None);
+        let text = f.assemble(
+            "internal ",
+            &name,
+            Repr::Ref,
+            false,
+            &[(Repr::Ref, target), (Repr::Ref, args)],
+            None,
+        );
         e.add_function(&text);
         name
     }
@@ -2109,7 +2488,11 @@ impl<'a, 'p> Func<'a, 'p> {
 
     pub fn program_functions(e: &mut Emitter, entry: ClassId) {
         let p = e.p;
-        let find = |name: &str| -> Option<ClassId> { p.by_name.get(&("cleat".to_string(), name.to_string())).and_then(|v| v.first().copied()) };
+        let find = |name: &str| -> Option<ClassId> {
+            p.by_name
+                .get(&("cleat".to_string(), name.to_string()))
+                .and_then(|v| v.first().copied())
+        };
         let string = Type::simple(p.wk.string);
 
         // An exception the runtime raises, by its number in `rt/src/abi.rs`.
@@ -2134,20 +2517,37 @@ impl<'a, 'p> Func<'a, 'p> {
         let k = f.read(&kind);
         let k = f.val(&k);
         let labels: Vec<String> = kinds.iter().map(|_| f.new_label("kind")).collect();
-        let cases: Vec<String> = labels.iter().enumerate().map(|(i, l)| format!("i32 {i}, label %{l}")).collect();
-        f.ins(&format!("switch i32 {k}, label %{} [ {} ]", labels[4], cases.join(" ")));
+        let cases: Vec<String> = labels
+            .iter()
+            .enumerate()
+            .map(|(i, l)| format!("i32 {i}, label %{l}"))
+            .collect();
+        f.ins(&format!(
+            "switch i32 {k}, label %{} [ {} ]",
+            labels[4],
+            cases.join(" ")
+        ));
         f.open = false;
         for (name, l) in kinds.iter().zip(labels.iter()) {
             f.label(l);
             let Some(cid) = find(name) else {
-                f.e.errors.push(format!("the prelude does not declare `cleat.{name}`"));
+                f.e.errors
+                    .push(format!("the prelude does not declare `cleat.{name}`"));
                 continue;
             };
             let c = p.class(cid);
-            let one = c.ctors.iter().position(|k| k.params.len() == 1 && k.params[0].ty == string);
-            let two = c.ctors.iter().position(|k| k.params.len() == 2 && k.params[0].ty == string);
+            let one = c
+                .ctors
+                .iter()
+                .position(|k| k.params.len() == 1 && k.params[0].ty == string);
+            let two = c
+                .ctors
+                .iter()
+                .position(|k| k.params.len() == 2 && k.params[0].ty == string);
             let (Some(one), Some(two)) = (one, two) else {
-                f.e.errors.push(format!("`cleat.{name}` needs the constructors (String) and (String, Throwable)"));
+                f.e.errors.push(format!(
+                    "`cleat.{name}` needs the constructors (String) and (String, Throwable)"
+                ));
                 continue;
             };
             let td = f.type_desc(&Type::simple(cid));
@@ -2173,18 +2573,31 @@ impl<'a, 'p> Func<'a, 'p> {
                     let cv = f.val(&cv);
                     args.push_str(&format!(", ptr {cv}"));
                 }
-                f.ins(&format!("call void {}({args})", f.e.ctor_symbol(cid, index as u32)));
+                f.ins(&format!(
+                    "call void {}({args})",
+                    f.e.ctor_symbol(cid, index as u32)
+                ));
                 f.br("ret");
             }
         }
-        let text = f.assemble("", "@cleat_make_exception", Repr::Ref, false, &[(Repr::I32, kind), (Repr::Ref, msg), (Repr::Ref, cause)], None);
+        let text = f.assemble(
+            "",
+            "@cleat_make_exception",
+            Repr::Ref,
+            false,
+            &[(Repr::I32, kind), (Repr::Ref, msg), (Repr::Ref, cause)],
+            None,
+        );
         e.add_function(&text);
 
         // The body of a started thread, and the recording of a suppressed exception.
         let method = |e: &mut Emitter, class: Option<ClassId>, name: &str| -> Option<String> {
             let cid = class?;
             let i = p.class(cid).methods.iter().position(|m| m.name == name)?;
-            Some(e.fn_symbol(MethodRef { class: cid, index: i as u32 }))
+            Some(e.fn_symbol(MethodRef {
+                class: cid,
+                index: i as u32,
+            }))
         };
         match method(e, find("Thread"), "run") {
             Some(run) => e.add_function(&format!("define void @cleat_thread_run(ptr %ctx, ptr %t) {{\n  call void {run}(ptr %ctx, ptr %t)\n  ret void\n}}\n")),
@@ -2206,11 +2619,21 @@ impl<'a, 'p> Func<'a, 'p> {
         // `main`.
         let c = p.class(entry);
         let args_ty = p.array_of(string);
-        let mains: Vec<(usize, &Method)> = c.methods.iter().enumerate().filter(|(_, m)| m.name == "main" && m.is_static).collect();
+        let mains: Vec<(usize, &Method)> = c
+            .methods
+            .iter()
+            .enumerate()
+            .filter(|(_, m)| m.name == "main" && m.is_static)
+            .collect();
         let unit = Type::simple(p.wk.unit);
         let ok: Vec<&(usize, &Method)> = mains
             .iter()
-            .filter(|(_, m)| m.aud == Aud::Public && m.ret == unit && m.tparams.is_empty() && (m.params.is_empty() || (m.params.len() == 1 && m.params[0].ty == args_ty)))
+            .filter(|(_, m)| {
+                m.aud == Aud::Public
+                    && m.ret == unit
+                    && m.tparams.is_empty()
+                    && (m.params.is_empty() || (m.params.len() == 1 && m.params[0].ty == args_ty))
+            })
             .collect();
         if ok.len() != 1 {
             e.errors.push(format!(
@@ -2220,7 +2643,10 @@ impl<'a, 'p> Func<'a, 'p> {
             return;
         }
         let (index, m) = ok[0];
-        let f = e.fn_symbol(MethodRef { class: entry, index: *index as u32 });
+        let f = e.fn_symbol(MethodRef {
+            class: entry,
+            index: *index as u32,
+        });
         let call = if m.params.is_empty() {
             format!("  call void {f}(ptr %ctx)\n")
         } else {

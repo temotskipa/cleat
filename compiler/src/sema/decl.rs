@@ -23,19 +23,63 @@ impl TypeCx {
         let mut tvars = Vec::new();
         if with_tparams {
             for (i, tp) in c.tparams.iter().enumerate() {
-                tvars.push((tp.name.clone(), Tv { owner: TvOwner::Class(id), index: i as u32 }));
+                tvars.push((
+                    tp.name.clone(),
+                    Tv {
+                        owner: TvOwner::Class(id),
+                        index: i as u32,
+                    },
+                ));
             }
         }
-        TypeCx { unit: c.unit, class: Some(id), tvars }
+        TypeCx {
+            unit: c.unit,
+            class: Some(id),
+            tvars,
+        }
     }
 }
 
 const WELL_KNOWN: &[&str] = &[
-    "Object", "Null", "Unit", "Boolean", "Char", "String", "Int8", "Int16", "Int32", "Int",
-    "UInt8", "UInt16", "UInt32", "UInt64", "Float32", "Float64", "Rational", "Array", "Iterable",
-    "Iterator", "Throwable", "Enum", "Class", "Annotation", "Site", "Nullable", "Refines",
-    "Widens", "Target", "Inherited", "Narrows", "Override", "Discardable", "Implicit",
-    "Deprecated", "Intrinsic", "Symbol", "Pointer", "AssertionException",
+    "Object",
+    "Null",
+    "Unit",
+    "Boolean",
+    "Char",
+    "String",
+    "Int8",
+    "Int16",
+    "Int32",
+    "Int",
+    "UInt8",
+    "UInt16",
+    "UInt32",
+    "UInt64",
+    "Float32",
+    "Float64",
+    "Rational",
+    "Array",
+    "Iterable",
+    "Iterator",
+    "Throwable",
+    "Enum",
+    "Class",
+    "Annotation",
+    "Site",
+    "Nullable",
+    "Refines",
+    "Widens",
+    "Target",
+    "Inherited",
+    "Narrows",
+    "Override",
+    "Discardable",
+    "Implicit",
+    "Deprecated",
+    "Intrinsic",
+    "Symbol",
+    "Pointer",
+    "AssertionException",
     "IllegalArgumentException",
 ];
 
@@ -126,7 +170,11 @@ fn collect(p: &mut Program) {
                 Some(Audience::Package) => Aud::Package,
                 Some(Audience::Public) => Aud::Public,
                 Some(_) => {
-                    p.error(ui, d.pos, "a type is `public`, `package`, or visible to its file only");
+                    p.error(
+                        ui,
+                        d.pos,
+                        "a type is `public`, `package`, or visible to its file only",
+                    );
                     Aud::File
                 }
             };
@@ -142,17 +190,30 @@ fn collect(p: &mut Program) {
                     p.error(
                         ui,
                         d.pos,
-                        format!("the public type `{}` must be in a file named `{}.cleat`", d.name, d.name),
+                        format!(
+                            "the public type `{}` must be in a file named `{}.cleat`",
+                            d.name, d.name
+                        ),
                     );
                 }
             }
             let id = p.classes.len() as ClassId;
-            let qname = if package.is_empty() { d.name.clone() } else { format!("{package}.{}", d.name) };
+            let qname = if package.is_empty() {
+                d.name.clone()
+            } else {
+                format!("{package}.{}", d.name)
+            };
             let key = (package.clone(), d.name.clone());
-            let clash = p.by_name.get(&key).cloned().unwrap_or_default().into_iter().any(|other| {
-                let o = p.class(other);
-                o.unit == ui || (o.aud != Aud::File && aud != Aud::File)
-            });
+            let clash = p
+                .by_name
+                .get(&key)
+                .cloned()
+                .unwrap_or_default()
+                .into_iter()
+                .any(|other| {
+                    let o = p.class(other);
+                    o.unit == ui || (o.aud != Aud::File && aud != Aud::File)
+                });
             if clash {
                 p.error(ui, d.pos, format!("the type `{}` is declared twice", qname));
             }
@@ -166,7 +227,11 @@ fn collect(p: &mut Program) {
             }
             let is_class = d.kind == TypeKind::Class;
             if (m.is_open || m.is_sealed || m.is_abstract) && d.kind == TypeKind::ValueClass {
-                p.error(ui, d.pos, "a value class is final: `open`, `sealed` and `abstract` are rejected on it");
+                p.error(
+                    ui,
+                    d.pos,
+                    "a value class is final: `open`, `sealed` and `abstract` are rejected on it",
+                );
             }
             if m.is_abstract && !is_class {
                 if d.kind != TypeKind::ValueClass {
@@ -182,7 +247,8 @@ fn collect(p: &mut Program) {
             if m.is_sealed && m.is_open {
                 p.error(ui, d.pos, "`sealed open` is rejected");
             }
-            if (m.is_open || m.is_sealed) && matches!(d.kind, TypeKind::Enum | TypeKind::Annotation) {
+            if (m.is_open || m.is_sealed) && matches!(d.kind, TypeKind::Enum | TypeKind::Annotation)
+            {
                 p.error(ui, d.pos, "an enum and an annotation are final");
             }
             if m.is_sealed && d.permits.as_ref().map(|l| l.is_empty()).unwrap_or(true) {
@@ -311,7 +377,11 @@ fn find_in_package(p: &Program, package: &str, name: &str, unit: usize) -> Optio
     list.iter()
         .copied()
         .find(|id| p.class(*id).unit == unit && p.class(*id).aud == Aud::File)
-        .or_else(|| list.iter().copied().find(|id| p.class(*id).aud != Aud::File))
+        .or_else(|| {
+            list.iter()
+                .copied()
+                .find(|id| p.class(*id).aud != Aud::File)
+        })
 }
 
 /// Section 1.6: an import names a type the file may name, and no two imports by name
@@ -324,12 +394,18 @@ fn imports(p: &mut Program) {
             let path = imp.path.join(".");
             if imp.star {
                 let prefix = format!("{path}.");
-                if !p.packages.iter().any(|k| *k == path || k.starts_with(&prefix)) {
+                if !p
+                    .packages
+                    .iter()
+                    .any(|k| *k == path || k.starts_with(&prefix))
+                {
                     p.error(unit, imp.pos, format!("there is no package named `{path}`"));
                 }
                 continue;
             }
-            let Some(simple) = imp.path.last().cloned() else { continue };
+            let Some(simple) = imp.path.last().cloned() else {
+                continue;
+            };
             let pkg = imp.path[..imp.path.len() - 1].join(".");
             if pkg.is_empty() && !p.units[unit].package.is_empty() {
                 p.error(unit, imp.pos, format!("`{path}` would be a type of the unnamed package, whose types cannot be named from another package"));
@@ -338,15 +414,30 @@ fn imports(p: &mut Program) {
             match find_in_package(p, &pkg, &simple, unit) {
                 None => {
                     // The name is taken, then, by a type that only its own file may name.
-                    let hidden = p.by_name.get(&(pkg.clone(), simple.clone())).is_some_and(|list| !list.is_empty());
-                    let message = if hidden { format!("`{path}` is visible to its file only, so it is not imported") } else { format!("there is no type named `{path}`") };
+                    let hidden = p
+                        .by_name
+                        .get(&(pkg.clone(), simple.clone()))
+                        .is_some_and(|list| !list.is_empty());
+                    let message = if hidden {
+                        format!("`{path}` is visible to its file only, so it is not imported")
+                    } else {
+                        format!("there is no type named `{path}`")
+                    };
                     p.error(unit, imp.pos, message);
                 }
-                Some(id) if !type_visible(p, id, unit) => p.error(unit, imp.pos, format!("`{path}` is outside its audience here, so it is not imported")),
+                Some(id) if !type_visible(p, id, unit) => p.error(
+                    unit,
+                    imp.pos,
+                    format!("`{path}` is outside its audience here, so it is not imported"),
+                ),
                 Some(_) => {}
             }
             if named.contains(&simple) {
-                p.error(unit, imp.pos, format!("two imports give the name `{simple}`"));
+                p.error(
+                    unit,
+                    imp.pos,
+                    format!("two imports give the name `{simple}`"),
+                );
             }
             named.push(simple);
         }
@@ -356,7 +447,17 @@ fn imports(p: &mut Program) {
 /// The type of a class over its own type parameters.
 pub fn self_type_of(p: &Program, id: ClassId) -> Type {
     let n = p.class(id).tparams.len();
-    Type::class(id, (0..n).map(|i| Arg::Ty(Type::var(Tv { owner: TvOwner::Class(id), index: i as u32 }))).collect())
+    Type::class(
+        id,
+        (0..n)
+            .map(|i| {
+                Arg::Ty(Type::var(Tv {
+                    owner: TvOwner::Class(id),
+                    index: i as u32,
+                }))
+            })
+            .collect(),
+    )
 }
 
 /// A type with every qualifier removed, at every depth: what distinguishes overloads.
@@ -367,13 +468,20 @@ fn without_qualifiers(t: &Type) -> Type {
             args.iter()
                 .map(|a| match a {
                     Arg::Ty(x) => Arg::Ty(without_qualifiers(x)),
-                    Arg::Wild(e, s) => Arg::Wild(e.as_ref().map(|x| Box::new(without_qualifiers(x))), s.as_ref().map(|x| Box::new(without_qualifiers(x)))),
+                    Arg::Wild(e, s) => Arg::Wild(
+                        e.as_ref().map(|x| Box::new(without_qualifiers(x))),
+                        s.as_ref().map(|x| Box::new(without_qualifiers(x))),
+                    ),
                 })
                 .collect(),
         ),
         other => other.clone(),
     };
-    Type { ty, nullable: false, quals: Vec::new() }
+    Type {
+        ty,
+        nullable: false,
+        quals: Vec::new(),
+    }
 }
 
 /// How far a type can be named: its file, its package, or everywhere.
@@ -426,14 +534,25 @@ fn signatures_are_nameable(p: &mut Program, id: ClassId) {
     }
     let own = type_reach(c.aud);
     let mut bad: Vec<(Pos, String)> = Vec::new();
-    let check = |p: &Program, what: String, reach: u32, types: Vec<&Type>, pos: Pos, bad: &mut Vec<(Pos, String)>| {
+    let check = |p: &Program,
+                 what: String,
+                 reach: u32,
+                 types: Vec<&Type>,
+                 pos: Pos,
+                 bad: &mut Vec<(Pos, String)>| {
         let mut least = None;
         for t in types {
             least_reach(p, t, &mut least);
         }
         if let Some((r, hidden)) = least {
             if r < reach.min(own) {
-                bad.push((pos, format!("{what} can be seen where `{}` cannot be named, and its signature names it", p.class(hidden).name)));
+                bad.push((
+                    pos,
+                    format!(
+                        "{what} can be seen where `{}` cannot be named, and its signature names it",
+                        p.class(hidden).name
+                    ),
+                ));
             }
         }
     };
@@ -443,16 +562,37 @@ fn signatures_are_nameable(p: &mut Program, id: ClassId) {
     }
     check(p, format!("`{}`", c.name), 3, supers, c.pos, &mut bad);
     for f in &c.fields {
-        check(p, format!("the field `{}`", f.name), member_reach(f.aud), vec![&f.ty], f.pos, &mut bad);
+        check(
+            p,
+            format!("the field `{}`", f.name),
+            member_reach(f.aud),
+            vec![&f.ty],
+            f.pos,
+            &mut bad,
+        );
     }
     for m in &c.methods {
         let mut types: Vec<&Type> = m.params.iter().map(|x| &x.ty).collect();
         types.push(&m.ret);
-        check(p, format!("the method `{}`", m.name), member_reach(m.aud), types, m.pos, &mut bad);
+        check(
+            p,
+            format!("the method `{}`", m.name),
+            member_reach(m.aud),
+            types,
+            m.pos,
+            &mut bad,
+        );
     }
     for k in &c.ctors {
         let types: Vec<&Type> = k.params.iter().map(|x| &x.ty).collect();
-        check(p, "this constructor".to_string(), member_reach(k.aud), types, k.pos, &mut bad);
+        check(
+            p,
+            "this constructor".to_string(),
+            member_reach(k.aud),
+            types,
+            k.pos,
+            &mut bad,
+        );
     }
     for (pos, message) in bad {
         p.error(c.unit, pos, message);
@@ -464,28 +604,62 @@ fn overloads_differ(p: &mut Program, id: ClassId) {
     let c = p.class(id).clone();
     for (i, a) in c.methods.iter().enumerate() {
         for (j, b) in c.methods.iter().enumerate().skip(i + 1) {
-            if a.name != b.name || a.params.len() != b.params.len() || a.tparams.len() != b.tparams.len() {
+            if a.name != b.name
+                || a.params.len() != b.params.len()
+                || a.tparams.len() != b.tparams.len()
+            {
                 continue;
             }
             // Read the second method's own type parameters as the first's.
             let mut s = Subst::new();
             for k in 0..b.tparams.len() as u32 {
                 s.bind(
-                    Tv { owner: TvOwner::Method(MethodRef { class: id, index: j as u32 }), index: k },
-                    Type::var(Tv { owner: TvOwner::Method(MethodRef { class: id, index: i as u32 }), index: k }),
+                    Tv {
+                        owner: TvOwner::Method(MethodRef {
+                            class: id,
+                            index: j as u32,
+                        }),
+                        index: k,
+                    },
+                    Type::var(Tv {
+                        owner: TvOwner::Method(MethodRef {
+                            class: id,
+                            index: i as u32,
+                        }),
+                        index: k,
+                    }),
                 );
             }
-            let same = a.params.iter().zip(b.params.iter()).all(|(x, y)| without_qualifiers(&x.ty) == without_qualifiers(&s.apply(&y.ty)));
+            let same = a
+                .params
+                .iter()
+                .zip(b.params.iter())
+                .all(|(x, y)| without_qualifiers(&x.ty) == without_qualifiers(&s.apply(&y.ty)));
             if same && !a.ret.is_error() {
-                p.error(c.unit, b.pos, format!("the method `{}` is declared twice with the same parameter types", b.name));
+                p.error(
+                    c.unit,
+                    b.pos,
+                    format!(
+                        "the method `{}` is declared twice with the same parameter types",
+                        b.name
+                    ),
+                );
             }
         }
     }
     for (i, a) in c.ctors.iter().enumerate() {
         for b in c.ctors.iter().skip(i + 1) {
-            let same = a.params.len() == b.params.len() && a.params.iter().zip(b.params.iter()).all(|(x, y)| without_qualifiers(&x.ty) == without_qualifiers(&y.ty));
+            let same = a.params.len() == b.params.len()
+                && a.params
+                    .iter()
+                    .zip(b.params.iter())
+                    .all(|(x, y)| without_qualifiers(&x.ty) == without_qualifiers(&y.ty));
             if same {
-                p.error(c.unit, b.pos, "a constructor is declared twice with the same parameter types");
+                p.error(
+                    c.unit,
+                    b.pos,
+                    "a constructor is declared twice with the same parameter types",
+                );
             }
         }
     }
@@ -508,7 +682,13 @@ fn class_method_like(p: &mut Program, class: ClassId, root: MethodRef) -> Option
             let ms = Subst::for_class(cid, mine.args());
             for i in 0..p.class(cid).methods.len() {
                 let m = p.class(cid).methods[i].clone();
-                if m.name != r.name || m.is_static || m.is_abstract || m.aud != Aud::Public || m.params.len() != r.params.len() || !m.tparams.is_empty() {
+                if m.name != r.name
+                    || m.is_static
+                    || m.is_abstract
+                    || m.aud != Aud::Public
+                    || m.params.len() != r.params.len()
+                    || !m.tparams.is_empty()
+                {
                     continue;
                 }
                 let mut same = true;
@@ -520,7 +700,10 @@ fn class_method_like(p: &mut Program, class: ClassId, root: MethodRef) -> Option
                     }
                 }
                 if same {
-                    return Some(MethodRef { class: cid, index: i as u32 });
+                    return Some(MethodRef {
+                        class: cid,
+                        index: i as u32,
+                    });
                 }
             }
         }
@@ -538,13 +721,21 @@ fn interface_bodies_agree(p: &mut Program, id: ClassId) {
     }
     let mut bodies: Vec<(MethodRef, Subst)> = Vec::new();
     for sup in all_supertypes(p, id) {
-        let Ty::Class(sid, sargs) = &sup.ty else { continue };
+        let Ty::Class(sid, sargs) = &sup.ty else {
+            continue;
+        };
         if !p.class(*sid).is_interface() {
             continue;
         }
         for (i, m) in p.class(*sid).methods.iter().enumerate() {
             if !m.is_static && !m.is_abstract {
-                bodies.push((MethodRef { class: *sid, index: i as u32 }, Subst::for_class(*sid, sargs)));
+                bodies.push((
+                    MethodRef {
+                        class: *sid,
+                        index: i as u32,
+                    },
+                    Subst::for_class(*sid, sargs),
+                ));
             }
         }
     }
@@ -552,7 +743,11 @@ fn interface_bodies_agree(p: &mut Program, id: ClassId) {
         for j in i + 1..bodies.len() {
             let (a, b) = (bodies[i].0, bodies[j].0);
             let (ma, mb) = (p.method(a).clone(), p.method(b).clone());
-            if ma.name != mb.name || ma.params.len() != mb.params.len() || ma.overrides.contains(&b) || mb.overrides.contains(&a) {
+            if ma.name != mb.name
+                || ma.params.len() != mb.params.len()
+                || ma.overrides.contains(&b)
+                || mb.overrides.contains(&a)
+            {
                 continue;
             }
             let mut same = true;
@@ -564,16 +759,30 @@ fn interface_bodies_agree(p: &mut Program, id: ClassId) {
                 }
             }
             // A method of the class, or of a superclass, settles it.
-            let settled = matches!(impl_of(p, id, a), ImplOf::Found(f) if !p.class(f.class).is_interface());
+            let settled =
+                matches!(impl_of(p, id, a), ImplOf::Found(f) if !p.class(f.class).is_interface());
             if same && !settled {
-                p.error(c.unit, c.pos, format!("two interfaces provide a body for `{}`; the class must override it", ma.name));
+                p.error(
+                    c.unit,
+                    c.pos,
+                    format!(
+                        "two interfaces provide a body for `{}`; the class must override it",
+                        ma.name
+                    ),
+                );
             }
         }
     }
 }
 
 /// Looks up a simple type name in the order of section 1.6, without type parameters.
-pub fn lookup_simple(p: &mut Program, unit: usize, name: &str, pos: Pos, report: bool) -> Option<ClassId> {
+pub fn lookup_simple(
+    p: &mut Program,
+    unit: usize,
+    name: &str,
+    pos: Pos,
+    report: bool,
+) -> Option<ClassId> {
     let package = p.units[unit].package.join(".");
     // The same file.
     if let Some(list) = p.by_name.get(&(package.clone(), name.to_string())) {
@@ -589,7 +798,11 @@ pub fn lookup_simple(p: &mut Program, unit: usize, name: &str, pos: Pos, report:
             if let Some(id) = find_in_package(p, &pkg, name, unit) {
                 if !type_visible(p, id, unit) {
                     if report {
-                        p.error(unit, imp.pos, format!("`{}` is not visible here", imp.path.join(".")));
+                        p.error(
+                            unit,
+                            imp.pos,
+                            format!("`{}` is not visible here", imp.path.join(".")),
+                        );
                     }
                     return None;
                 }
@@ -615,7 +828,11 @@ pub fn lookup_simple(p: &mut Program, unit: usize, name: &str, pos: Pos, report:
     }
     if starred.len() > 1 {
         if report {
-            p.error(unit, pos, format!("`{name}` is imported from two packages; write its qualified name"));
+            p.error(
+                unit,
+                pos,
+                format!("`{name}` is imported from two packages; write its qualified name"),
+            );
         }
         return None;
     }
@@ -632,11 +849,21 @@ pub fn lookup_simple(p: &mut Program, unit: usize, name: &str, pos: Pos, report:
 }
 
 /// Looks up a possibly qualified type name.
-pub fn lookup_class(p: &mut Program, unit: usize, name: &[String], pos: Pos, report: bool) -> Option<ClassId> {
+pub fn lookup_class(
+    p: &mut Program,
+    unit: usize,
+    name: &[String],
+    pos: Pos,
+    report: bool,
+) -> Option<ClassId> {
     if name.len() == 1 {
         let found = lookup_simple(p, unit, &name[0], pos, report);
         if found.is_none() && report {
-            p.error(unit, pos, format!("there is no type named `{}` here", name[0]));
+            p.error(
+                unit,
+                pos,
+                format!("there is no type named `{}` here", name[0]),
+            );
         }
         return found;
     }
@@ -646,13 +873,21 @@ pub fn lookup_class(p: &mut Program, unit: usize, name: &[String], pos: Pos, rep
         Some(id) if type_visible(p, id, unit) => Some(id),
         Some(_) => {
             if report {
-                p.error(unit, pos, format!("`{}` is not visible here", name.join(".")));
+                p.error(
+                    unit,
+                    pos,
+                    format!("`{}` is not visible here", name.join(".")),
+                );
             }
             None
         }
         None => {
             if report {
-                p.error(unit, pos, format!("there is no type named `{}`", name.join(".")));
+                p.error(
+                    unit,
+                    pos,
+                    format!("there is no type named `{}`", name.join(".")),
+                );
             }
             None
         }
@@ -670,9 +905,15 @@ pub fn apply_annotations(
 ) -> Vec<ast::AnnotationUse> {
     let mut rest = Vec::new();
     for a in anns {
-        let Some(id) = lookup_class(p, cx.unit, &a.name, a.pos, true) else { continue };
+        let Some(id) = lookup_class(p, cx.unit, &a.name, a.pos, true) else {
+            continue;
+        };
         if !p.class(id).is_annotation() {
-            p.error(cx.unit, a.pos, format!("`{}` is not an annotation", a.name.join(".")));
+            p.error(
+                cx.unit,
+                a.pos,
+                format!("`{}` is not an annotation", a.name.join(".")),
+            );
             continue;
         }
         if p.class(id).qualifier == Qualifier::No {
@@ -682,7 +923,10 @@ pub fn apply_annotations(
                 p.error(
                     cx.unit,
                     a.pos,
-                    format!("`@{}` is not a qualifier, so it is not written on a type", p.class(id).name),
+                    format!(
+                        "`@{}` is not a qualifier, so it is not written on a type",
+                        p.class(id).name
+                    ),
                 );
             }
             continue;
@@ -693,12 +937,20 @@ pub fn apply_annotations(
         if id == p.wk.nullable {
             if ty.nullable && !decl {
                 // Written twice in one position.
-                p.error(cx.unit, a.pos, "an annotation is written at most once in one position");
+                p.error(
+                    cx.unit,
+                    a.pos,
+                    "an annotation is written at most once in one position",
+                );
             }
             ty.nullable = true;
         } else {
             if ty.quals.contains(&id) && !decl {
-                p.error(cx.unit, a.pos, "an annotation is written at most once in one position");
+                p.error(
+                    cx.unit,
+                    a.pos,
+                    "an annotation is written at most once in one position",
+                );
             }
             ty.add_qual(id);
         }
@@ -746,8 +998,12 @@ fn resolve_named(p: &mut Program, cx: &TypeCx, t: &ast::TypeRef) -> Type {
             return Type::var(*tv);
         }
     }
-    let Some(id) = lookup_class(p, cx.unit, &t.name, t.pos, true) else { return Type::error() };
-    let nparams = p.units[p.class(id).unit].types[p.class(id).decl_index].type_params.len();
+    let Some(id) = lookup_class(p, cx.unit, &t.name, t.pos, true) else {
+        return Type::error();
+    };
+    let nparams = p.units[p.class(id).unit].types[p.class(id).decl_index]
+        .type_params
+        .len();
     let written = t.args.as_ref().map(|a| a.len()).unwrap_or(0);
     if written != nparams {
         let name = p.class(id).name.clone();
@@ -758,13 +1014,18 @@ fn resolve_named(p: &mut Program, cx: &TypeCx, t: &ast::TypeRef) -> Type {
                 format!("`{name}` is generic and is written with its type arguments; there are no raw types"),
             );
         } else {
-            p.error(cx.unit, t.pos, format!("`{name}` takes {nparams} type arguments, not {written}"));
+            p.error(
+                cx.unit,
+                t.pos,
+                format!("`{name}` takes {nparams} type arguments, not {written}"),
+            );
         }
         return Type::error();
     }
     let mut args = Vec::new();
     for (i, a) in t.args.iter().flatten().enumerate() {
-        let variance = p.units[p.class(id).unit].types[p.class(id).decl_index].type_params[i].variance;
+        let variance =
+            p.units[p.class(id).unit].types[p.class(id).decl_index].type_params[i].variance;
         match a {
             ast::TypeArg::Type(tr) => args.push(Arg::Ty(resolve_type(p, cx, tr))),
             ast::TypeArg::Wildcard(None, _) => args.push(Arg::Wild(None, None)),
@@ -772,11 +1033,19 @@ fn resolve_named(p: &mut Program, cx: &TypeCx, t: &ast::TypeRef) -> Type {
                 let b = resolve_type(p, cx, tr);
                 match (variance, is_super) {
                     (Variance::Out, true) => {
-                        p.error(cx.unit, *wpos, "`? super` is rejected for a parameter declared `out`");
+                        p.error(
+                            cx.unit,
+                            *wpos,
+                            "`? super` is rejected for a parameter declared `out`",
+                        );
                         args.push(Arg::Ty(Type::error()));
                     }
                     (Variance::In, false) => {
-                        p.error(cx.unit, *wpos, "`? extends` is rejected for a parameter declared `in`");
+                        p.error(
+                            cx.unit,
+                            *wpos,
+                            "`? extends` is rejected for a parameter declared `in`",
+                        );
                         args.push(Arg::Ty(Type::error()));
                     }
                     // On a variant parameter the bounded wildcard is the same type as its bound.
@@ -830,14 +1099,22 @@ pub fn check_type_args(p: &mut Program, t: &Type, unit: usize, pos: Pos) {
                     p.error(
                         unit,
                         pos,
-                        format!("`{sa}` is not within the bound `{sb}` of the type parameter `{sn}`"),
+                        format!(
+                            "`{sa}` is not within the bound `{sb}` of the type parameter `{sn}`"
+                        ),
                     );
                 }
             }
             for tag in &tp.tags {
                 if !carries_tag(p, at, *tag) {
                     let (sa, st) = (p.show(at), p.class(*tag).name.clone());
-                    p.error(unit, pos, format!("`{sa}` does not carry the tag `@{st}` that the type parameter requires"));
+                    p.error(
+                        unit,
+                        pos,
+                        format!(
+                            "`{sa}` does not carry the tag `@{st}` that the type parameter requires"
+                        ),
+                    );
                 }
             }
         }
@@ -848,7 +1125,10 @@ pub fn check_type_args(p: &mut Program, t: &Type, unit: usize, pos: Pos) {
 pub fn carries_tag(p: &mut Program, t: &Type, tag: ClassId) -> bool {
     match &t.ty {
         Ty::Class(id, _) => class_carries(p, *id, tag),
-        Ty::Var(tv) => p.tparam(*tv).map(|tp| tp.tags.contains(&tag)).unwrap_or(false),
+        Ty::Var(tv) => p
+            .tparam(*tv)
+            .map(|tp| tp.tags.contains(&tag))
+            .unwrap_or(false),
         _ => true,
     }
 }
@@ -885,12 +1165,22 @@ fn qualifier_kinds(p: &mut Program) {
         let uses = p.class(id).ann_uses.clone();
         let mut kind = Qualifier::No;
         for a in &uses {
-            let Some(aid) = lookup_class(p, unit, &a.name, a.pos, false) else { continue };
+            let Some(aid) = lookup_class(p, unit, &a.name, a.pos, false) else {
+                continue;
+            };
             if aid == p.wk.refines || aid == p.wk.widens {
                 if kind != Qualifier::No {
-                    p.error(unit, a.pos, "a qualifier is declared with exactly one of `@Refines` and `@Widens`");
+                    p.error(
+                        unit,
+                        a.pos,
+                        "a qualifier is declared with exactly one of `@Refines` and `@Widens`",
+                    );
                 }
-                kind = if aid == p.wk.refines { Qualifier::Refines } else { Qualifier::Widens };
+                kind = if aid == p.wk.refines {
+                    Qualifier::Refines
+                } else {
+                    Qualifier::Widens
+                };
             }
             if aid == p.wk.inherited {
                 p.classes[id as usize].inherited = true;
@@ -910,10 +1200,22 @@ fn headers(p: &mut Program) {
         let mut seen = HashSet::new();
         for tp in &d.type_params {
             if !seen.insert(tp.name.clone()) {
-                p.error(p.class(id).unit, tp.pos, format!("the type parameter `{}` is declared twice", tp.name));
+                p.error(
+                    p.class(id).unit,
+                    tp.pos,
+                    format!("the type parameter `{}` is declared twice", tp.name),
+                );
             }
-            if tp.variance != Variance::Invariant && d.kind != TypeKind::Class && d.kind != TypeKind::Interface && d.kind != TypeKind::ValueClass {
-                p.error(p.class(id).unit, tp.pos, "`in` and `out` are written on a class or an interface");
+            if tp.variance != Variance::Invariant
+                && d.kind != TypeKind::Class
+                && d.kind != TypeKind::Interface
+                && d.kind != TypeKind::ValueClass
+            {
+                p.error(
+                    p.class(id).unit,
+                    tp.pos,
+                    "`in` and `out` are written on a class or an interface",
+                );
             }
             p.classes[id as usize].tparams.push(TParam {
                 name: tp.name.clone(),
@@ -943,14 +1245,26 @@ fn headers(p: &mut Program) {
                     if let Some(sid) = t.class_id() {
                         let s = p.class(sid).clone();
                         if sid == wk.enum_ {
-                            p.error(unit, tr.pos, "a class does not extend `Enum`; an enum is declared with `enum`");
+                            p.error(
+                                unit,
+                                tr.pos,
+                                "a class does not extend `Enum`; an enum is declared with `enum`",
+                            );
                         } else if s.kind != TypeKind::Class {
-                            p.error(unit, tr.pos, format!("`{}` is not a class that can be extended", s.name));
+                            p.error(
+                                unit,
+                                tr.pos,
+                                format!("`{}` is not a class that can be extended", s.name),
+                            );
                         } else if s.is_final() {
                             p.error(unit, tr.pos, format!("`{}` is final; only an `open`, `sealed` or `abstract` class is extended", s.name));
                         }
                         if t.has_wildcard_arg() {
-                            p.error(unit, tr.pos, "a wildcard is not written for the arguments of a superclass");
+                            p.error(
+                                unit,
+                                tr.pos,
+                                "a wildcard is not written for the arguments of a superclass",
+                            );
                         }
                         if !t.quals.is_empty() || t.nullable {
                             p.error(unit, tr.pos, "a qualifier is not written on a supertype");
@@ -975,7 +1289,11 @@ fn headers(p: &mut Program) {
         }
         p.classes[id as usize].superclass = superclass;
         // The interfaces.
-        let written: &[ast::TypeRef] = if d.kind == TypeKind::Interface { &d.extends } else { &d.implements };
+        let written: &[ast::TypeRef] = if d.kind == TypeKind::Interface {
+            &d.extends
+        } else {
+            &d.implements
+        };
         let mut interfaces = Vec::new();
         for tr in written {
             let t = resolve_type(p, &cx, tr);
@@ -988,7 +1306,11 @@ fn headers(p: &mut Program) {
                     continue;
                 }
                 if t.has_wildcard_arg() {
-                    p.error(unit, tr.pos, "a wildcard is not written for the arguments of a supertype");
+                    p.error(
+                        unit,
+                        tr.pos,
+                        "a wildcard is not written for the arguments of a supertype",
+                    );
                 }
                 if interfaces.iter().any(|o: &Type| o.class_id() == Some(sid)) {
                     p.error(unit, tr.pos, "an interface is named once in a declaration");
@@ -1034,7 +1356,11 @@ fn headers(p: &mut Program) {
             if let Some(permits) = p.class(sid).permits.clone() {
                 if p.class(sid).is_sealed && !permits.contains(&id) {
                     let name = p.class(sid).name.clone();
-                    p.error(unit, pos, format!("`{name}` is sealed and does not permit this type"));
+                    p.error(
+                        unit,
+                        pos,
+                        format!("`{name}` is sealed and does not permit this type"),
+                    );
                 }
             }
             if !type_visible(p, sid, unit) {
@@ -1044,10 +1370,17 @@ fn headers(p: &mut Program) {
         }
         if let Some(permits) = p.class(id).permits.clone() {
             for pid in permits {
-                let extends = p.direct_supers(pid).iter().any(|s| s.class_id() == Some(id));
+                let extends = p
+                    .direct_supers(pid)
+                    .iter()
+                    .any(|s| s.class_id() == Some(id));
                 if !extends {
                     let name = p.class(pid).name.clone();
-                    p.error(unit, pos, format!("`{name}` is permitted and does not extend or implement this type"));
+                    p.error(
+                        unit,
+                        pos,
+                        format!("`{name}` is permitted and does not extend or implement this type"),
+                    );
                 }
             }
         }
@@ -1055,11 +1388,17 @@ fn headers(p: &mut Program) {
         let mut all: Vec<Type> = Vec::new();
         let mut work = p.direct_supers(id);
         while let Some(t) = work.pop() {
-            let Ty::Class(sid, sargs) = &t.ty else { continue };
+            let Ty::Class(sid, sargs) = &t.ty else {
+                continue;
+            };
             if let Some(other) = all.iter().find(|o| o.class_id() == Some(*sid)) {
                 if other != &t {
                     let name = p.class(*sid).name.clone();
-                    p.error(unit, pos, format!("`{name}` is implemented with two sets of type arguments"));
+                    p.error(
+                        unit,
+                        pos,
+                        format!("`{name}` is implemented with two sets of type arguments"),
+                    );
                 }
                 continue;
             }
@@ -1086,23 +1425,37 @@ fn resolve_tparam(p: &mut Program, cx: &TypeCx, tp: &ast::TypeParam) -> (Vec<Typ
             if !p.class(bid).is_interface() {
                 classes += 1;
                 if classes > 1 {
-                    p.error(cx.unit, b.pos, "at most one bound is a class; the others are interfaces");
+                    p.error(
+                        cx.unit,
+                        b.pos,
+                        "at most one bound is a class; the others are interfaces",
+                    );
                 }
             }
         } else if matches!(t.ty, Ty::Var(_)) && (i > 0 || tp.bounds.len() > 1) {
-            p.error(cx.unit, b.pos, "a type parameter is a bound only on its own");
+            p.error(
+                cx.unit,
+                b.pos,
+                "a type parameter is a bound only on its own",
+            );
         }
         bounds.push(t);
     }
     let mut tags = Vec::new();
     for a in &tp.annotations {
-        let Some(aid) = lookup_class(p, cx.unit, &a.name, a.pos, true) else { continue };
+        let Some(aid) = lookup_class(p, cx.unit, &a.name, a.pos, true) else {
+            continue;
+        };
         if !p.class(aid).is_annotation() || p.class(aid).qualifier != Qualifier::No {
             p.error(cx.unit, a.pos, "a type parameter requires a tag: an annotation that is written on type declarations");
             continue;
         }
         if !matches!(a.args, ast::AnnArgs::None) {
-            p.error(cx.unit, a.pos, "a requirement names the annotation and no arguments");
+            p.error(
+                cx.unit,
+                a.pos,
+                "a requirement names the annotation and no arguments",
+            );
         }
         tags.push(aid);
     }
@@ -1121,21 +1474,36 @@ fn member_aud(mods: &ast::Mods, default: Aud) -> Aud {
     }
 }
 
-fn only_list(p: &mut Program, cx: &TypeCx, mods: &ast::Mods, owner: ClassId) -> Option<Vec<ClassId>> {
+fn only_list(
+    p: &mut Program,
+    cx: &TypeCx,
+    mods: &ast::Mods,
+    owner: ClassId,
+) -> Option<Vec<ClassId>> {
     let list = mods.only.as_ref()?;
     let mut out = Vec::new();
     for tr in list {
-        let Some(id) = lookup_class(p, cx.unit, &tr.name, tr.pos, true) else { continue };
+        let Some(id) = lookup_class(p, cx.unit, &tr.name, tr.pos, true) else {
+            continue;
+        };
         if out.contains(&id) {
             p.error(cx.unit, tr.pos, "a type is listed once in `only`");
             continue;
         }
         match mods.audience {
             Some(Audience::Package) if p.class(id).package != p.class(owner).package => {
-                p.error(cx.unit, tr.pos, "after `package`, `only` lists types of the same package");
+                p.error(
+                    cx.unit,
+                    tr.pos,
+                    "after `package`, `only` lists types of the same package",
+                );
             }
             Some(Audience::Protected) if !p.is_subclass(id, owner) => {
-                p.error(cx.unit, tr.pos, "after `protected`, `only` lists subclasses of the declaring type");
+                p.error(
+                    cx.unit,
+                    tr.pos,
+                    "after `protected`, `only` lists subclasses of the declaring type",
+                );
             }
             _ => {}
         }
@@ -1145,7 +1513,8 @@ fn only_list(p: &mut Program, cx: &TypeCx, mods: &ast::Mods, owner: ClassId) -> 
 }
 
 fn has_ann(p: &mut Program, unit: usize, uses: &[ast::AnnotationUse], id: ClassId) -> bool {
-    uses.iter().any(|a| lookup_class(p, unit, &a.name, a.pos, false) == Some(id))
+    uses.iter()
+        .any(|a| lookup_class(p, unit, &a.name, a.pos, false) == Some(id))
 }
 
 fn make_params(p: &mut Program, cx: &TypeCx, params: &[ast::Param]) -> Vec<Param> {
@@ -1154,16 +1523,34 @@ fn make_params(p: &mut Program, cx: &TypeCx, params: &[ast::Param]) -> Vec<Param
         let (mut ty, anns) = resolve_type_anns(p, cx, &prm.ty, &prm.mods.annotations, true);
         if prm.varargs {
             if i + 1 != params.len() {
-                p.error(cx.unit, prm.pos, "a varargs parameter is the last parameter");
+                p.error(
+                    cx.unit,
+                    prm.pos,
+                    "a varargs parameter is the last parameter",
+                );
             }
             ty = p.array_of(ty);
         }
         let m = &prm.mods;
-        if m.audience.is_some() || m.is_static || m.is_open || m.is_abstract || m.is_sealed || m.is_foreign {
-            p.error(cx.unit, prm.pos, "a parameter accepts `final` and annotations only");
+        if m.audience.is_some()
+            || m.is_static
+            || m.is_open
+            || m.is_abstract
+            || m.is_sealed
+            || m.is_foreign
+        {
+            p.error(
+                cx.unit,
+                prm.pos,
+                "a parameter accepts `final` and annotations only",
+            );
         }
         if out.iter().any(|o| o.name == prm.name) {
-            p.error(cx.unit, prm.pos, format!("the parameter `{}` is declared twice", prm.name));
+            p.error(
+                cx.unit,
+                prm.pos,
+                format!("the parameter `{}` is declared twice", prm.name),
+            );
         }
         out.push(Param {
             name: prm.name.clone(),
@@ -1190,7 +1577,12 @@ fn members(p: &mut Program) {
         let self_type = {
             let c = p.class(id);
             let args = (0..c.tparams.len())
-                .map(|i| Arg::Ty(Type::var(Tv { owner: TvOwner::Class(id), index: i as u32 })))
+                .map(|i| {
+                    Arg::Ty(Type::var(Tv {
+                        owner: TvOwner::Class(id),
+                        index: i as u32,
+                    }))
+                })
                 .collect();
             Type::class(id, args)
         };
@@ -1198,7 +1590,11 @@ fn members(p: &mut Program) {
         // Enum constants are public static final fields.
         for (i, k) in d.constants.iter().enumerate() {
             if p.class(id).fields.iter().any(|f| f.name == k.name) {
-                p.error(unit, k.pos, format!("the constant `{}` is declared twice", k.name));
+                p.error(
+                    unit,
+                    k.pos,
+                    format!("the constant `{}` is declared twice", k.name),
+                );
             }
             p.classes[id as usize].fields.push(Field {
                 name: k.name.clone(),
@@ -1258,10 +1654,18 @@ fn members(p: &mut Program) {
                     let cx = if is_static { &cx_static } else { &cx_inst };
                     let (ty, anns) = resolve_type_anns(p, cx, &f.ty, &mods.annotations, true);
                     if mods.is_open || mods.is_abstract || mods.is_sealed || mods.is_foreign {
-                        p.error(unit, f.pos, "a field accepts an audience, `static` and `final`");
+                        p.error(
+                            unit,
+                            f.pos,
+                            "a field accepts an audience, `static` and `final`",
+                        );
                     }
                     if p.class(id).fields.iter().any(|o| o.name == f.name) {
-                        p.error(unit, f.pos, format!("the field `{}` is declared twice", f.name));
+                        p.error(
+                            unit,
+                            f.pos,
+                            format!("the field `{}` is declared twice", f.name),
+                        );
                     }
                     let mut aud = member_aud(mods, Aud::Private);
                     if is_iface {
@@ -1270,14 +1674,22 @@ fn members(p: &mut Program) {
                         }
                         aud = Aud::Public;
                         if f.init.is_none() {
-                            p.error(unit, f.pos, "a field of an interface is a constant and needs an initializer");
+                            p.error(
+                                unit,
+                                f.pos,
+                                "a field of an interface is a constant and needs an initializer",
+                            );
                         }
                     }
                     if kind == TypeKind::ValueClass && !is_static && f.init.is_some() {
                         p.error(unit, f.pos, "a field of a value class has no initializer");
                     }
                     if kind == TypeKind::Annotation {
-                        p.error(unit, f.pos, "an annotation declares its elements in its header");
+                        p.error(
+                            unit,
+                            f.pos,
+                            "an annotation declares its elements in its header",
+                        );
                     }
                     let only = only_list(p, cx, mods, id);
                     let value_field = p.class(id).is_value() && !is_static;
@@ -1304,16 +1716,39 @@ fn members(p: &mut Program) {
                     // A static requirement of an interface may use the interface's type
                     // parameters, which stand for the implementer's arguments.
                     let requirement = is_iface && mods.is_static && md.body.is_none();
-                    let mut cx = if mods.is_static && !requirement { cx_static.clone() } else { cx_inst.clone() };
+                    let mut cx = if mods.is_static && !requirement {
+                        cx_static.clone()
+                    } else {
+                        cx_inst.clone()
+                    };
                     let mut seen = HashSet::new();
                     for (i, tp) in md.type_params.iter().enumerate() {
-                        if !seen.insert(tp.name.clone()) || cx.tvars.iter().any(|(n, _)| *n == tp.name) {
-                            p.error(unit, tp.pos, format!("the type parameter `{}` has the name of another one in scope", tp.name));
+                        if !seen.insert(tp.name.clone())
+                            || cx.tvars.iter().any(|(n, _)| *n == tp.name)
+                        {
+                            p.error(
+                                unit,
+                                tp.pos,
+                                format!(
+                                    "the type parameter `{}` has the name of another one in scope",
+                                    tp.name
+                                ),
+                            );
                         }
                         if tp.variance != Variance::Invariant {
-                            p.error(unit, tp.pos, "the type parameters of a method have no variance");
+                            p.error(
+                                unit,
+                                tp.pos,
+                                "the type parameters of a method have no variance",
+                            );
                         }
-                        cx.tvars.push((tp.name.clone(), Tv { owner: TvOwner::Method(mref), index: i as u32 }));
+                        cx.tvars.push((
+                            tp.name.clone(),
+                            Tv {
+                                owner: TvOwner::Method(mref),
+                                index: i as u32,
+                            },
+                        ));
                     }
                     // The method must exist before its bounds are resolved, because a
                     // bound may mention the method's own parameters.
@@ -1323,13 +1758,20 @@ fn members(p: &mut Program) {
                     let intrinsic = has_ann(p, unit, &mods.annotations, p.wk.intrinsic);
                     let has_body = md.body.is_some();
                     let static_requirement = is_iface && mods.is_static && !has_body;
-                    let is_abstract = mods.is_abstract || (is_iface && !mods.is_static && !has_body);
+                    let is_abstract =
+                        mods.is_abstract || (is_iface && !mods.is_static && !has_body);
                     p.classes[id as usize].methods.push(Method {
                         name: md.name.clone(),
                         tparams: md
                             .type_params
                             .iter()
-                            .map(|tp| TParam { name: tp.name.clone(), variance: Variance::Invariant, bounds: Vec::new(), tags: Vec::new(), pos: tp.pos })
+                            .map(|tp| TParam {
+                                name: tp.name.clone(),
+                                variance: Variance::Invariant,
+                                bounds: Vec::new(),
+                                tags: Vec::new(),
+                                pos: tp.pos,
+                            })
                             .collect(),
                         params: Vec::new(),
                         ret: Type::error(),
@@ -1367,7 +1809,8 @@ fn members(p: &mut Program) {
                         Some(tr) => resolve_type_anns(p, &cx, tr, &mods.annotations, true),
                         None => {
                             let mut unit_ty = Type::simple(p.wk.unit);
-                            let rest = apply_annotations(p, &cx, &mut unit_ty, &mods.annotations, true);
+                            let rest =
+                                apply_annotations(p, &cx, &mut unit_ty, &mods.annotations, true);
                             if unit_ty.nullable || !unit_ty.quals.is_empty() {
                                 p.error(unit, md.pos, "a qualifier among a method's modifiers qualifies its result, and this method has none");
                             }
@@ -1383,7 +1826,11 @@ fn members(p: &mut Program) {
                         }
                         let t = resolve_type(p, &cx_inst, rt);
                         if !t.is_error() && t.bare() != self_type {
-                            p.error(unit, rt.pos, "the receiver parameter has the type of the declaring class");
+                            p.error(
+                                unit,
+                                rt.pos,
+                                "the receiver parameter has the type of the declaring class",
+                            );
                         }
                         recv_nullable = t.nullable;
                         recv_quals = t.quals.clone();
@@ -1404,13 +1851,25 @@ fn members(p: &mut Program) {
                         p.error(unit, md.pos, "`open final` is rejected");
                     }
                     if mods.is_abstract && (mods.is_final || mods.is_static) {
-                        p.error(unit, md.pos, "`abstract final` and `abstract static` are rejected");
+                        p.error(
+                            unit,
+                            md.pos,
+                            "`abstract final` and `abstract static` are rejected",
+                        );
                     }
                     if mods.is_open && mods.is_static {
-                        p.error(unit, md.pos, "a static method is not overridden, so `open` is rejected on it");
+                        p.error(
+                            unit,
+                            md.pos,
+                            "a static method is not overridden, so `open` is rejected on it",
+                        );
                     }
                     if mods.is_abstract && !p.class(id).is_abstract && !is_iface {
-                        p.error(unit, md.pos, "an abstract method appears only in an abstract class");
+                        p.error(
+                            unit,
+                            md.pos,
+                            "an abstract method appears only in an abstract class",
+                        );
                     }
                     if mods.is_foreign && !mods.is_static {
                         p.error(unit, md.pos, "a `foreign` method is also declared `static`");
@@ -1419,17 +1878,34 @@ fn members(p: &mut Program) {
                         p.error(unit, md.pos, "a value class is final, so its methods are neither `open` nor `abstract`");
                     }
                     if intrinsic && p.class(id).package != "cleat" {
-                        p.error(unit, md.pos, "`@Intrinsic` is rejected outside the package `cleat`");
+                        p.error(
+                            unit,
+                            md.pos,
+                            "`@Intrinsic` is rejected outside the package `cleat`",
+                        );
                     }
-                    let bodiless_ok = is_abstract || mods.is_foreign || intrinsic || static_requirement;
+                    let bodiless_ok =
+                        is_abstract || mods.is_foreign || intrinsic || static_requirement;
                     if !has_body && !bodiless_ok {
-                        p.error(unit, md.pos, format!("the method `{}` needs a body", md.name));
+                        p.error(
+                            unit,
+                            md.pos,
+                            format!("the method `{}` needs a body", md.name),
+                        );
                     }
                     if has_body && (mods.is_abstract || mods.is_foreign || intrinsic) {
-                        p.error(unit, md.pos, "an abstract, `foreign` or `@Intrinsic` method has no body");
+                        p.error(
+                            unit,
+                            md.pos,
+                            "an abstract, `foreign` or `@Intrinsic` method has no body",
+                        );
                     }
                     if is_iface && mods.is_final && !has_body {
-                        p.error(unit, md.pos, "`final` on an interface method without a body is rejected");
+                        p.error(
+                            unit,
+                            md.pos,
+                            "`final` on an interface method without a body is rejected",
+                        );
                     }
                     if recv_nullable && (mods.is_open || is_abstract) && id != p.wk.object {
                         p.error(unit, md.pos, "an `open` or `abstract` method does not declare a `@Nullable` receiver");
@@ -1445,21 +1921,39 @@ fn members(p: &mut Program) {
                 }
                 Member::Ctor(cd) => {
                     let mods = &cd.mods;
-                    if mods.is_static || mods.is_final || mods.is_open || mods.is_abstract || mods.is_sealed || mods.is_foreign {
-                        p.error(unit, cd.pos, "a constructor accepts an audience and annotations only");
+                    if mods.is_static
+                        || mods.is_final
+                        || mods.is_open
+                        || mods.is_abstract
+                        || mods.is_sealed
+                        || mods.is_foreign
+                    {
+                        p.error(
+                            unit,
+                            cd.pos,
+                            "a constructor accepts an audience and annotations only",
+                        );
                     }
                     let intrinsic = has_ann(p, unit, &mods.annotations, p.wk.intrinsic);
                     let mut dummy = Type::simple(p.wk.unit);
                     let anns = apply_annotations(p, &cx_inst, &mut dummy, &mods.annotations, true);
                     // Section 8.2: a qualifier is written before the type it qualifies.
                     if dummy != Type::simple(p.wk.unit) {
-                        p.error(unit, cd.pos, "a qualifier is written before a type, and a constructor has none");
+                        p.error(
+                            unit,
+                            cd.pos,
+                            "a qualifier is written before a type, and a constructor has none",
+                        );
                     }
                     let aud = member_aud(mods, Aud::Private);
                     let only = only_list(p, &cx_inst, mods, id);
                     match (&cd.params, kind) {
                         (_, TypeKind::Interface) | (_, TypeKind::Annotation) => {
-                            p.error(unit, cd.pos, "an interface and an annotation declare no constructor");
+                            p.error(
+                                unit,
+                                cd.pos,
+                                "an interface and an annotation declare no constructor",
+                            );
                         }
                         (None, TypeKind::ValueClass) => {
                             if compact_seen {
@@ -1482,17 +1976,27 @@ fn members(p: &mut Program) {
                             });
                         }
                         (None, _) => {
-                            p.error(unit, cd.pos, "only a value class writes its constructor in the compact form");
+                            p.error(
+                                unit,
+                                cd.pos,
+                                "only a value class writes its constructor in the compact form",
+                            );
                         }
                         (Some(_), TypeKind::ValueClass) if !intrinsic => {
                             p.error(unit, cd.pos, "a value class has one constructor, whose parameters are its fields; it may be written in the compact form `Name { ... }`");
                         }
                         (Some(params), _) => {
-                            if kind == TypeKind::Enum && matches!(mods.audience, Some(a) if a != Audience::Private) {
+                            if kind == TypeKind::Enum
+                                && matches!(mods.audience, Some(a) if a != Audience::Private)
+                            {
                                 p.error(unit, cd.pos, "the constructors of an enum are private");
                             }
                             if intrinsic && p.class(id).package != "cleat" {
-                                p.error(unit, cd.pos, "`@Intrinsic` is rejected outside the package `cleat`");
+                                p.error(
+                                    unit,
+                                    cd.pos,
+                                    "`@Intrinsic` is rejected outside the package `cleat`",
+                                );
                             }
                             if cd.body.is_none() && !intrinsic {
                                 p.error(unit, cd.pos, "a constructor needs a body");
@@ -1550,7 +2054,11 @@ fn members(p: &mut Program) {
                     None if c.ctors.is_empty() => c.ctors.push(Ctor {
                         params,
                         // An annotation is constructed only by its uses.
-                        aud: if kind == TypeKind::Annotation { Aud::Private } else { Aud::Public },
+                        aud: if kind == TypeKind::Annotation {
+                            Aud::Private
+                        } else {
+                            Aud::Public
+                        },
                         only: None,
                         body: None,
                         of_value: true,
@@ -1569,7 +2077,11 @@ fn members(p: &mut Program) {
                 if p.class(id).ctors.is_empty() {
                     p.classes[id as usize].ctors.push(Ctor {
                         params: Vec::new(),
-                        aud: if kind == TypeKind::Enum { Aud::Private } else { Aud::Public },
+                        aud: if kind == TypeKind::Enum {
+                            Aud::Private
+                        } else {
+                            Aud::Public
+                        },
                         only: None,
                         body: None,
                         of_value: false,
@@ -1596,7 +2108,9 @@ fn element_type_ok(p: &Program, t: &Type) -> bool {
     if inner.nullable || !inner.quals.is_empty() {
         return false;
     }
-    let Some(id) = inner.class_id() else { return inner.is_error() };
+    let Some(id) = inner.class_id() else {
+        return inner.is_error();
+    };
     let w = &p.wk;
     p.num_kind(id).is_some()
         || id == w.boolean
@@ -1615,7 +2129,9 @@ pub fn all_supertypes(p: &mut Program, id: ClassId) -> Vec<Type> {
     let mut work = p.direct_supers(id);
     work.reverse();
     while let Some(t) = work.pop() {
-        let Ty::Class(sid, sargs) = &t.ty else { continue };
+        let Ty::Class(sid, sargs) = &t.ty else {
+            continue;
+        };
         if *sid == id || all.iter().any(|o| o.class_id() == Some(*sid)) {
             continue;
         }
@@ -1630,16 +2146,30 @@ pub fn all_supertypes(p: &mut Program, id: ClassId) -> Vec<Type> {
 
 /// Whether the parameter lists of two methods are the same once `n`'s types are seen
 /// from `m`'s class. Returns the substitution that maps `n`'s signature there.
-pub fn same_signature(p: &mut Program, m: MethodRef, n: MethodRef, n_class_subst: &Subst) -> Option<Subst> {
+pub fn same_signature(
+    p: &mut Program,
+    m: MethodRef,
+    n: MethodRef,
+    n_class_subst: &Subst,
+) -> Option<Subst> {
     let (mm, nn) = (p.method(m).clone(), p.method(n).clone());
-    if mm.name != nn.name || mm.params.len() != nn.params.len() || mm.tparams.len() != nn.tparams.len() {
+    if mm.name != nn.name
+        || mm.params.len() != nn.params.len()
+        || mm.tparams.len() != nn.tparams.len()
+    {
         return None;
     }
     let mut s = n_class_subst.clone();
     for i in 0..nn.tparams.len() {
         s.bind(
-            Tv { owner: TvOwner::Method(n), index: i as u32 },
-            Type::var(Tv { owner: TvOwner::Method(m), index: i as u32 }),
+            Tv {
+                owner: TvOwner::Method(n),
+                index: i as u32,
+            },
+            Type::var(Tv {
+                owner: TvOwner::Method(m),
+                index: i as u32,
+            }),
         );
     }
     // Section 4.2: the same type parameters, which section 7.8 reads as the same bounds.
@@ -1668,7 +2198,13 @@ pub fn same_signature(p: &mut Program, m: MethodRef, n: MethodRef, n_class_subst
 
 /// Section 3.4: whether the class `me`, a subtype of `decl`, may name a member that
 /// `decl` declares with this audience. A member it may not name is not overridden.
-fn may_name_inherited(p: &Program, me: ClassId, decl: ClassId, aud: Aud, only: &Option<Vec<ClassId>>) -> bool {
+fn may_name_inherited(
+    p: &Program,
+    me: ClassId,
+    decl: ClassId,
+    aud: Aud,
+    only: &Option<Vec<ClassId>>,
+) -> bool {
     if me == decl {
         return true;
     }
@@ -1700,22 +2236,39 @@ fn hierarchy(p: &mut Program) {
         let supers = all_supertypes(p, id);
         let is_iface = p.class(id).is_interface();
         for mi in 0..p.class(id).methods.len() as u32 {
-            let m = MethodRef { class: id, index: mi };
+            let m = MethodRef {
+                class: id,
+                index: mi,
+            };
             let mm = p.method(m).clone();
             let mut overrides = Vec::new();
             for sup in &supers {
-                let Ty::Class(sid, sargs) = &sup.ty else { continue };
+                let Ty::Class(sid, sargs) = &sup.ty else {
+                    continue;
+                };
                 let subst = Subst::for_class(*sid, sargs);
                 let sup_is_iface = p.class(*sid).is_interface();
                 for ni in 0..p.class(*sid).methods.len() as u32 {
-                    let nref = MethodRef { class: *sid, index: ni };
+                    let nref = MethodRef {
+                        class: *sid,
+                        index: ni,
+                    };
                     let nn = p.method(nref).clone();
                     if nn.name != mm.name || !may_name_inherited(p, id, *sid, nn.aud, &nn.only) {
                         continue;
                     }
-                    let Some(s) = same_signature(p, m, nref, &subst) else { continue };
+                    let Some(s) = same_signature(p, m, nref, &subst) else {
+                        continue;
+                    };
                     if mm.is_static != nn.is_static {
-                        p.error(unit, mm.pos, format!("`{}` is static in one declaration and not in the other", mm.name));
+                        p.error(
+                            unit,
+                            mm.pos,
+                            format!(
+                                "`{}` is static in one declaration and not in the other",
+                                mm.name
+                            ),
+                        );
                         continue;
                     }
                     if nn.is_static && !nn.static_requirement {
@@ -1724,7 +2277,14 @@ fn hierarchy(p: &mut Program) {
                     }
                     if !nn.is_static && !nn.is_virtual(sup_is_iface) {
                         let sname = p.class(*sid).name.clone();
-                        p.error(unit, mm.pos, format!("`{}` is final in `{sname}` and cannot be overridden", mm.name));
+                        p.error(
+                            unit,
+                            mm.pos,
+                            format!(
+                                "`{}` is final in `{sname}` and cannot be overridden",
+                                mm.name
+                            ),
+                        );
                         continue;
                     }
                     // Result: the same type or a subtype.
@@ -1737,33 +2297,55 @@ fn hierarchy(p: &mut Program) {
                         p.error(unit, mm.pos, "an overriding method has the audience of the method it overrides, or a wider one");
                     }
                     if let Some(list) = &nn.only {
-                        let drawn = mm.only.as_ref().is_some_and(|mine| mine.iter().all(|c| *c == id || list.contains(c)));
+                        let drawn = mm
+                            .only
+                            .as_ref()
+                            .is_some_and(|mine| mine.iter().all(|c| *c == id || list.contains(c)));
                         if mm.aud != nn.aud || !drawn {
                             p.error(unit, mm.pos, "the overridden method has an `only` list, so the overriding method has the same audience keyword and a list drawn from that list");
                         }
                     }
                     if sup_is_iface && mm.aud != Aud::Public {
-                        p.error(unit, mm.pos, "a method that implements an interface method is `public`");
+                        p.error(
+                            unit,
+                            mm.pos,
+                            "a method that implements an interface method is `public`",
+                        );
                     }
                     if mm.discardable != nn.discardable {
                         p.error(unit, mm.pos, "a method carries `@Discardable` exactly when the method it overrides does");
                     }
-                    if !special.contains(&mm.name.as_str()) && (mm.recv_nullable != nn.recv_nullable || mm.recv_quals != nn.recv_quals) {
+                    if !special.contains(&mm.name.as_str())
+                        && (mm.recv_nullable != nn.recv_nullable || mm.recv_quals != nn.recv_quals)
+                    {
                         p.error(unit, mm.pos, "an override has the same receiver qualifiers as the method it overrides");
                     }
                     // Section 2.5: the three open methods of `Object` take a `@Nullable`
                     // receiver, and an override of them does not.
-                    if special.contains(&mm.name.as_str()) && (mm.recv_nullable || !mm.recv_quals.is_empty()) {
+                    if special.contains(&mm.name.as_str())
+                        && (mm.recv_nullable || !mm.recv_quals.is_empty())
+                    {
                         p.error(unit, mm.pos, format!("an override of `{}` declares an ordinary receiver, with no qualifier", mm.name));
                     }
                     overrides.push(nref);
                 }
             }
             if !overrides.is_empty() && !mm.has_override {
-                p.error(unit, mm.pos, format!("`{}` overrides or implements a method and must carry `@Override`", mm.name));
+                p.error(
+                    unit,
+                    mm.pos,
+                    format!(
+                        "`{}` overrides or implements a method and must carry `@Override`",
+                        mm.name
+                    ),
+                );
             }
             if overrides.is_empty() && mm.has_override {
-                p.error(unit, mm.pos, format!("`{}` carries `@Override` and overrides nothing", mm.name));
+                p.error(
+                    unit,
+                    mm.pos,
+                    format!("`{}` carries `@Override` and overrides nothing", mm.name),
+                );
             }
             p.classes[id as usize].methods[mi as usize].overrides = overrides;
         }
@@ -1773,7 +2355,10 @@ fn hierarchy(p: &mut Program) {
             for sup in &supers {
                 let Ty::Class(sid, _) = &sup.ty else { continue };
                 for ni in 0..p.class(*sid).methods.len() as u32 {
-                    let nref = MethodRef { class: *sid, index: ni };
+                    let nref = MethodRef {
+                        class: *sid,
+                        index: ni,
+                    };
                     let nn = p.method(nref).clone();
                     if nn.static_requirement {
                         if find_static_impl(p, id, nref).is_none() {
@@ -1786,7 +2371,14 @@ fn hierarchy(p: &mut Program) {
                             ImplOf::Conflict => {}
                             _ => {
                                 let sname = p.class(*sid).name.clone();
-                                p.error(unit, c.pos, format!("`{}` does not implement `{}` of `{sname}`", c.name, nn.name));
+                                p.error(
+                                    unit,
+                                    c.pos,
+                                    format!(
+                                        "`{}` does not implement `{}` of `{sname}`",
+                                        c.name, nn.name
+                                    ),
+                                );
                             }
                         }
                     }
@@ -1801,7 +2393,10 @@ fn hierarchy(p: &mut Program) {
                     continue;
                 }
                 for ni in 0..p.class(*sid).methods.len() as u32 {
-                    let nref = MethodRef { class: *sid, index: ni };
+                    let nref = MethodRef {
+                        class: *sid,
+                        index: ni,
+                    };
                     if p.method(nref).is_static {
                         continue;
                     }
@@ -1832,7 +2427,10 @@ pub fn impl_of(p: &mut Program, class: ClassId, root: MethodRef) -> ImplOf {
     while let Some(cid) = cur {
         if !p.class(cid).is_interface() || cid == class {
             for (i, m) in p.class(cid).methods.iter().enumerate() {
-                let mref = MethodRef { class: cid, index: i as u32 };
+                let mref = MethodRef {
+                    class: cid,
+                    index: i as u32,
+                };
                 if mref == root || m.overrides.contains(&root) {
                     if !(p.class(cid).is_interface() && m.is_abstract) {
                         return ImplOf::Found(mref);
@@ -1855,7 +2453,10 @@ pub fn impl_of(p: &mut Program, class: ClassId, root: MethodRef) -> ImplOf {
             continue;
         }
         for (i, m) in p.class(sid).methods.iter().enumerate() {
-            let mref = MethodRef { class: sid, index: i as u32 };
+            let mref = MethodRef {
+                class: sid,
+                index: i as u32,
+            };
             if (mref == root || m.overrides.contains(&root)) && !m.is_abstract && !m.is_static {
                 found.push(mref);
             }
@@ -1863,7 +2464,10 @@ pub fn impl_of(p: &mut Program, class: ClassId, root: MethodRef) -> ImplOf {
     }
     // Keep the most specific: drop a body that another found body overrides.
     let all = found.clone();
-    found.retain(|f| !all.iter().any(|g| g != f && p.method(*g).overrides.contains(f)));
+    found.retain(|f| {
+        !all.iter()
+            .any(|g| g != f && p.method(*g).overrides.contains(f))
+    });
     match found.len() {
         0 => {
             if root.class == class || p.is_subclass(class, root.class) {
@@ -1884,7 +2488,10 @@ pub fn find_static_impl(p: &mut Program, class: ClassId, req: MethodRef) -> Opti
     while let Some(cid) = cur {
         for (i, m) in p.class(cid).methods.iter().enumerate() {
             if m.is_static && !m.static_requirement && m.overrides.contains(&req) {
-                return Some(MethodRef { class: cid, index: i as u32 });
+                return Some(MethodRef {
+                    class: cid,
+                    index: i as u32,
+                });
             }
         }
         cur = p.class(cid).superclass.as_ref().and_then(|t| t.class_id());
@@ -1911,7 +2518,14 @@ fn variance_checks(p: &mut Program, id: ClassId) {
     }
     for f in &c.fields {
         if !f.is_static {
-            position(p, id, &f.ty, if f.is_final { 1 } else { 0 }, f.pos, &mut bad);
+            position(
+                p,
+                id,
+                &f.ty,
+                if f.is_final { 1 } else { 0 },
+                f.pos,
+                &mut bad,
+            );
         }
     }
     for sup in p.direct_supers(id) {
@@ -1923,7 +2537,14 @@ fn variance_checks(p: &mut Program, id: ClassId) {
 }
 
 /// `dir` is 1 where values are produced, -1 where they are consumed, 0 where both.
-fn position(p: &Program, owner: ClassId, t: &Type, dir: i32, pos: Pos, bad: &mut Vec<(Pos, String)>) {
+fn position(
+    p: &Program,
+    owner: ClassId,
+    t: &Type,
+    dir: i32,
+    pos: Pos,
+    bad: &mut Vec<(Pos, String)>,
+) {
     match &t.ty {
         Ty::Var(tv) if tv.owner == TvOwner::Class(owner) => {
             let tp = &p.class(owner).tparams[tv.index as usize];
@@ -1933,18 +2554,30 @@ fn position(p: &Program, owner: ClassId, t: &Type, dir: i32, pos: Pos, bad: &mut
                 Variance::In => dir == -1,
             };
             if !ok {
-                let word = if tp.variance == Variance::Out { "out" } else { "in" };
+                let word = if tp.variance == Variance::Out {
+                    "out"
+                } else {
+                    "in"
+                };
                 let place = match dir {
                     1 => "where a value is produced",
                     -1 => "where a value is consumed",
                     _ => "where a value is both produced and consumed",
                 };
-                bad.push((pos, format!("`{}` is declared `{word}` and is written {place}", tp.name)));
+                bad.push((
+                    pos,
+                    format!("`{}` is declared `{word}` and is written {place}", tp.name),
+                ));
             }
         }
         Ty::Class(cid, args) => {
             for (i, a) in args.iter().enumerate() {
-                let v = p.class(*cid).tparams.get(i).map(|t| t.variance).unwrap_or(Variance::Invariant);
+                let v = p
+                    .class(*cid)
+                    .tparams
+                    .get(i)
+                    .map(|t| t.variance)
+                    .unwrap_or(Variance::Invariant);
                 let sub = match v {
                     Variance::Out => dir,
                     Variance::In => -dir,

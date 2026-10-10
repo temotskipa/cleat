@@ -89,7 +89,10 @@ pub unsafe fn chars(o: Obj) -> &'static [u32] {
 
 pub unsafe fn new_string(ctx: *mut Ctx, text: &[u32]) -> Obj {
     unsafe {
-        let o = checked(ctx, gc::alloc(ctx, types::wk_type(K_STRING), ELEMS + text.len() * 4));
+        let o = checked(
+            ctx,
+            gc::alloc(ctx, types::wk_type(K_STRING), ELEMS + text.len() * 4),
+        );
         if !o.is_null() {
             *at::<i64>(o, BODY) = text.len() as i64;
             std::ptr::copy_nonoverlapping(text.as_ptr(), at::<u32>(o, ELEMS), text.len());
@@ -104,13 +107,25 @@ pub unsafe fn new_str(ctx: *mut Ctx, s: &str) -> Obj {
 }
 
 pub unsafe fn to_rust(o: Obj) -> String {
-    unsafe { chars(o).iter().map(|c| char::from_u32(*c).unwrap_or('\u{FFFD}')).collect() }
+    unsafe {
+        chars(o)
+            .iter()
+            .map(|c| char::from_u32(*c).unwrap_or('\u{FFFD}'))
+            .collect()
+    }
 }
 
 // ---- arrays ----
 
 pub fn array_type(elem: Td) -> Td {
-    types::intern(types::wk(K_ARRAY), vec![elem], false, Vec::new(), 0, std::ptr::null())
+    types::intern(
+        types::wk(K_ARRAY),
+        vec![elem],
+        false,
+        Vec::new(),
+        0,
+        std::ptr::null(),
+    )
 }
 
 pub unsafe fn len(a: Obj) -> i64 {
@@ -125,7 +140,9 @@ pub unsafe extern "C" fn cl_array_new(ctx: *mut Ctx, td: Td, n: i64) -> Obj {
             raise(ctx, X_ARITHMETIC, &format!("an array length of {n}"));
             return std::ptr::null_mut();
         }
-        let size = (n as usize).checked_mul(elem_size((*td).elem_kind)).and_then(|b| b.checked_add(ELEMS));
+        let size = (n as usize)
+            .checked_mul(elem_size((*td).elem_kind))
+            .and_then(|b| b.checked_add(ELEMS));
         let o = match size {
             Some(size) if size < isize::MAX as usize / 2 => gc::alloc(ctx, td, size),
             _ => std::ptr::null_mut(),
@@ -275,21 +292,24 @@ pub unsafe extern "C" fn cl_ffi_fresh(ctx: *mut Ctx, a: Obj) -> Obj {
 
 pub unsafe fn v_equals(ctx: *mut Ctx, a: Obj, b: Obj) -> bool {
     unsafe {
-        let f: extern "C" fn(*mut Ctx, Obj, Obj) -> u8 = std::mem::transmute(types::cl_lookup(a, SEL_EQUALS));
+        let f: extern "C" fn(*mut Ctx, Obj, Obj) -> u8 =
+            std::mem::transmute(types::cl_lookup(a, SEL_EQUALS));
         f(ctx, a, b) != 0
     }
 }
 
 pub unsafe fn v_hash(ctx: *mut Ctx, a: Obj) -> i64 {
     unsafe {
-        let f: extern "C" fn(*mut Ctx, Obj) -> i64 = std::mem::transmute(types::cl_lookup(a, SEL_HASH));
+        let f: extern "C" fn(*mut Ctx, Obj) -> i64 =
+            std::mem::transmute(types::cl_lookup(a, SEL_HASH));
         f(ctx, a)
     }
 }
 
 pub unsafe fn v_to_string(ctx: *mut Ctx, a: Obj) -> Obj {
     unsafe {
-        let f: extern "C" fn(*mut Ctx, Obj) -> Obj = std::mem::transmute(types::cl_lookup(a, SEL_TO_STRING));
+        let f: extern "C" fn(*mut Ctx, Obj) -> Obj =
+            std::mem::transmute(types::cl_lookup(a, SEL_TO_STRING));
         f(ctx, a)
     }
 }
@@ -353,8 +373,14 @@ pub unsafe extern "C" fn cl_Object_equals_Object(ctx: *mut Ctx, a: Obj, b: Obj) 
                     let mut all = true;
                     for (i, f) in fields.iter().enumerate() {
                         let ok = if f.kind == 0 {
-                            let (x, y) = (*at::<Obj>(a, f.offset as usize), *at::<Obj>(b, f.offset as usize));
-                            if is_tail(fields, i) && types::cl_lookup(x, SEL_EQUALS) == cl_Object_equals_Object as *const u8 {
+                            let (x, y) = (
+                                *at::<Obj>(a, f.offset as usize),
+                                *at::<Obj>(b, f.offset as usize),
+                            );
+                            if is_tail(fields, i)
+                                && types::cl_lookup(x, SEL_EQUALS)
+                                    == cl_Object_equals_Object as *const u8
+                            {
                                 (a, b) = (x, y);
                                 continue 'chain;
                             }
@@ -416,14 +442,18 @@ pub unsafe extern "C" fn cl_Object_hashCode(ctx: *mut Ctx, a: Obj) -> i64 {
             let c = class_of(a);
             let h = match c.kind {
                 k if is_machine(k) => machine_hash(k, bits(a)),
-                K_STRING => chars(a).iter().fold(0i64, |h, ch| h.wrapping_mul(31).wrapping_add(*ch as i64)),
+                K_STRING => chars(a)
+                    .iter()
+                    .fold(0i64, |h, ch| h.wrapping_mul(31).wrapping_add(*ch as i64)),
                 _ if c.is(F_VALUE) => {
                     let fields = slice(c.fields, c.nfields);
                     let mut h = 17i64;
                     for (i, f) in fields.iter().enumerate() {
                         let part = if f.kind == 0 {
                             let x = *at::<Obj>(a, f.offset as usize);
-                            if is_tail(fields, i) && types::cl_lookup(x, SEL_HASH) == cl_Object_hashCode as *const u8 {
+                            if is_tail(fields, i)
+                                && types::cl_lookup(x, SEL_HASH) == cl_Object_hashCode as *const u8
+                            {
                                 passed = passed.wrapping_add(h.wrapping_mul(31));
                                 a = x;
                                 continue 'chain;
@@ -451,7 +481,13 @@ pub fn show_machine(kind: u32, x: u64) -> String {
         K_I32 => (x as i32).to_string(),
         K_I64 => (x as i64).to_string(),
         K_U8 | K_U16 | K_U32 | K_U64 => x.to_string(),
-        K_BOOL => if x != 0 { "true".into() } else { "false".into() },
+        K_BOOL => {
+            if x != 0 {
+                "true".into()
+            } else {
+                "false".into()
+            }
+        }
         K_CHAR => char::from_u32(x as u32).unwrap_or('\u{FFFD}').to_string(),
         _ => format!("Pointer({x:#x})"),
     }
@@ -540,14 +576,20 @@ unsafe fn identical(a: Obj, b: Obj) -> bool {
                         if is_tail(fields, i) {
                             true
                         } else if f.kind == 0 {
-                            identical(*at::<Obj>(a, f.offset as usize), *at::<Obj>(b, f.offset as usize))
+                            identical(
+                                *at::<Obj>(a, f.offset as usize),
+                                *at::<Obj>(b, f.offset as usize),
+                            )
                         } else {
                             load_field(a, f) == load_field(b, f)
                         }
                     });
                     match fields.last() {
                         Some(f) if same && f.kind == 0 => {
-                            (a, b) = (*at::<Obj>(a, f.offset as usize), *at::<Obj>(b, f.offset as usize));
+                            (a, b) = (
+                                *at::<Obj>(a, f.offset as usize),
+                                *at::<Obj>(b, f.offset as usize),
+                            );
                         }
                         _ => return same,
                     }
@@ -577,7 +619,12 @@ pub unsafe fn class_object(td: Td) -> Obj {
         }
         let o = gc::alloc_static(types::wk_type(K_CLASS), 24);
         *at::<Td>(o, BODY) = td;
-        match t.class_obj.compare_exchange(std::ptr::null_mut(), o, Ordering::AcqRel, Ordering::Acquire) {
+        match t.class_obj.compare_exchange(
+            std::ptr::null_mut(),
+            o,
+            Ordering::AcqRel,
+            Ordering::Acquire,
+        ) {
             Ok(_) => o,
             Err(first) => first,
         }
@@ -589,7 +636,18 @@ pub unsafe extern "C" fn cl_class_of(td: Td) -> Obj {
     unsafe {
         let t = &*td;
         // A class literal names the class: qualifiers of the type are not part of it.
-        let bare = if t.nullable || !t.quals.is_empty() { types::intern(t.class, t.args.clone(), false, Vec::new(), 0, std::ptr::null()) } else { td };
+        let bare = if t.nullable || !t.quals.is_empty() {
+            types::intern(
+                t.class,
+                t.args.clone(),
+                false,
+                Vec::new(),
+                0,
+                std::ptr::null(),
+            )
+        } else {
+            td
+        };
         class_object(bare)
     }
 }
@@ -619,7 +677,12 @@ pub unsafe extern "C" fn cl_String_get_Int(ctx: *mut Ctx, s: Obj, i: i64) -> u32
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_substring_Int_Int(ctx: *mut Ctx, s: Obj, begin: i64, end: i64) -> Obj {
+pub unsafe extern "C" fn cl_String_substring_Int_Int(
+    ctx: *mut Ctx,
+    s: Obj,
+    begin: i64,
+    end: i64,
+) -> Obj {
     unsafe {
         let n = len(s);
         if begin < 0 || end > n || begin > end {
@@ -646,14 +709,19 @@ pub unsafe fn byte_slice(a: Obj) -> &'static [u8] {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_String_fromChars_CharArray_Int(ctx: *mut Ctx, a: Obj, count: i64) -> Obj {
+pub unsafe extern "C" fn cl_String_fromChars_CharArray_Int(
+    ctx: *mut Ctx,
+    a: Obj,
+    count: i64,
+) -> Obj {
     unsafe {
         let n = len(a);
         if count < 0 || count > n {
             raise(ctx, X_INDEX, &format!("count {count}, length {n}"));
             return std::ptr::null_mut();
         }
-        let part: Vec<u32> = std::slice::from_raw_parts(at::<u32>(a, ELEMS), count as usize).to_vec();
+        let part: Vec<u32> =
+            std::slice::from_raw_parts(at::<u32>(a, ELEMS), count as usize).to_vec();
         new_string(ctx, &part)
     }
 }
@@ -661,7 +729,14 @@ pub unsafe extern "C" fn cl_String_fromChars_CharArray_Int(ctx: *mut Ctx, a: Obj
 unsafe fn map_chars(ctx: *mut Ctx, s: Obj, upper: bool) -> Obj {
     unsafe {
         let text = to_rust(s);
-        new_str(ctx, &if upper { text.to_uppercase() } else { text.to_lowercase() })
+        new_str(
+            ctx,
+            &if upper {
+                text.to_uppercase()
+            } else {
+                text.to_lowercase()
+            },
+        )
     }
 }
 
@@ -683,7 +758,11 @@ pub unsafe extern "C" fn cl_Char_from_Int(ctx: *mut Ctx, code: i64) -> u32 {
         match u32::try_from(code).ok().and_then(char::from_u32) {
             Some(c) => c as u32,
             None => {
-                raise(ctx, X_ARITHMETIC, &format!("{code} is not a Unicode scalar"));
+                raise(
+                    ctx,
+                    X_ARITHMETIC,
+                    &format!("{code} is not a Unicode scalar"),
+                );
                 0
             }
         }
@@ -745,7 +824,13 @@ static INIT_DONE: std::sync::Condvar = std::sync::Condvar::new();
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn cl_class_init(ctx: *mut Ctx, rec: *mut InitRec) {
     unsafe {
-        let name = || std::str::from_utf8_unchecked(std::slice::from_raw_parts((*rec).name, (*rec).name_len as usize)).to_string();
+        let name = || {
+            std::str::from_utf8_unchecked(std::slice::from_raw_parts(
+                (*rec).name,
+                (*rec).name_len as usize,
+            ))
+            .to_string()
+        };
         let me = (*ctx).id;
         let mut guard = INIT.lock().unwrap_or_else(|e| e.into_inner());
         loop {
@@ -754,14 +839,21 @@ pub unsafe extern "C" fn cl_class_init(ctx: *mut Ctx, rec: *mut InitRec) {
                 3 => {
                     let cause = (*rec).failure;
                     drop(guard);
-                    raise_with(ctx, X_CLASS_INIT, &format!("the initialization of {} failed", name()), cause);
+                    raise_with(
+                        ctx,
+                        X_CLASS_INIT,
+                        &format!("the initialization of {} failed", name()),
+                        cause,
+                    );
                     return;
                 }
                 1 if (*rec).owner == me => return,
                 1 => {
                     // Another thread is initializing the class: wait for it.
                     drop(guard);
-                    gc::blocking(ctx, || std::thread::sleep(std::time::Duration::from_millis(1)));
+                    gc::blocking(ctx, || {
+                        std::thread::sleep(std::time::Duration::from_millis(1))
+                    });
                     guard = INIT.lock().unwrap_or_else(|e| e.into_inner());
                 }
                 _ => break,
@@ -787,7 +879,11 @@ pub unsafe extern "C" fn cl_class_init(ctx: *mut Ctx, rec: *mut InitRec) {
 pub unsafe extern "C" fn cl_static_unassigned(ctx: *mut Ctx, name: *const u8, n: u64) {
     unsafe {
         let name = std::str::from_utf8_unchecked(std::slice::from_raw_parts(name, n as usize));
-        raise(ctx, X_CLASS_INIT, &format!("the static field {name} is read before it is assigned"));
+        raise(
+            ctx,
+            X_CLASS_INIT,
+            &format!("the static field {name} is read before it is assigned"),
+        );
     }
 }
 

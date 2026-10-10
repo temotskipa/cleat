@@ -7,7 +7,7 @@
 //! in the runtime.
 
 use crate::abi::*;
-use std::alloc::{alloc_zeroed, dealloc, Layout};
+use std::alloc::{Layout, alloc_zeroed, dealloc};
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Condvar, Mutex, MutexGuard};
 
@@ -85,7 +85,10 @@ pub fn main_stack() -> usize {
             if r.cur >= STACK as u64 {
                 return STACK;
             }
-            let want = Rlimit { cur: (STACK as u64).min(r.max), max: r.max };
+            let want = Rlimit {
+                cur: (STACK as u64).min(r.max),
+                max: r.max,
+            };
             if setrlimit(RLIMIT_STACK, &want) == 0 {
                 return want.cur as usize;
             }
@@ -223,7 +226,9 @@ pub unsafe fn alloc(ctx: *mut Ctx, td: *const crate::types::TypeDesc, size: usiz
                 collect(ctx);
             }
         }
-        let Some(l) = layout(size) else { return std::ptr::null_mut() };
+        let Some(l) = layout(size) else {
+            return std::ptr::null_mut();
+        };
         let mut p = alloc_zeroed(l) as Obj;
         if p.is_null() {
             collect(ctx);

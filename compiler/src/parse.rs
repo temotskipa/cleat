@@ -1,13 +1,19 @@
 //! A recursive-descent parser for the grammar of chapter 11.
 
-use crate::ast::*;
-use crate::lex::{self, Pos, Tok, Token, KEYWORDS, RESERVED, WORD_LITERALS};
 use crate::Diagnostic;
+use crate::ast::*;
+use crate::lex::{self, KEYWORDS, Pos, RESERVED, Tok, Token, WORD_LITERALS};
 use std::path::Path;
 
 pub fn parse_unit(file: &Path, text: &str) -> Result<Unit, Diagnostic> {
     let toks = lex::lex(file, text)?;
-    let mut p = Parser { file, text, toks, i: 0, in_arm_head: false };
+    let mut p = Parser {
+        file,
+        text,
+        toks,
+        i: 0,
+        in_arm_head: false,
+    };
     p.unit()
 }
 
@@ -207,7 +213,13 @@ impl<'a> Parser<'a> {
         while !matches!(self.tok(), Tok::Eof) {
             types.push(self.type_decl()?);
         }
-        Ok(Unit { file: self.file.to_path_buf(), text: self.text.to_string(), package, imports, types })
+        Ok(Unit {
+            file: self.file.to_path_buf(),
+            text: self.text.to_string(),
+            package,
+            imports,
+            types,
+        })
     }
 
     /// `package` also begins an audience, as in `package class Util`.
@@ -229,13 +241,18 @@ impl<'a> Parser<'a> {
     // ---- modifiers and annotations ----
 
     fn mods(&mut self) -> R<Mods> {
-        let mut m = Mods { pos: self.pos(), ..Mods::default() };
+        let mut m = Mods {
+            pos: self.pos(),
+            ..Mods::default()
+        };
         loop {
             if self.is_punct("@") {
                 m.annotations.push(self.annotation()?);
                 continue;
             }
-            let Tok::Ident(w) = self.tok().clone() else { break };
+            let Tok::Ident(w) = self.tok().clone() else {
+                break;
+            };
             let dup = |p: &Self, set: bool| -> R<()> {
                 if set {
                     p.err(format!("`{w}` is written twice"))
@@ -304,7 +321,9 @@ impl<'a> Parser<'a> {
                 }
                 // Modifiers of Java that the language leaves out. Each is an ordinary
                 // identifier, so it is one of them only where a type and a name follow.
-                "default" | "synchronized" | "volatile" | "transient" | "native" | "strictfp" if self.absent_modifier_here() => {
+                "default" | "synchronized" | "volatile" | "transient" | "native" | "strictfp"
+                    if self.absent_modifier_here() =>
+                {
                     return self.err(if w == "default" {
                         "`default` is not written on an interface method: a method with a body is a default implementation".to_string()
                     } else {
@@ -318,7 +337,11 @@ impl<'a> Parser<'a> {
     }
 
     fn absent_modifier_here(&self) -> bool {
-        matches!(self.tok_at(1), Tok::Ident(_)) && matches!(self.tok_at(2), Tok::Ident(_) | Tok::Punct("<") | Tok::Punct("["))
+        matches!(self.tok_at(1), Tok::Ident(_))
+            && matches!(
+                self.tok_at(2),
+                Tok::Ident(_) | Tok::Punct("<") | Tok::Punct("[")
+            )
     }
 
     /// `open`, `sealed` and `foreign` are identifiers unless another modifier, a type
@@ -399,8 +422,18 @@ impl<'a> Parser<'a> {
     fn named_type(&mut self) -> R<TypeRef> {
         let pos = self.pos();
         let name = self.qualified()?;
-        let args = if self.is_punct("<") { Some(self.type_args()?) } else { None };
-        Ok(TypeRef { annotations: Vec::new(), name, args, dims: Vec::new(), pos })
+        let args = if self.is_punct("<") {
+            Some(self.type_args()?)
+        } else {
+            None
+        };
+        Ok(TypeRef {
+            annotations: Vec::new(),
+            name,
+            args,
+            dims: Vec::new(),
+            pos,
+        })
     }
 
     /// Reads `{ {annotation} "[" "]" }` onto a type.
@@ -468,7 +501,11 @@ impl<'a> Parser<'a> {
             if (self.is_word("in") || self.is_word("out"))
                 && (self.is_ident_at(1) || self.is_punct_at(1, "@"))
             {
-                variance = if self.is_word("in") { Variance::In } else { Variance::Out };
+                variance = if self.is_word("in") {
+                    Variance::In
+                } else {
+                    Variance::Out
+                };
                 self.i += 1;
             }
             let mut annotations = Vec::new();
@@ -483,7 +520,13 @@ impl<'a> Parser<'a> {
                     bounds.push(self.type_ref()?);
                 }
             }
-            params.push(TypeParam { variance, annotations, name, bounds, pos });
+            params.push(TypeParam {
+                variance,
+                annotations,
+                name,
+                bounds,
+                pos,
+            });
             if !self.eat_punct(",") {
                 break;
             }
@@ -606,7 +649,12 @@ impl<'a> Parser<'a> {
             if self.is_punct("{") {
                 return self.err("an enum constant has no class body");
             }
-            d.constants.push(EnumConstant { annotations, name: cname, args, pos: cpos });
+            d.constants.push(EnumConstant {
+                annotations,
+                name: cname,
+                args,
+                pos: cpos,
+            });
             if !self.eat_punct(",") {
                 break;
             }
@@ -632,8 +680,17 @@ impl<'a> Parser<'a> {
                 let epos = self.pos();
                 let ty = self.type_ref()?;
                 let ename = self.ident()?;
-                let default = if self.eat_punct("=") { Some(self.ann_value()?) } else { None };
-                d.elements.push(Element { ty, name: ename, default, pos: epos });
+                let default = if self.eat_punct("=") {
+                    Some(self.ann_value()?)
+                } else {
+                    None
+                };
+                d.elements.push(Element {
+                    ty,
+                    name: ename,
+                    default,
+                    pos: epos,
+                });
                 if !self.eat_punct(",") {
                     break;
                 }
@@ -666,20 +723,42 @@ impl<'a> Parser<'a> {
             if let Some(r) = receiver {
                 return self.err_at(r.pos, "a constructor does not declare a receiver");
             }
-            let body = if self.eat_punct(";") { None } else { Some(self.block()?) };
-            return Ok(Member::Ctor(CtorDecl { mods, params: Some(params), body, pos }));
+            let body = if self.eat_punct(";") {
+                None
+            } else {
+                Some(self.block()?)
+            };
+            return Ok(Member::Ctor(CtorDecl {
+                mods,
+                params: Some(params),
+                body,
+                pos,
+            }));
         }
         if self.is_word(class_name) && self.is_punct_at(1, "{") {
             self.i += 1;
             let body = Some(self.block()?);
-            return Ok(Member::Ctor(CtorDecl { mods, params: None, body, pos }));
+            return Ok(Member::Ctor(CtorDecl {
+                mods,
+                params: None,
+                body,
+                pos,
+            }));
         }
         let type_params = self.type_params()?;
-        let result = if self.eat_word("void") { None } else { Some(self.type_ref()?) };
+        let result = if self.eat_word("void") {
+            None
+        } else {
+            Some(self.type_ref()?)
+        };
         let name = self.ident()?;
         if self.eat_punct("(") {
             let (receiver, params) = self.params_after_paren()?;
-            let body = if self.eat_punct(";") { None } else { Some(self.block()?) };
+            let body = if self.eat_punct(";") {
+                None
+            } else {
+                Some(self.block()?)
+            };
             return Ok(Member::Method(MethodDecl {
                 mods,
                 type_params,
@@ -697,9 +776,19 @@ impl<'a> Parser<'a> {
         let Some(ty) = result else {
             return self.err("`void` is the result of a method, and this is a field");
         };
-        let init = if self.eat_punct("=") { Some(self.expr()?) } else { None };
+        let init = if self.eat_punct("=") {
+            Some(self.expr()?)
+        } else {
+            None
+        };
         self.expect_punct(";")?;
-        Ok(Member::Field(FieldDecl { mods, ty, name, init, pos }))
+        Ok(Member::Field(FieldDecl {
+            mods,
+            ty,
+            name,
+            init,
+            pos,
+        }))
     }
 
     /// Parses parameters after the opening `(`, through the closing `)`.
@@ -717,12 +806,19 @@ impl<'a> Parser<'a> {
             }
             if first && self.is_word("this") {
                 self.i += 1;
-                ty.annotations.splice(0..0, mods.annotations.iter().cloned());
+                ty.annotations
+                    .splice(0..0, mods.annotations.iter().cloned());
                 receiver = Some(ty);
             } else {
                 let varargs = self.eat_punct("...");
                 let name = self.ident()?;
-                params.push(Param { mods, ty, varargs, name, pos });
+                params.push(Param {
+                    mods,
+                    ty,
+                    varargs,
+                    name,
+                    pos,
+                });
             }
             first = false;
             if !self.eat_punct(",") {
@@ -765,7 +861,13 @@ impl<'a> Parser<'a> {
             if !follow.iter().any(|f| p.is_punct(f)) {
                 return p.err("not a declaration");
             }
-            Ok(Local { mods, ty, name, init: None, pos })
+            Ok(Local {
+                mods,
+                ty,
+                name,
+                init: None,
+                pos,
+            })
         })
     }
 
@@ -793,15 +895,20 @@ impl<'a> Parser<'a> {
         }
         if let Tok::Ident(w) = self.tok().clone() {
             match w.as_str() {
-                "class" | "interface" | "enum" => return self.err("a type is not declared inside a method"),
+                "class" | "interface" | "enum" => {
+                    return self.err("a type is not declared inside a method");
+                }
                 "if" => {
                     self.i += 1;
                     self.expect_punct("(")?;
                     let c = self.expr()?;
                     self.expect_punct(")")?;
                     let then = Box::new(self.stmt()?);
-                    let otherwise =
-                        if self.eat_word("else") { Some(Box::new(self.stmt()?)) } else { None };
+                    let otherwise = if self.eat_word("else") {
+                        Some(Box::new(self.stmt()?))
+                    } else {
+                        None
+                    };
                     return Ok(StmtKind::If(c, then, otherwise));
                 }
                 "while" => {
@@ -841,13 +948,27 @@ impl<'a> Parser<'a> {
                         let name = self.ident()?;
                         self.expect_punct(")")?;
                         let cblock = self.block()?;
-                        catches.push(Catch { ty, name, block: cblock, pos: cpos });
+                        catches.push(Catch {
+                            ty,
+                            name,
+                            block: cblock,
+                            pos: cpos,
+                        });
                     }
-                    let finally = if self.eat_word("finally") { Some(self.block()?) } else { None };
+                    let finally = if self.eat_word("finally") {
+                        Some(self.block()?)
+                    } else {
+                        None
+                    };
                     if catches.is_empty() && finally.is_none() {
-                        return self.err("a `try` has at least one `catch` clause or a `finally` block");
+                        return self
+                            .err("a `try` has at least one `catch` clause or a `finally` block");
                     }
-                    return Ok(StmtKind::Try { block, catches, finally });
+                    return Ok(StmtKind::Try {
+                        block,
+                        catches,
+                        finally,
+                    });
                 }
                 "using" => {
                     self.i += 1;
@@ -855,7 +976,8 @@ impl<'a> Parser<'a> {
                     let mut resources = Vec::new();
                     loop {
                         let Some(local) = self.try_local(&["="]) else {
-                            return self.err("a `using` resource is written `Type name = expression`");
+                            return self
+                                .err("a `using` resource is written `Type name = expression`");
                         };
                         resources.push(self.local_rest(local)?);
                         if !self.eat_punct(",") {
@@ -868,13 +990,21 @@ impl<'a> Parser<'a> {
                 }
                 "return" => {
                     self.i += 1;
-                    let e = if self.is_punct(";") { None } else { Some(self.expr()?) };
+                    let e = if self.is_punct(";") {
+                        None
+                    } else {
+                        Some(self.expr()?)
+                    };
                     self.expect_punct(";")?;
                     return Ok(StmtKind::Return(e));
                 }
                 "break" | "continue" => {
                     self.i += 1;
-                    let label = if self.is_punct(";") { None } else { Some(self.ident()?) };
+                    let label = if self.is_punct(";") {
+                        None
+                    } else {
+                        Some(self.ident()?)
+                    };
                     self.expect_punct(";")?;
                     return Ok(if w == "break" {
                         StmtKind::Break(label)
@@ -891,7 +1021,11 @@ impl<'a> Parser<'a> {
                 "assert" => {
                     self.i += 1;
                     let c = self.expr()?;
-                    let detail = if self.eat_punct(":") { Some(self.expr()?) } else { None };
+                    let detail = if self.eat_punct(":") {
+                        Some(self.expr()?)
+                    } else {
+                        None
+                    };
                     self.expect_punct(";")?;
                     return Ok(StmtKind::Assert(c, detail));
                 }
@@ -938,12 +1072,18 @@ impl<'a> Parser<'a> {
             let pos = self.pos();
             if let Some(local) = self.try_local(&["=", ";"]) {
                 let local = self.local_rest(local)?;
-                init.push(Stmt { kind: StmtKind::Local(local), pos });
+                init.push(Stmt {
+                    kind: StmtKind::Local(local),
+                    pos,
+                });
             } else {
                 loop {
                     let pos = self.pos();
                     let e = self.expr()?;
-                    init.push(Stmt { kind: StmtKind::Expr(e), pos });
+                    init.push(Stmt {
+                        kind: StmtKind::Expr(e),
+                        pos,
+                    });
                     if !self.eat_punct(",") {
                         break;
                     }
@@ -951,7 +1091,11 @@ impl<'a> Parser<'a> {
             }
         }
         self.expect_punct(";")?;
-        let cond = if self.is_punct(";") { None } else { Some(self.expr()?) };
+        let cond = if self.is_punct(";") {
+            None
+        } else {
+            Some(self.expr()?)
+        };
         self.expect_punct(";")?;
         let mut update = Vec::new();
         if !self.is_punct(")") {
@@ -964,7 +1108,12 @@ impl<'a> Parser<'a> {
         }
         self.expect_punct(")")?;
         let body = Box::new(self.stmt()?);
-        Ok(StmtKind::For { init, cond, update, body })
+        Ok(StmtKind::For {
+            init,
+            cond,
+            update,
+            body,
+        })
     }
 
     fn arm_head(&mut self) -> R<ArmHead> {
@@ -1030,15 +1179,27 @@ impl<'a> Parser<'a> {
         };
         let Some(op) = op else { return Ok(left) };
         if !Self::is_location(&left) {
-            return self.err("the left side of an assignment is a variable, a field or an indexed element");
+            return self.err(
+                "the left side of an assignment is a variable, a field or an indexed element",
+            );
         }
         self.i += width;
         let value = self.expr()?;
-        Ok(Expr { kind: ExprKind::Assign { op, target: Box::new(left), value: Box::new(value) }, pos })
+        Ok(Expr {
+            kind: ExprKind::Assign {
+                op,
+                target: Box::new(left),
+                value: Box::new(value),
+            },
+            pos,
+        })
     }
 
     fn is_location(e: &Expr) -> bool {
-        matches!(e.kind, ExprKind::Name(_) | ExprKind::Field(..) | ExprKind::Index(..))
+        matches!(
+            e.kind,
+            ExprKind::Name(_) | ExprKind::Field(..) | ExprKind::Index(..)
+        )
     }
 
     fn conditional(&mut self) -> R<Expr> {
@@ -1050,7 +1211,10 @@ impl<'a> Parser<'a> {
         let a = self.expr()?;
         self.expect_punct(":")?;
         let b = self.conditional()?;
-        Ok(Expr { kind: ExprKind::Cond(Box::new(c), Box::new(a), Box::new(b)), pos })
+        Ok(Expr {
+            kind: ExprKind::Cond(Box::new(c), Box::new(a), Box::new(b)),
+            pos,
+        })
     }
 
     fn coalesce(&mut self) -> R<Expr> {
@@ -1060,7 +1224,10 @@ impl<'a> Parser<'a> {
             return Ok(a);
         }
         let b = self.coalesce()?;
-        Ok(Expr { kind: ExprKind::Coalesce(Box::new(a), Box::new(b)), pos })
+        Ok(Expr {
+            kind: ExprKind::Coalesce(Box::new(a), Box::new(b)),
+            pos,
+        })
     }
 
     fn or_else(&mut self) -> R<Expr> {
@@ -1068,7 +1235,10 @@ impl<'a> Parser<'a> {
         let mut l = self.and_also()?;
         while self.eat_punct("||") {
             let r = self.and_also()?;
-            l = Expr { kind: ExprKind::Or(Box::new(l), Box::new(r)), pos };
+            l = Expr {
+                kind: ExprKind::Or(Box::new(l), Box::new(r)),
+                pos,
+            };
         }
         Ok(l)
     }
@@ -1078,7 +1248,10 @@ impl<'a> Parser<'a> {
         let mut l = self.binary(0)?;
         while self.eat_punct("&&") {
             let r = self.binary(0)?;
-            l = Expr { kind: ExprKind::And(Box::new(l), Box::new(r)), pos };
+            l = Expr {
+                kind: ExprKind::And(Box::new(l), Box::new(r)),
+                pos,
+            };
         }
         Ok(l)
     }
@@ -1090,7 +1263,12 @@ impl<'a> Parser<'a> {
             &[("^", BinOp::BitXor)],
             &[("&", BinOp::BitAnd)],
             &[("==", BinOp::Eq), ("!=", BinOp::Ne)],
-            &[("<", BinOp::Lt), (">", BinOp::Gt), ("<=", BinOp::Le), (">=", BinOp::Ge)],
+            &[
+                ("<", BinOp::Lt),
+                (">", BinOp::Gt),
+                ("<=", BinOp::Le),
+                (">=", BinOp::Ge),
+            ],
             &[("<<", BinOp::Shl), (">>", BinOp::Shr)],
             &[("+", BinOp::Add), ("-", BinOp::Sub)],
             &[("*", BinOp::Mul), ("/", BinOp::Div), ("%", BinOp::Rem)],
@@ -1104,10 +1282,15 @@ impl<'a> Parser<'a> {
             if level == 4 && self.is_word("instanceof") {
                 self.i += 1;
                 let ty = self.type_ref()?;
-                l = Expr { kind: ExprKind::InstanceOf(Box::new(l), ty), pos };
+                l = Expr {
+                    kind: ExprKind::InstanceOf(Box::new(l), ty),
+                    pos,
+                };
                 continue;
             }
-            let Some((spelling, width)) = self.op() else { break };
+            let Some((spelling, width)) = self.op() else {
+                break;
+            };
             if spelling == ">>" && self.is_punct_at(2, ">") && self.glued(2) {
                 return self.err("`>>>` is not an operator");
             }
@@ -1115,7 +1298,10 @@ impl<'a> Parser<'a> {
             let Some((_, op)) = found else { break };
             self.i += width;
             let r = self.binary(level + 1)?;
-            l = Expr { kind: ExprKind::Binary(*op, Box::new(l), Box::new(r)), pos };
+            l = Expr {
+                kind: ExprKind::Binary(*op, Box::new(l), Box::new(r)),
+                pos,
+            };
         }
         Ok(l)
     }
@@ -1131,7 +1317,10 @@ impl<'a> Parser<'a> {
         if let Some(op) = op {
             self.i += 1;
             let e = self.unary()?;
-            return Ok(Expr { kind: ExprKind::Unary(op, Box::new(e)), pos });
+            return Ok(Expr {
+                kind: ExprKind::Unary(op, Box::new(e)),
+                pos,
+            });
         }
         if self.is_punct("+") {
             return self.err("there is no unary `+`");
@@ -1141,14 +1330,27 @@ impl<'a> Parser<'a> {
             self.i += 1;
             let e = self.unary()?;
             if !Self::is_location(&e) {
-                return self.err_at(pos, "`++` and `--` apply to a variable, a field or an indexed element");
+                return self.err_at(
+                    pos,
+                    "`++` and `--` apply to a variable, a field or an indexed element",
+                );
             }
-            return Ok(Expr { kind: ExprKind::IncDec { inc, prefix: true, target: Box::new(e) }, pos });
+            return Ok(Expr {
+                kind: ExprKind::IncDec {
+                    inc,
+                    prefix: true,
+                    target: Box::new(e),
+                },
+                pos,
+            });
         }
         if self.is_punct("(") {
             if let Some(ty) = self.attempt(|p| p.cast_head()) {
                 let e = self.unary()?;
-                return Ok(Expr { kind: ExprKind::Cast(ty, Box::new(e)), pos });
+                return Ok(Expr {
+                    kind: ExprKind::Cast(ty, Box::new(e)),
+                    pos,
+                });
             }
         }
         self.postfix()
@@ -1165,11 +1367,7 @@ impl<'a> Parser<'a> {
             Tok::Punct("(") | Tok::Punct("!") | Tok::Punct("~") => true,
             _ => false,
         };
-        if ok {
-            Ok(ty)
-        } else {
-            self.err("not a cast")
-        }
+        if ok { Ok(ty) } else { self.err("not a cast") }
     }
 
     fn postfix(&mut self) -> R<Expr> {
@@ -1180,40 +1378,78 @@ impl<'a> Parser<'a> {
                 if self.is_word_at(1, "class") {
                     let ty = self.expr_to_type(&e)?;
                     self.i += 2;
-                    e = Expr { kind: ExprKind::ClassLit(ty), pos };
+                    e = Expr {
+                        kind: ExprKind::ClassLit(ty),
+                        pos,
+                    };
                     continue;
                 }
                 self.i += 1;
-                let type_args = if self.is_punct("<") { self.type_args()? } else { Vec::new() };
+                let type_args = if self.is_punct("<") {
+                    self.type_args()?
+                } else {
+                    Vec::new()
+                };
                 let name = self.ident()?;
                 if self.eat_punct("(") {
                     let args = self.args()?;
                     e = Expr {
-                        kind: ExprKind::Call { target: Some(Box::new(e)), type_args, name, args },
+                        kind: ExprKind::Call {
+                            target: Some(Box::new(e)),
+                            type_args,
+                            name,
+                            args,
+                        },
                         pos,
                     };
                 } else {
                     if !type_args.is_empty() {
-                        return self.err("type arguments are written before the name of a method that is called");
+                        return self.err(
+                            "type arguments are written before the name of a method that is called",
+                        );
                     }
-                    e = Expr { kind: ExprKind::Field(Box::new(e), name), pos };
+                    e = Expr {
+                        kind: ExprKind::Field(Box::new(e), name),
+                        pos,
+                    };
                 }
             } else if self.is_punct("[") {
                 self.i += 1;
                 let index = self.expr()?;
                 self.expect_punct("]")?;
-                e = Expr { kind: ExprKind::Index(Box::new(e), Box::new(index)), pos };
+                e = Expr {
+                    kind: ExprKind::Index(Box::new(e), Box::new(index)),
+                    pos,
+                };
             } else if self.is_punct("::") {
                 self.i += 1;
-                let name = if self.eat_word("new") { "new".to_string() } else { self.ident()? };
-                e = Expr { kind: ExprKind::MethodRef { target: RefTarget::Expr(Box::new(e)), name }, pos };
+                let name = if self.eat_word("new") {
+                    "new".to_string()
+                } else {
+                    self.ident()?
+                };
+                e = Expr {
+                    kind: ExprKind::MethodRef {
+                        target: RefTarget::Expr(Box::new(e)),
+                        name,
+                    },
+                    pos,
+                };
             } else if self.is_punct("++") || self.is_punct("--") {
                 if !Self::is_location(&e) {
-                    return self.err("`++` and `--` apply to a variable, a field or an indexed element");
+                    return self
+                        .err("`++` and `--` apply to a variable, a field or an indexed element");
                 }
                 let inc = self.is_punct("++");
                 self.i += 1;
-                e = Expr { kind: ExprKind::IncDec { inc, prefix: false, target: Box::new(e) }, pos };
+                e = Expr {
+                    kind: ExprKind::IncDec {
+                        inc,
+                        prefix: false,
+                        target: Box::new(e),
+                    },
+                    pos,
+                };
             } else {
                 break;
             }
@@ -1243,7 +1479,13 @@ impl<'a> Parser<'a> {
         if !path(e, &mut name) {
             return self.err("a class literal is written `Type.class`");
         }
-        Ok(TypeRef { annotations: Vec::new(), name, args: None, dims: Vec::new(), pos: e.pos })
+        Ok(TypeRef {
+            annotations: Vec::new(),
+            name,
+            args: None,
+            dims: Vec::new(),
+            pos: e.pos,
+        })
     }
 
     /// A type written with arguments or brackets where an expression could stand:
@@ -1256,11 +1498,24 @@ impl<'a> Parser<'a> {
         }
         if self.is_punct(".") && self.is_word_at(1, "class") {
             self.i += 2;
-            return Ok(Expr { kind: ExprKind::ClassLit(ty), pos });
+            return Ok(Expr {
+                kind: ExprKind::ClassLit(ty),
+                pos,
+            });
         }
         if self.eat_punct("::") {
-            let name = if self.eat_word("new") { "new".to_string() } else { self.ident()? };
-            return Ok(Expr { kind: ExprKind::MethodRef { target: RefTarget::Type(ty), name }, pos });
+            let name = if self.eat_word("new") {
+                "new".to_string()
+            } else {
+                self.ident()?
+            };
+            return Ok(Expr {
+                kind: ExprKind::MethodRef {
+                    target: RefTarget::Type(ty),
+                    name,
+                },
+                pos,
+            });
         }
         self.err("not a type")
     }
@@ -1340,7 +1595,12 @@ impl<'a> Parser<'a> {
                     let name = self.ident()?;
                     if self.eat_punct("(") {
                         let args = self.args()?;
-                        ExprKind::Call { target: None, type_args: Vec::new(), name, args }
+                        ExprKind::Call {
+                            target: None,
+                            type_args: Vec::new(),
+                            name,
+                            args,
+                        }
                     } else {
                         ExprKind::Name(name)
                     }
@@ -1380,16 +1640,25 @@ impl<'a> Parser<'a> {
         let mut params = Vec::new();
         while !self.is_punct(")") {
             let ppos = self.pos();
-            let simple = self.is_ident_at(0) && (self.is_punct_at(1, ",") || self.is_punct_at(1, ")"));
+            let simple =
+                self.is_ident_at(0) && (self.is_punct_at(1, ",") || self.is_punct_at(1, ")"));
             if simple {
                 let name = self.ident()?;
-                params.push(LambdaParam { ty: None, name, pos: ppos });
+                params.push(LambdaParam {
+                    ty: None,
+                    name,
+                    pos: ppos,
+                });
             } else {
                 let mods = self.mods()?;
                 let mut ty = self.type_ref()?;
                 ty.annotations.splice(0..0, mods.annotations.into_iter());
                 let name = self.ident()?;
-                params.push(LambdaParam { ty: Some(ty), name, pos: ppos });
+                params.push(LambdaParam {
+                    ty: Some(ty),
+                    name,
+                    pos: ppos,
+                });
             }
             if !self.eat_punct(",") {
                 break;
@@ -1402,7 +1671,10 @@ impl<'a> Parser<'a> {
         } else {
             LambdaBody::Expr(Box::new(self.expr()?))
         };
-        Ok(Expr { kind: ExprKind::Lambda { params, body }, pos })
+        Ok(Expr {
+            kind: ExprKind::Lambda { params, body },
+            pos,
+        })
     }
 
     fn new_expr(&mut self, pos: Pos) -> R<Expr> {
@@ -1417,7 +1689,10 @@ impl<'a> Parser<'a> {
                 return self.err_at(pos, "a qualifier is not written on the class in `new`");
             }
             let args = self.args()?;
-            return Ok(Expr { kind: ExprKind::New { ty, args }, pos });
+            return Ok(Expr {
+                kind: ExprKind::New { ty, args },
+                pos,
+            });
         }
         // `new T[] ... { elements }`: the brackets belong to the type.
         let save = self.i;
@@ -1433,7 +1708,10 @@ impl<'a> Parser<'a> {
                 }
             }
             self.expect_punct("}")?;
-            return Ok(Expr { kind: ExprKind::ArrayLit { ty: probe, elems }, pos });
+            return Ok(Expr {
+                kind: ExprKind::ArrayLit { ty: probe, elems },
+                pos,
+            });
         }
         self.i = save;
         // `new T[n]` and further brackets, which belong to the element type.
@@ -1441,7 +1719,13 @@ impl<'a> Parser<'a> {
         let len = self.expr()?;
         self.expect_punct("]")?;
         self.dims(&mut ty)?;
-        Ok(Expr { kind: ExprKind::NewArray { elem: ty, len: Box::new(len) }, pos })
+        Ok(Expr {
+            kind: ExprKind::NewArray {
+                elem: ty,
+                len: Box::new(len),
+            },
+            pos,
+        })
     }
 
     fn switch_expr(&mut self, pos: Pos) -> R<Expr> {
@@ -1463,6 +1747,12 @@ impl<'a> Parser<'a> {
             arms.push((head, value, apos));
         }
         self.expect_punct("}")?;
-        Ok(Expr { kind: ExprKind::Switch { selector: Box::new(selector), arms }, pos })
+        Ok(Expr {
+            kind: ExprKind::Switch {
+                selector: Box::new(selector),
+                arms,
+            },
+            pos,
+        })
     }
 }

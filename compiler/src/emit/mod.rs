@@ -257,7 +257,24 @@ fn c_size(r: Repr) -> usize {
 fn esc(s: &str) -> String {
     let mut out = String::new();
     for b in s.bytes() {
-        if b.is_ascii_alphanumeric() || matches!(b, b' ' | b'.' | b'_' | b'-' | b'$' | b'/' | b'<' | b'>' | b',' | b'#' | b'@' | b'(' | b')' | b':') {
+        if b.is_ascii_alphanumeric()
+            || matches!(
+                b,
+                b' ' | b'.'
+                    | b'_'
+                    | b'-'
+                    | b'$'
+                    | b'/'
+                    | b'<'
+                    | b'>'
+                    | b','
+                    | b'#'
+                    | b'@'
+                    | b'('
+                    | b')'
+                    | b':'
+            )
+        {
             out.push(b as char);
         } else {
             let _ = write!(out, "\\{b:02X}");
@@ -268,7 +285,9 @@ fn esc(s: &str) -> String {
 
 /// A name LLVM accepts between quotes.
 fn sym(s: &str) -> String {
-    s.chars().map(|c| if c == '"' || c == '\\' { '_' } else { c }).collect()
+    s.chars()
+        .map(|c| if c == '"' || c == '\\' { '_' } else { c })
+        .collect()
 }
 
 impl<'p> Emitter<'p> {
@@ -291,18 +310,28 @@ impl<'p> Emitter<'p> {
     }
 
     pub fn layout(&self, id: ClassId) -> &Layout {
-        self.layouts[id as usize].as_ref().expect("a class with a layout")
+        self.layouts[id as usize]
+            .as_ref()
+            .expect("a class with a layout")
     }
 
     pub fn field_place(&self, owner: ClassId, f: FieldRef) -> (String, u32, Repr) {
         // The receiver's class may be a subclass; the field has one place in all of them.
         let l = self.layout(owner);
-        let (_, repr, index) = *l.fields.iter().find(|(r, _, _)| *r == f).expect("a field of the class");
+        let (_, repr, index) = *l
+            .fields
+            .iter()
+            .find(|(r, _, _)| *r == f)
+            .expect("a field of the class");
         (l.ty.clone(), index, repr)
     }
 
     pub fn static_sym(&self, f: FieldRef) -> String {
-        format!("@\"s.{}.{}\"", sym(&self.p.class(f.class).qname), sym(&self.p.field(f).name))
+        format!(
+            "@\"s.{}.{}\"",
+            sym(&self.p.class(f.class).qname),
+            sym(&self.p.field(f).name)
+        )
     }
 
     pub fn init_rec(&self, id: ClassId) -> String {
@@ -318,11 +347,17 @@ impl<'p> Emitter<'p> {
     }
 
     pub fn selector(&self, root: MethodRef) -> u32 {
-        *self.selectors.get(&root).expect("a selector for a virtual method")
+        *self
+            .selectors
+            .get(&root)
+            .expect("a selector for a virtual method")
     }
 
     pub fn req_selector(&self, req: MethodRef) -> u32 {
-        *self.req_selectors.get(&req).expect("a selector for a static requirement")
+        *self
+            .req_selectors
+            .get(&req)
+            .expect("a selector for a static requirement")
     }
 
     fn erasure(&self, t: &Type) -> String {
@@ -347,7 +382,17 @@ impl<'p> Emitter<'p> {
         };
         Sig {
             recv: if md.foreign { None } else { recv },
-            params: md.params.iter().map(|p| if md.foreign && self.p.array_elem(&p.ty).is_some() { Repr::Ptr } else { self.repr(&p.ty) }).collect(),
+            params: md
+                .params
+                .iter()
+                .map(|p| {
+                    if md.foreign && self.p.array_elem(&p.ty).is_some() {
+                        Repr::Ptr
+                    } else {
+                        self.repr(&p.ty)
+                    }
+                })
+                .collect(),
             ret: self.repr(&md.ret),
             generic: !md.tparams.is_empty(),
             foreign: md.foreign,
@@ -363,7 +408,13 @@ impl<'p> Emitter<'p> {
             params.push(Repr::I64);
         }
         params.extend(k.params.iter().map(|p| self.repr(&p.ty)));
-        Sig { recv: Some(Repr::Ref), params, ret: Repr::Unit, generic: false, foreign: false }
+        Sig {
+            recv: Some(Repr::Ref),
+            params,
+            ret: Repr::Unit,
+            generic: false,
+            foreign: false,
+        }
     }
 
     /// The symbol of a method's code, declared when the runtime or C supplies it.
@@ -373,7 +424,12 @@ impl<'p> Emitter<'p> {
         let s = self.sig(m);
         if md.foreign {
             let name = md.symbol.clone().unwrap_or_else(|| md.name.clone());
-            self.declare(format!("declare {} @\"{}\"({})", s.ret.ll(), sym(&name), s.ll_params_c()));
+            self.declare(format!(
+                "declare {} @\"{}\"({})",
+                s.ret.ll(),
+                sym(&name),
+                s.ll_params_c()
+            ));
             return format!("@\"{}\"", sym(&name));
         }
         if md.intrinsic {
@@ -382,7 +438,11 @@ impl<'p> Emitter<'p> {
                 name.push('_');
                 name.push_str(&self.erasure(&prm.ty));
             }
-            self.declare(format!("declare {} @{name}({})", s.ret.ll(), s.ll_params_c()));
+            self.declare(format!(
+                "declare {} @{name}({})",
+                s.ret.ll(),
+                s.ll_params_c()
+            ));
             return format!("@{name}");
         }
         format!("@\"{}.{}/{}\"", sym(&c.qname), sym(&md.name), m.index)
@@ -413,7 +473,16 @@ impl<'p> Emitter<'p> {
         let n = self.bytes.len();
         let id = *self.bytes.entry(s.to_string()).or_insert(n);
         if id == n {
-            let _ = writeln!(self.globals, "@b.{id} = private constant [{} x i8] c\"{}\"", s.len().max(1), if s.is_empty() { "\\00".to_string() } else { esc(s) });
+            let _ = writeln!(
+                self.globals,
+                "@b.{id} = private constant [{} x i8] c\"{}\"",
+                s.len().max(1),
+                if s.is_empty() {
+                    "\\00".to_string()
+                } else {
+                    esc(s)
+                }
+            );
         }
         (format!("@b.{id}"), s.len())
     }
@@ -448,7 +517,15 @@ impl<'p> Emitter<'p> {
         if items.is_empty() {
             return "null".into();
         }
-        let key = format!("[{} x ptr] [{}]", items.len(), items.iter().map(|i| format!("ptr {i}")).collect::<Vec<_>>().join(", "));
+        let key = format!(
+            "[{} x ptr] [{}]",
+            items.len(),
+            items
+                .iter()
+                .map(|i| format!("ptr {i}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
         let n = self.bytes.len();
         let id = *self.bytes.entry(format!("\u{1}{key}")).or_insert(n);
         if id == n {
@@ -466,7 +543,9 @@ impl<'p> Emitter<'p> {
             Ty::Var(v) => {
                 *open = true;
                 let index = tv(*v).unwrap_or(0);
-                format!("{{ i32 1, i32 {nullable}, ptr null, i32 {index}, i32 0, ptr null, i32 {nquals}, i32 0, ptr {quals}, ptr null }}")
+                format!(
+                    "{{ i32 1, i32 {nullable}, ptr null, i32 {index}, i32 0, ptr null, i32 {nquals}, i32 0, ptr {quals}, ptr null }}"
+                )
             }
             Ty::Class(id, args) => {
                 let mut items = Vec::new();
@@ -496,10 +575,16 @@ impl<'p> Emitter<'p> {
                 let names: Vec<String> = items.into_iter().map(|(s, _)| s).collect();
                 let nargs = names.len();
                 let args = self.ptr_array(&names);
-                format!("{{ i32 0, i32 {nullable}, ptr {}, i32 0, i32 {nargs}, ptr {args}, i32 {nquals}, i32 0, ptr {quals}, ptr null }}", self.class_info(*id))
+                format!(
+                    "{{ i32 0, i32 {nullable}, ptr {}, i32 0, i32 {nargs}, ptr {args}, i32 {nquals}, i32 0, ptr {quals}, ptr null }}",
+                    self.class_info(*id)
+                )
             }
             // A type that was already reported; no code is run from it.
-            _ => format!("{{ i32 0, i32 {nullable}, ptr {}, i32 0, i32 0, ptr null, i32 0, i32 0, ptr null, ptr null }}", self.class_info(self.p.wk.object)),
+            _ => format!(
+                "{{ i32 0, i32 {nullable}, ptr {}, i32 0, i32 0, ptr null, i32 0, i32 0, ptr null, ptr null }}",
+                self.class_info(self.p.wk.object)
+            ),
         }
     }
 
@@ -515,7 +600,11 @@ impl<'p> Emitter<'p> {
     /// Whether a type is a value class the program declares, passed to C as a struct.
     pub fn is_struct(&self, t: &Type) -> bool {
         match (&t.ty, self.repr(t)) {
-            (Ty::Class(id, _), Repr::Ref) => !t.nullable && self.p.class(*id).kind == TypeKind::ValueClass && self.p.class(*id).package != "cleat",
+            (Ty::Class(id, _), Repr::Ref) => {
+                !t.nullable
+                    && self.p.class(*id).kind == TypeKind::ValueClass
+                    && self.p.class(*id).package != "cleat"
+            }
             _ => false,
         }
     }
@@ -538,8 +627,14 @@ impl<'p> Emitter<'p> {
                 let inner = self.p.field(*f).ty.class_id().unwrap_or(id);
                 let iname = self.c_struct(inner);
                 let _ = write!(decl, "{iname} f{k}; ");
-                let _ = write!(copy_in, "cleat_in_{inner}(&d->f{k}, *(char **)(o + {at})); ");
-                let _ = write!(copy_out, "cleat_out_{inner}(&s->f{k}, *(char **)(o + {at})); ");
+                let _ = write!(
+                    copy_in,
+                    "cleat_in_{inner}(&d->f{k}, *(char **)(o + {at})); "
+                );
+                let _ = write!(
+                    copy_out,
+                    "cleat_out_{inner}(&s->f{k}, *(char **)(o + {at})); "
+                );
             } else {
                 let ct = c_scalar(*r);
                 let _ = write!(decl, "{ct} f{k}; ");
@@ -549,8 +644,14 @@ impl<'p> Emitter<'p> {
             at += size;
         }
         let _ = writeln!(self.shim, "{name} {{ {decl}}};");
-        let _ = writeln!(self.shim, "static void cleat_in_{id}({name} *d, char *o) {{ {copy_in}}}");
-        let _ = writeln!(self.shim, "static void cleat_out_{id}(const {name} *s, char *o) {{ {copy_out}}}");
+        let _ = writeln!(
+            self.shim,
+            "static void cleat_in_{id}({name} *d, char *o) {{ {copy_in}}}"
+        );
+        let _ = writeln!(
+            self.shim,
+            "static void cleat_out_{id}(const {name} *s, char *o) {{ {copy_out}}}"
+        );
         name
     }
 
@@ -559,7 +660,10 @@ impl<'p> Emitter<'p> {
     pub fn foreign_shim(&mut self, m: MethodRef) -> Option<Shim> {
         let md = self.p.method(m);
         let elem = |t: &Type| self.p.array_elem(t);
-        let needs = self.is_struct(&md.ret) || md.params.iter().any(|p| self.is_struct(&p.ty) || elem(&p.ty).map(|e| self.is_struct(&e)).unwrap_or(false));
+        let needs = self.is_struct(&md.ret)
+            || md.params.iter().any(|p| {
+                self.is_struct(&p.ty) || elem(&p.ty).map(|e| self.is_struct(&e)).unwrap_or(false)
+            });
         if !needs {
             return None;
         }
@@ -598,7 +702,10 @@ impl<'p> Emitter<'p> {
                         before,
                         "{s} *t{i} = malloc(sizeof({s}) * (n{i} > 0 ? n{i} : 1)); for (int64_t k = 0; k < n{i}; k++) cleat_in_{id}(&t{i}[k], a{i}[k]); "
                     );
-                    let _ = write!(after, "for (int64_t k = 0; k < n{i}; k++) {{ cleat_out_{id}(&t{i}[k], b{i}[k]); a{i}[k] = b{i}[k]; }} free(t{i}); ");
+                    let _ = write!(
+                        after,
+                        "for (int64_t k = 0; k < n{i}; k++) {{ cleat_out_{id}(&t{i}[k], b{i}[k]); a{i}[k] = b{i}[k]; }} free(t{i}); "
+                    );
                     args.push(format!("t{i}"));
                     kinds.push(ShimParam::StructArray);
                 } else {
@@ -627,22 +734,50 @@ impl<'p> Emitter<'p> {
             c_scalar(ret).to_string()
         };
         let call = format!("{name}({})", args.join(", "));
-        let void_params = |v: &Vec<String>| if v.is_empty() { "void".to_string() } else { v.join(", ") };
+        let void_params = |v: &Vec<String>| {
+            if v.is_empty() {
+                "void".to_string()
+            } else {
+                v.join(", ")
+            }
+        };
         if first {
-            let _ = writeln!(self.shim, "extern {c_ret} {name}({});", void_params(&c_params));
+            let _ = writeln!(
+                self.shim,
+                "extern {c_ret} {name}({});",
+                void_params(&c_params)
+            );
             let (shim_ret, body) = if ret_struct {
                 let id = md.ret.class_id().unwrap();
-                ("void".to_string(), format!("{before}{c_ret} r = {call}; {after}cleat_out_{id}(&r, ret);"))
+                (
+                    "void".to_string(),
+                    format!("{before}{c_ret} r = {call}; {after}cleat_out_{id}(&r, ret);"),
+                )
             } else if ret == Repr::Unit {
                 ("void".to_string(), format!("{before}{call}; {after}"))
             } else {
-                (c_ret.clone(), format!("{before}{c_ret} r = {call}; {after}return r;"))
+                (
+                    c_ret.clone(),
+                    format!("{before}{c_ret} r = {call}; {after}return r;"),
+                )
             };
-            let _ = writeln!(self.shim, "{shim_ret} {symbol}({}) {{ {body} }}", void_params(&shim_params));
+            let _ = writeln!(
+                self.shim,
+                "{shim_ret} {symbol}({}) {{ {body} }}",
+                void_params(&shim_params)
+            );
         }
         let ll_ret = if ret_struct { "void" } else { ret.ll() };
-        self.declare(format!("declare {ll_ret} @{symbol}({})", ll_params.join(", ")));
-        Some(Shim { symbol: format!("@{symbol}"), params: kinds, ret_struct, ret })
+        self.declare(format!(
+            "declare {ll_ret} @{symbol}({})",
+            ll_params.join(", ")
+        ));
+        Some(Shim {
+            symbol: format!("@{symbol}"),
+            params: kinds,
+            ret_struct,
+            ret,
+        })
     }
 
     pub fn next_thunk(&mut self) -> u32 {
@@ -665,13 +800,21 @@ impl<'p> Emitter<'p> {
         if a == b {
             return target;
         }
-        let name = format!("bridge.{}.{}/{}.as.{}/{}", self.p.class(imp.class).qname, self.p.method(imp).name, imp.index, self.p.class(root.class).qname, root.index);
+        let name = format!(
+            "bridge.{}.{}/{}.as.{}/{}",
+            self.p.class(imp.class).qname,
+            self.p.method(imp).name,
+            imp.index,
+            self.p.class(root.class).qname,
+            root.index
+        );
         self.bridges.insert(name.clone(), (imp, root, is_req));
         format!("@\"{}\"", sym(&name))
     }
 
     fn emit_bridges(&mut self) {
-        let list: Vec<(String, (MethodRef, MethodRef, bool))> = self.bridges.iter().map(|(k, v)| (k.clone(), *v)).collect();
+        let list: Vec<(String, (MethodRef, MethodRef, bool))> =
+            self.bridges.iter().map(|(k, v)| (k.clone(), *v)).collect();
         for (name, (imp, root, _)) in list {
             let (a, b) = (self.sig(imp), self.sig(root));
             let target = self.fn_symbol(imp);
@@ -701,7 +844,11 @@ impl<'p> Emitter<'p> {
                 String::new()
             } else {
                 let t = f.tmp();
-                f.ins(&format!("{t} = call {} {target}({})", a.ret.ll(), all.join(", ")));
+                f.ins(&format!(
+                    "{t} = call {} {target}({})",
+                    a.ret.ll(),
+                    all.join(", ")
+                ));
                 t
             };
             // An exception leaves the result unused: return without boxing it.
@@ -720,31 +867,57 @@ impl<'p> Emitter<'p> {
             if b.ret == Repr::Unit {
                 f.raw("  ret void");
             } else {
-                let v = if a.ret == Repr::Unit { f.unit_object() } else { f.convert_raw(&result, a.ret, b.ret) };
+                let v = if a.ret == Repr::Unit {
+                    f.unit_object()
+                } else {
+                    f.convert_raw(&result, a.ret, b.ret)
+                };
                 f.raw(&format!("  ret {} {v}", b.ret.ll()));
             }
             let body = f.take_body();
-            let text = format!("define internal {} @\"{}\"({}) {{\nentry:\n{body}}}\n", b.ret.ll(), sym(&name), params.join(", "));
+            let text = format!(
+                "define internal {} @\"{}\"({}) {{\nentry:\n{body}}}\n",
+                b.ret.ll(),
+                sym(&name),
+                params.join(", ")
+            );
             self.add_function(&text);
         }
     }
 
     // ---- classes ----
 
-    fn method_table(&mut self, entries: &[(MethodRef, MethodRef)], is_req: bool, name: &str) -> (String, usize) {
+    fn method_table(
+        &mut self,
+        entries: &[(MethodRef, MethodRef)],
+        is_req: bool,
+        name: &str,
+    ) -> (String, usize) {
         if entries.is_empty() {
             return ("null".into(), 0);
         }
         let mut rows: Vec<(u32, String)> = Vec::new();
         for (root, imp) in entries {
-            let sel = if is_req { self.req_selector(*root) } else { self.selector(*root) };
+            let sel = if is_req {
+                self.req_selector(*root)
+            } else {
+                self.selector(*root)
+            };
             let f = self.table_entry(*imp, *root, is_req);
             rows.push((sel, f));
         }
         rows.sort();
         rows.dedup_by_key(|r| r.0);
-        let body: Vec<String> = rows.iter().map(|(s, f)| format!("%MethodEntry {{ i32 {s}, i32 0, ptr {f} }}")).collect();
-        let _ = writeln!(self.globals, "{name} = private constant [{} x %MethodEntry] [{}]", rows.len(), body.join(", "));
+        let body: Vec<String> = rows
+            .iter()
+            .map(|(s, f)| format!("%MethodEntry {{ i32 {s}, i32 0, ptr {f} }}"))
+            .collect();
+        let _ = writeln!(
+            self.globals,
+            "{name} = private constant [{} x %MethodEntry] [{}]",
+            rows.len(),
+            body.join(", ")
+        );
         (name.to_string(), rows.len())
     }
 
@@ -753,7 +926,12 @@ impl<'p> Emitter<'p> {
             return "null".into();
         }
         let body: Vec<String> = items.iter().map(|i| format!("i32 {i}")).collect();
-        let _ = writeln!(self.globals, "{name} = private constant [{} x i32] [{}]", items.len(), body.join(", "));
+        let _ = writeln!(
+            self.globals,
+            "{name} = private constant [{} x i32] [{}]",
+            items.len(),
+            body.join(", ")
+        );
         name.to_string()
     }
 
@@ -789,12 +967,21 @@ impl<'p> Emitter<'p> {
             Qualifier::No => {}
         }
         let machine = self.class_repr[id as usize].kind();
-        let kind = if machine != 0 { machine } else { special_kind(self.p, id) };
+        let kind = if machine != 0 {
+            machine
+        } else {
+            special_kind(self.p, id)
+        };
 
         // The type variables of the class's own header.
         let env: Vec<Tv> = match &c.lambda {
             Some(l) => l.env.clone(),
-            None => (0..c.tparams.len()).map(|i| Tv { owner: TvOwner::Class(id), index: i as u32 }).collect(),
+            None => (0..c.tparams.len())
+                .map(|i| Tv {
+                    owner: TvOwner::Class(id),
+                    index: i as u32,
+                })
+                .collect(),
         };
         let tv = |v: Tv| env.iter().position(|e| *e == v).map(|i| i as u32);
         let nparams = env.len();
@@ -815,7 +1002,12 @@ impl<'p> Emitter<'p> {
                     )
                 })
                 .collect();
-            let _ = writeln!(self.globals, "@\"var.{q}\" = private constant [{} x i8] [{}]", bytes.len(), bytes.join(", "));
+            let _ = writeln!(
+                self.globals,
+                "@\"var.{q}\" = private constant [{} x i8] [{}]",
+                bytes.len(),
+                bytes.join(", ")
+            );
             format!("@\"var.{q}\"")
         };
         // Supertypes: the superclass first. A refinement lists the refinements above it.
@@ -844,8 +1036,14 @@ impl<'p> Emitter<'p> {
                 let ty = l.ty.clone();
                 let all = l.fields.clone();
                 let size = format!("ptrtoint (ptr getelementptr ({ty}, ptr null, i32 1) to i32)");
-                let offset = |i: u32| format!("ptrtoint (ptr getelementptr ({ty}, ptr null, i32 0, i32 {i}) to i32)");
-                let ref_items: Vec<String> = all.iter().filter(|(_, r, _)| *r == Repr::Ref).map(|(_, _, i)| offset(*i)).collect();
+                let offset = |i: u32| {
+                    format!("ptrtoint (ptr getelementptr ({ty}, ptr null, i32 0, i32 {i}) to i32)")
+                };
+                let ref_items: Vec<String> = all
+                    .iter()
+                    .filter(|(_, r, _)| *r == Repr::Ref)
+                    .map(|(_, _, i)| offset(*i))
+                    .collect();
                 let nrefs = ref_items.len();
                 let refs = self.u32_array(&ref_items, &format!("@\"refs.{q}\""));
                 // A value class lists its fields, for the default `equals` and its kin.
@@ -853,19 +1051,33 @@ impl<'p> Emitter<'p> {
                 if c.is_value() {
                     for (f, r, i) in &all {
                         let (fname, flen) = self.byte_string(&self.p.field(*f).name.clone());
-                        rows.push(format!("%FieldInfo {{ ptr {fname}, i32 {flen}, i32 {}, i32 {}, i32 0 }}", offset(*i), r.kind()));
+                        rows.push(format!(
+                            "%FieldInfo {{ ptr {fname}, i32 {flen}, i32 {}, i32 {}, i32 0 }}",
+                            offset(*i),
+                            r.kind()
+                        ));
                     }
                 }
                 let nfields = rows.len();
                 let fields = if rows.is_empty() {
                     "null".to_string()
                 } else {
-                    let _ = writeln!(self.globals, "@\"fields.{q}\" = private constant [{nfields} x %FieldInfo] [{}]", rows.join(", "));
+                    let _ = writeln!(
+                        self.globals,
+                        "@\"fields.{q}\" = private constant [{nfields} x %FieldInfo] [{}]",
+                        rows.join(", ")
+                    );
                     format!("@\"fields.{q}\"")
                 };
                 (size, refs, nrefs, fields, nfields)
             }
-            None => ("16".to_string(), "null".to_string(), 0, "null".to_string(), 0),
+            None => (
+                "16".to_string(),
+                "null".to_string(),
+                0,
+                "null".to_string(),
+                0,
+            ),
         };
 
         let vt = std::mem::take(&mut self.vtables[id as usize]);
@@ -884,16 +1096,27 @@ impl<'p> Emitter<'p> {
 
     /// The declaration annotations among some uses, as the runtime reads them.
     fn ann_table(&mut self, anns: &[AnnValue], name: &str) -> (String, usize) {
-        let kept: Vec<&AnnValue> = anns.iter().filter(|a| self.p.class(a.class).qualifier == Qualifier::No).collect();
+        let kept: Vec<&AnnValue> = anns
+            .iter()
+            .filter(|a| self.p.class(a.class).qualifier == Qualifier::No)
+            .collect();
         if kept.is_empty() {
             return ("null".into(), 0);
         }
         let mut rows = Vec::new();
         for a in &kept {
             let make = Func::annotation_thunk(self, a);
-            rows.push(format!("%AnnInfo {{ ptr {}, ptr {make} }}", self.class_info(a.class)));
+            rows.push(format!(
+                "%AnnInfo {{ ptr {}, ptr {make} }}",
+                self.class_info(a.class)
+            ));
         }
-        let _ = writeln!(self.globals, "{name} = private constant [{} x %AnnInfo] [{}]", rows.len(), rows.join(", "));
+        let _ = writeln!(
+            self.globals,
+            "{name} = private constant [{} x %AnnInfo] [{}]",
+            rows.len(),
+            rows.join(", ")
+        );
         (name.to_string(), rows.len())
     }
 
@@ -902,19 +1125,30 @@ impl<'p> Emitter<'p> {
         let q = sym(&c.qname);
         let mut frows = Vec::new();
         for (i, f) in c.fields.iter().enumerate() {
-            if !f.anns.iter().any(|a| self.p.class(a.class).qualifier == Qualifier::No) {
+            if !f
+                .anns
+                .iter()
+                .any(|a| self.p.class(a.class).qualifier == Qualifier::No)
+            {
                 continue;
             }
             let (name, len) = self.byte_string(&f.name);
             let (anns, nanns) = self.ann_table(&f.anns, &format!("@\"fanns.{q}.{i}\""));
-            let fref = FieldRef { class: id, index: i as u32 };
+            let fref = FieldRef {
+                class: id,
+                index: i as u32,
+            };
             let (get, set) = Func::field_thunks(self, fref);
             let flags = f.is_static as u32;
             frows.push(format!("%MemberInfo {{ ptr {name}, i32 {len}, i32 {flags}, i32 {nanns}, i32 0, ptr {anns}, ptr null, ptr {get}, ptr {set}, ptr null }}"));
         }
         let mut mrows = Vec::new();
         for (i, m) in c.methods.iter().enumerate() {
-            if !m.anns.iter().any(|a| self.p.class(a.class).qualifier == Qualifier::No) {
+            if !m
+                .anns
+                .iter()
+                .any(|a| self.p.class(a.class).qualifier == Qualifier::No)
+            {
                 continue;
             }
             let (name, len) = self.byte_string(&m.name);
@@ -923,15 +1157,25 @@ impl<'p> Emitter<'p> {
             for (pi, prm) in m.params.iter().enumerate() {
                 let (pname, plen) = self.byte_string(&prm.name);
                 let (panns, pn) = self.ann_table(&prm.anns, &format!("@\"panns.{q}.{i}.{pi}\""));
-                prows.push(format!("%ParamInfo {{ ptr {pname}, i32 {plen}, i32 {pn}, ptr {panns} }}"));
+                prows.push(format!(
+                    "%ParamInfo {{ ptr {pname}, i32 {plen}, i32 {pn}, ptr {panns} }}"
+                ));
             }
             let params = if prows.is_empty() {
                 "null".to_string()
             } else {
-                let _ = writeln!(self.globals, "@\"params.{q}.{i}\" = private constant [{} x %ParamInfo] [{}]", prows.len(), prows.join(", "));
+                let _ = writeln!(
+                    self.globals,
+                    "@\"params.{q}.{i}\" = private constant [{} x %ParamInfo] [{}]",
+                    prows.len(),
+                    prows.join(", ")
+                );
                 format!("@\"params.{q}.{i}\"")
             };
-            let mref = MethodRef { class: id, index: i as u32 };
+            let mref = MethodRef {
+                class: id,
+                index: i as u32,
+            };
             let invoke = Func::invoke_thunk(self, mref);
             let flags = m.is_static as u32;
             mrows.push(format!(
@@ -943,7 +1187,12 @@ impl<'p> Emitter<'p> {
             if rows.is_empty() {
                 return ("null".into(), 0);
             }
-            let _ = writeln!(e.globals, "{name} = private constant [{} x %MemberInfo] [{}]", rows.len(), rows.join(", "));
+            let _ = writeln!(
+                e.globals,
+                "{name} = private constant [{} x %MemberInfo] [{}]",
+                rows.len(),
+                rows.join(", ")
+            );
             (name, rows.len())
         };
         let (mf, nf) = table(self, frows, format!("@\"mfields.{q}\""));
@@ -962,16 +1211,31 @@ impl<'p> Emitter<'p> {
             if r == Repr::Unit {
                 continue;
             }
-            let s = self.static_sym(FieldRef { class: id, index: i as u32 });
-            let _ = writeln!(self.globals, "{s} = internal global {} {}", r.ll(), r.zero());
-            let _ = writeln!(self.globals, "@\"set.{q}.{}\" = internal global i8 0", sym(&f.name));
+            let s = self.static_sym(FieldRef {
+                class: id,
+                index: i as u32,
+            });
+            let _ = writeln!(
+                self.globals,
+                "{s} = internal global {} {}",
+                r.ll(),
+                r.zero()
+            );
+            let _ = writeln!(
+                self.globals,
+                "@\"set.{q}.{}\" = internal global i8 0",
+                sym(&f.name)
+            );
             if r == Repr::Ref {
                 self.static_roots.push(s);
             }
         }
         if !self.is_trivial(id) {
             let (name, len) = self.byte_string(&c.qname);
-            let _ = writeln!(self.globals, "@\"init.{q}\" = internal global %InitRec {{ i32 0, i32 0, ptr @\"{q}.clinit\", ptr null, ptr {name}, i64 {len}, i64 0 }}");
+            let _ = writeln!(
+                self.globals,
+                "@\"init.{q}\" = internal global %InitRec {{ i32 0, i32 0, ptr @\"{q}.clinit\", ptr null, ptr {name}, i64 {len}, i64 0 }}"
+            );
         }
     }
 
@@ -996,15 +1260,25 @@ impl<'p> Emitter<'p> {
         let classes: Vec<String> = (0..n).map(|id| self.class_info(id)).collect();
         let nclasses = classes.len();
         let classes = self.ptr_array(&classes);
-        let strings: Vec<String> = (0..self.strings.len()).map(|i| format!("@str.{i}")).collect();
+        let strings: Vec<String> = (0..self.strings.len())
+            .map(|i| format!("@str.{i}"))
+            .collect();
         let nstrings = strings.len();
         let strings = self.ptr_array_global(&strings, "@cleat.strings");
-        let cached: Vec<String> = self.cached.keys().map(|id| format!("%CachedType {{ ptr @te.{id}, ptr @tc.{id} }}")).collect();
+        let cached: Vec<String> = self
+            .cached
+            .keys()
+            .map(|id| format!("%CachedType {{ ptr @te.{id}, ptr @tc.{id} }}"))
+            .collect();
         let ncached = cached.len();
         let cached_sym = if cached.is_empty() {
             "null".to_string()
         } else {
-            let _ = writeln!(self.globals, "@cleat.cached = private constant [{ncached} x %CachedType] [{}]", cached.join(", "));
+            let _ = writeln!(
+                self.globals,
+                "@cleat.cached = private constant [{ncached} x %CachedType] [{}]",
+                cached.join(", ")
+            );
             "@cleat.cached".to_string()
         };
         let roots = self.static_roots.clone();
@@ -1013,7 +1287,11 @@ impl<'p> Emitter<'p> {
         let mut wk: Vec<String> = vec!["null".into(); 32];
         for id in 0..n {
             let machine = self.class_repr[id as usize].kind();
-            let k = if machine != 0 { machine } else { special_kind(p, id) };
+            let k = if machine != 0 {
+                machine
+            } else {
+                special_kind(p, id)
+            };
             if k != 0 {
                 wk[k as usize] = self.class_info(id);
             }
@@ -1049,7 +1327,11 @@ impl<'p> Emitter<'p> {
         out.push_str(&self.globals);
         out.push('\n');
         out.push_str(&self.funcs);
-        let shim = if self.shim.is_empty() { String::new() } else { format!("#include <stdint.h>\n#include <stdlib.h>\n{}", self.shim) };
+        let shim = if self.shim.is_empty() {
+            String::new()
+        } else {
+            format!("#include <stdint.h>\n#include <stdlib.h>\n{}", self.shim)
+        };
         Ok((out, shim))
     }
 
@@ -1058,7 +1340,12 @@ impl<'p> Emitter<'p> {
             return "null".into();
         }
         let body: Vec<String> = items.iter().map(|i| format!("ptr {i}")).collect();
-        let _ = writeln!(self.globals, "{name} = private constant [{} x ptr] [{}]", items.len(), body.join(", "));
+        let _ = writeln!(
+            self.globals,
+            "{name} = private constant [{} x ptr] [{}]",
+            items.len(),
+            body.join(", ")
+        );
         name.to_string()
     }
 }
@@ -1143,7 +1430,10 @@ pub fn emit(p: &mut Program, entry: ClassId) -> Result<(String, String), Vec<Str
         let c = p.class(id);
         let iface = c.is_interface();
         for (i, m) in c.methods.iter().enumerate() {
-            let mref = MethodRef { class: id, index: i as u32 };
+            let mref = MethodRef {
+                class: id,
+                index: i as u32,
+            };
             if m.static_requirement {
                 req_selectors.insert(mref, req_selectors.len() as u32);
                 continue;
@@ -1151,7 +1441,11 @@ pub fn emit(p: &mut Program, entry: ClassId) -> Result<(String, String), Vec<Str
             if m.is_static {
                 continue;
             }
-            let root = m.overrides.iter().copied().find(|o| p.method(*o).overrides.is_empty() && !p.method(*o).is_static);
+            let root = m
+                .overrides
+                .iter()
+                .copied()
+                .find(|o| p.method(*o).overrides.is_empty() && !p.method(*o).is_static);
             match root {
                 Some(r) => {
                     roots.insert(mref, r);
@@ -1191,18 +1485,38 @@ pub fn emit(p: &mut Program, entry: ClassId) -> Result<(String, String), Vec<Str
         if id == w.null {
             // `Null` stands outside the hierarchy and answers the three methods of `Object`.
             for (i, m) in c.methods.iter().enumerate() {
-                let root = p.class(w.object).methods.iter().position(|o| o.name == m.name && o.params.len() == m.params.len());
+                let root = p
+                    .class(w.object)
+                    .methods
+                    .iter()
+                    .position(|o| o.name == m.name && o.params.len() == m.params.len());
                 if let Some(r) = root {
-                    vtables[id as usize].push((MethodRef { class: w.object, index: r as u32 }, MethodRef { class: id, index: i as u32 }));
+                    vtables[id as usize].push((
+                        MethodRef {
+                            class: w.object,
+                            index: r as u32,
+                        },
+                        MethodRef {
+                            class: id,
+                            index: i as u32,
+                        },
+                    ));
                 }
             }
             continue;
         }
         let mut classes = vec![id];
-        classes.extend(decl::all_supertypes(p, id).iter().filter_map(|t| t.class_id()));
+        classes.extend(
+            decl::all_supertypes(p, id)
+                .iter()
+                .filter_map(|t| t.class_id()),
+        );
         for cid in classes {
             for i in 0..p.class(cid).methods.len() as u32 {
-                let r = MethodRef { class: cid, index: i };
+                let r = MethodRef {
+                    class: cid,
+                    index: i,
+                };
                 if selectors.contains_key(&r) {
                     if let ImplOf::Found(f) = decl::impl_of(p, id, r) {
                         if !p.method(f).is_abstract {
@@ -1253,18 +1567,32 @@ pub fn emit(p: &mut Program, entry: ClassId) -> Result<(String, String), Vec<Str
                 if r == Repr::Unit {
                     continue;
                 }
-                fields.push((FieldRef { class: cid, index: i as u32 }, r, index));
+                fields.push((
+                    FieldRef {
+                        class: cid,
+                        index: i as u32,
+                    },
+                    r,
+                    index,
+                ));
                 index += 1;
             }
         }
-        layouts.push(Some(Layout { ty: format!("%\"L.{}\"", sym(&c.qname)), fields }));
+        layouts.push(Some(Layout {
+            ty: format!("%\"L.{}\"", sym(&c.qname)),
+            fields,
+        }));
     }
 
     // A class whose initialization does nothing needs no guard.
     let mut trivial = vec![true; n];
     for id in 0..n {
         let c = &p.classes[id];
-        trivial[id] = c.static_init_checked.as_ref().map(|b| b.stmts.is_empty()).unwrap_or(true);
+        trivial[id] = c
+            .static_init_checked
+            .as_ref()
+            .map(|b| b.stmts.is_empty())
+            .unwrap_or(true);
     }
     loop {
         let mut changed = false;

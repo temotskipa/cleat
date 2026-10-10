@@ -75,7 +75,11 @@ pub unsafe extern "C" fn cl_File_readBytes_String(ctx: *mut Ctx, path: Obj) -> O
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_File_writeBytes_String_UInt8Array(ctx: *mut Ctx, path: Obj, bytes: Obj) {
+pub unsafe extern "C" fn cl_File_writeBytes_String_UInt8Array(
+    ctx: *mut Ctx,
+    path: Obj,
+    bytes: Obj,
+) {
     unsafe {
         let path = to_rust(path);
         let data = byte_slice(bytes).to_vec();
@@ -125,7 +129,11 @@ unsafe fn thread_host(t: Obj) -> &'static ThreadHost {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn cl_Thread_create(_ctx: *mut Ctx) -> *mut u8 {
-    Arc::into_raw(Arc::new(ThreadHost { started: AtomicBool::new(false), done: Mutex::new(false), wake: Condvar::new() })) as *mut u8
+    Arc::into_raw(Arc::new(ThreadHost {
+        started: AtomicBool::new(false),
+        done: Mutex::new(false),
+        wake: Condvar::new(),
+    })) as *mut u8
 }
 
 #[unsafe(no_mangle)]
@@ -141,22 +149,24 @@ pub unsafe extern "C" fn cl_Thread_launch(ctx: *mut Ctx, t: Obj) {
         // The object stays alive until the new thread holds it.
         gc::world().pinned.push(t);
         let object = t as usize;
-        let spawned = std::thread::Builder::new().stack_size(gc::STACK).spawn(move || {
-            let me = gc::new_ctx();
-            let t = object as Obj;
-            (*me).thread = t;
-            {
-                let mut w = gc::world();
-                if let Some(i) = w.pinned.iter().position(|o| *o == t) {
-                    w.pinned.swap_remove(i);
+        let spawned = std::thread::Builder::new()
+            .stack_size(gc::STACK)
+            .spawn(move || {
+                let me = gc::new_ctx();
+                let t = object as Obj;
+                (*me).thread = t;
+                {
+                    let mut w = gc::world();
+                    if let Some(i) = w.pinned.iter().position(|o| *o == t) {
+                        w.pinned.swap_remove(i);
+                    }
                 }
-            }
-            (gc::program().thread_run)(me, t);
-            (*me).exc = std::ptr::null_mut();
-            *host.done.lock().unwrap_or_else(|e| e.into_inner()) = true;
-            host.wake.notify_all();
-            gc::drop_ctx(me);
-        });
+                (gc::program().thread_run)(me, t);
+                (*me).exc = std::ptr::null_mut();
+                *host.done.lock().unwrap_or_else(|e| e.into_inner()) = true;
+                host.wake.notify_all();
+                gc::drop_ctx(me);
+            });
         if spawned.is_err() {
             raise(ctx, X_ILLEGAL_STATE, "the host could not start a thread");
         }
@@ -175,7 +185,10 @@ pub unsafe extern "C" fn cl_Thread_finished_Int(ctx: *mut Ctx, t: Obj, milliseco
             if *done {
                 return 1;
             }
-            let (done, _) = host.wake.wait_timeout(done, Duration::from_millis(milliseconds.max(0) as u64)).unwrap_or_else(|e| e.into_inner());
+            let (done, _) = host
+                .wake
+                .wait_timeout(done, Duration::from_millis(milliseconds.max(0) as u64))
+                .unwrap_or_else(|e| e.into_inner());
             *done as u8
         })
     }
@@ -185,7 +198,8 @@ pub unsafe extern "C" fn cl_Thread_finished_Int(ctx: *mut Ctx, t: Obj, milliseco
 pub unsafe extern "C" fn cl_Thread_isAlive(_ctx: *mut Ctx, t: Obj) -> u8 {
     unsafe {
         let host = thread_host(t);
-        (host.started.load(Ordering::Acquire) && !*host.done.lock().unwrap_or_else(|e| e.into_inner())) as u8
+        (host.started.load(Ordering::Acquire)
+            && !*host.done.lock().unwrap_or_else(|e| e.into_inner())) as u8
     }
 }
 
@@ -204,7 +218,11 @@ pub unsafe extern "C" fn cl_Thread_adopt_Thread(ctx: *mut Ctx, t: Obj) {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn cl_Thread_pause_Int(ctx: *mut Ctx, milliseconds: i64) {
-    unsafe { gc::blocking(ctx, || std::thread::sleep(Duration::from_millis(milliseconds.max(0) as u64))) }
+    unsafe {
+        gc::blocking(ctx, || {
+            std::thread::sleep(Duration::from_millis(milliseconds.max(0) as u64))
+        })
+    }
 }
 
 // ---- locks ----
@@ -215,7 +233,10 @@ unsafe fn lock_host(l: Obj) -> &'static LockHost {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn cl_Lock_create(_ctx: *mut Ctx) -> *mut u8 {
-    Box::into_raw(Box::new(LockHost { state: Mutex::new((0, 0)), free: Condvar::new() })) as *mut u8
+    Box::into_raw(Box::new(LockHost {
+        state: Mutex::new((0, 0)),
+        free: Condvar::new(),
+    })) as *mut u8
 }
 
 #[unsafe(no_mangle)]
@@ -247,7 +268,11 @@ pub unsafe extern "C" fn cl_Lock_unlock(ctx: *mut Ctx, l: Obj) {
         let mut s = host.state.lock().unwrap_or_else(|e| e.into_inner());
         if s.0 != (*ctx).id {
             drop(s);
-            raise(ctx, X_ILLEGAL_STATE, "the running thread does not hold the lock");
+            raise(
+                ctx,
+                X_ILLEGAL_STATE,
+                "the running thread does not hold the lock",
+            );
             return;
         }
         s.1 -= 1;
@@ -260,11 +285,23 @@ pub unsafe extern "C" fn cl_Lock_unlock(ctx: *mut Ctx, l: Obj) {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn cl_Lock_held(ctx: *mut Ctx, l: Obj) -> u8 {
-    unsafe { (lock_host(l).state.lock().unwrap_or_else(|e| e.into_inner()).0 == (*ctx).id) as u8 }
+    unsafe {
+        (lock_host(l)
+            .state
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .0
+            == (*ctx).id) as u8
+    }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Lock_park_Pointer_Int(ctx: *mut Ctx, l: Obj, condition: *mut u8, milliseconds: i64) {
+pub unsafe extern "C" fn cl_Lock_park_Pointer_Int(
+    ctx: *mut Ctx,
+    l: Obj,
+    condition: *mut u8,
+    milliseconds: i64,
+) {
     unsafe {
         let host = lock_host(l);
         let cond = &*(condition as *const Condvar);
@@ -274,7 +311,9 @@ pub unsafe extern "C" fn cl_Lock_park_Pointer_Int(ctx: *mut Ctx, l: Obj, conditi
             let held = s.1;
             *s = (0, 0);
             host.free.notify_all();
-            let (mut s, _) = cond.wait_timeout(s, Duration::from_millis(milliseconds.max(0) as u64)).unwrap_or_else(|e| e.into_inner());
+            let (mut s, _) = cond
+                .wait_timeout(s, Duration::from_millis(milliseconds.max(0) as u64))
+                .unwrap_or_else(|e| e.into_inner());
             while s.0 != 0 {
                 s = host.free.wait(s).unwrap_or_else(|e| e.into_inner());
             }
@@ -317,8 +356,17 @@ pub unsafe extern "C" fn cl_AtomicInt_set_Int(_ctx: *mut Ctx, o: Obj, v: i64) {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_AtomicInt_compareAndSet_Int_Int(_ctx: *mut Ctx, o: Obj, expected: i64, update: i64) -> u8 {
-    unsafe { cell(o).compare_exchange(expected, update, Ordering::SeqCst, Ordering::SeqCst).is_ok() as u8 }
+pub unsafe extern "C" fn cl_AtomicInt_compareAndSet_Int_Int(
+    _ctx: *mut Ctx,
+    o: Obj,
+    expected: i64,
+    update: i64,
+) -> u8 {
+    unsafe {
+        cell(o)
+            .compare_exchange(expected, update, Ordering::SeqCst, Ordering::SeqCst)
+            .is_ok() as u8
+    }
 }
 
 unsafe fn ref_cell(o: Obj) -> &'static AtomicPtr<Header> {
@@ -336,7 +384,12 @@ pub unsafe extern "C" fn cl_Atomic_set_Object(_ctx: *mut Ctx, o: Obj, v: Obj) {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Atomic_compareAndSet_Object_Object(_ctx: *mut Ctx, o: Obj, expected: Obj, update: Obj) -> u8 {
+pub unsafe extern "C" fn cl_Atomic_compareAndSet_Object_Object(
+    _ctx: *mut Ctx,
+    o: Obj,
+    expected: Obj,
+    update: Obj,
+) -> u8 {
     unsafe {
         let c = ref_cell(o);
         loop {
@@ -344,7 +397,9 @@ pub unsafe extern "C" fn cl_Atomic_compareAndSet_Object_Object(_ctx: *mut Ctx, o
             if !same_identity(now, expected) {
                 return 0;
             }
-            if c.compare_exchange(now, update, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
+            if c.compare_exchange(now, update, Ordering::SeqCst, Ordering::SeqCst)
+                .is_ok()
+            {
                 return 1;
             }
         }
@@ -380,7 +435,10 @@ pub unsafe extern "C" fn cl_Class_getInterfaces(ctx: *mut Ctx, c: Obj) -> Obj {
         let td = class_td(c);
         let info = td.class();
         let skip = if info.is(F_SUPERCLASS) { 1 } else { 0 };
-        let list: Vec<Obj> = info.supers()[skip..].iter().map(|s| class_object(types::eval(*s, td.args.as_ptr()))).collect();
+        let list: Vec<Obj> = info.supers()[skip..]
+            .iter()
+            .map(|s| class_object(types::eval(*s, td.args.as_ptr())))
+            .collect();
         let a = cl_array_new(ctx, array_type(types::wk_type(K_CLASS)), list.len() as i64);
         if !a.is_null() {
             for (i, o) in list.iter().enumerate() {
@@ -391,8 +449,18 @@ pub unsafe extern "C" fn cl_Class_getInterfaces(ctx: *mut Ctx, c: Obj) -> Obj {
     }
 }
 
-unsafe fn find_ann(ctx: *mut Ctx, anns: *const AnnInfo, n: u32, wanted: *const ClassInfo) -> Option<Obj> {
-    unsafe { slice(anns, n).iter().find(|a| a.class == wanted).map(|a| (a.make)(ctx)) }
+unsafe fn find_ann(
+    ctx: *mut Ctx,
+    anns: *const AnnInfo,
+    n: u32,
+    wanted: *const ClassInfo,
+) -> Option<Obj> {
+    unsafe {
+        slice(anns, n)
+            .iter()
+            .find(|a| a.class == wanted)
+            .map(|a| (a.make)(ctx))
+    }
 }
 
 #[unsafe(no_mangle)]
@@ -427,7 +495,14 @@ unsafe fn int_array(ctx: *mut Ctx, values: &[i64]) -> Obj {
 }
 
 unsafe fn carrying(members: &'static [MemberInfo], wanted: *const ClassInfo) -> Vec<i64> {
-    unsafe { members.iter().enumerate().filter(|(_, m)| slice(m.anns, m.nanns).iter().any(|a| a.class == wanted)).map(|(i, _)| i as i64).collect() }
+    unsafe {
+        members
+            .iter()
+            .enumerate()
+            .filter(|(_, m)| slice(m.anns, m.nanns).iter().any(|a| a.class == wanted))
+            .map(|(i, _)| i as i64)
+            .collect()
+    }
 }
 
 unsafe fn fields(c: Obj) -> &'static [MemberInfo] {
@@ -449,7 +524,12 @@ pub unsafe extern "C" fn cl_Class_annotatedMethods(ctx: *mut Ctx, targs: *const 
 }
 
 unsafe fn member_name(ctx: *mut Ctx, m: &MemberInfo) -> Obj {
-    unsafe { new_str(ctx, std::str::from_utf8_unchecked(std::slice::from_raw_parts(m.name, m.name_len as usize))) }
+    unsafe {
+        new_str(
+            ctx,
+            std::str::from_utf8_unchecked(std::slice::from_raw_parts(m.name, m.name_len as usize)),
+        )
+    }
 }
 
 #[unsafe(no_mangle)]
@@ -463,7 +543,12 @@ pub unsafe extern "C" fn cl_Class_fieldIsStatic_Int(_ctx: *mut Ctx, c: Obj, i: i
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Class_fieldAnnotation_Int(ctx: *mut Ctx, targs: *const Td, c: Obj, i: i64) -> Obj {
+pub unsafe extern "C" fn cl_Class_fieldAnnotation_Int(
+    ctx: *mut Ctx,
+    targs: *const Td,
+    c: Obj,
+    i: i64,
+) -> Obj {
     unsafe {
         let m = &fields(c)[i as usize];
         find_ann(ctx, m.anns, m.nanns, (**targs).class).unwrap_or(std::ptr::null_mut())
@@ -471,12 +556,23 @@ pub unsafe extern "C" fn cl_Class_fieldAnnotation_Int(ctx: *mut Ctx, targs: *con
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Class_fieldGet_Int_Object(ctx: *mut Ctx, c: Obj, i: i64, target: Obj) -> Obj {
+pub unsafe extern "C" fn cl_Class_fieldGet_Int_Object(
+    ctx: *mut Ctx,
+    c: Obj,
+    i: i64,
+    target: Obj,
+) -> Obj {
     unsafe { (fields(c)[i as usize].get.expect("a field mirror"))(ctx, target) }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Class_fieldSet_Int_Object_Object(ctx: *mut Ctx, c: Obj, i: i64, target: Obj, value: Obj) {
+pub unsafe extern "C" fn cl_Class_fieldSet_Int_Object_Object(
+    ctx: *mut Ctx,
+    c: Obj,
+    i: i64,
+    target: Obj,
+    value: Obj,
+) {
     unsafe { (fields(c)[i as usize].set.expect("a field mirror"))(ctx, target, value) }
 }
 
@@ -496,16 +592,32 @@ pub unsafe extern "C" fn cl_Class_parameterCount_Int(_ctx: *mut Ctx, c: Obj, i: 
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Class_parameterName_Int_Int(ctx: *mut Ctx, c: Obj, i: i64, p: i64) -> Obj {
+pub unsafe extern "C" fn cl_Class_parameterName_Int_Int(
+    ctx: *mut Ctx,
+    c: Obj,
+    i: i64,
+    p: i64,
+) -> Obj {
     unsafe {
         let m = &methods(c)[i as usize];
         let prm = &slice(m.params, m.nparams)[p as usize];
-        new_str(ctx, std::str::from_utf8_unchecked(std::slice::from_raw_parts(prm.name, prm.name_len as usize)))
+        new_str(
+            ctx,
+            std::str::from_utf8_unchecked(std::slice::from_raw_parts(
+                prm.name,
+                prm.name_len as usize,
+            )),
+        )
     }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Class_methodAnnotation_Int(ctx: *mut Ctx, targs: *const Td, c: Obj, i: i64) -> Obj {
+pub unsafe extern "C" fn cl_Class_methodAnnotation_Int(
+    ctx: *mut Ctx,
+    targs: *const Td,
+    c: Obj,
+    i: i64,
+) -> Obj {
     unsafe {
         let m = &methods(c)[i as usize];
         find_ann(ctx, m.anns, m.nanns, (**targs).class).unwrap_or(std::ptr::null_mut())
@@ -513,7 +625,13 @@ pub unsafe extern "C" fn cl_Class_methodAnnotation_Int(ctx: *mut Ctx, targs: *co
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Class_parameterAnnotation_Int_Int(ctx: *mut Ctx, targs: *const Td, c: Obj, i: i64, p: i64) -> Obj {
+pub unsafe extern "C" fn cl_Class_parameterAnnotation_Int_Int(
+    ctx: *mut Ctx,
+    targs: *const Td,
+    c: Obj,
+    i: i64,
+    p: i64,
+) -> Obj {
     unsafe {
         let m = &methods(c)[i as usize];
         let prm = &slice(m.params, m.nparams)[p as usize];
@@ -522,7 +640,13 @@ pub unsafe extern "C" fn cl_Class_parameterAnnotation_Int_Int(ctx: *mut Ctx, tar
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cl_Class_methodInvoke_Int_Object_ObjectArray(ctx: *mut Ctx, c: Obj, i: i64, target: Obj, arguments: Obj) -> Obj {
+pub unsafe extern "C" fn cl_Class_methodInvoke_Int_Object_ObjectArray(
+    ctx: *mut Ctx,
+    c: Obj,
+    i: i64,
+    target: Obj,
+    arguments: Obj,
+) -> Obj {
     unsafe {
         let _a = Temp::new(ctx, arguments);
         (methods(c)[i as usize].invoke.expect("a method mirror"))(ctx, target, arguments)
@@ -545,8 +669,16 @@ pub unsafe extern "C" fn cl_cast_class(ctx: *mut Ctx, o: Obj, class: *const Clas
     unsafe {
         let ok = !o.is_null() && (*(*o).td).super_at(class).is_some();
         if !ok {
-            let have = if o.is_null() { "null" } else { (*(*o).td).name() };
-            raise(ctx, X_CLASS_CAST, &format!("a {have} is not a {}", (*class).name()));
+            let have = if o.is_null() {
+                "null"
+            } else {
+                (*(*o).td).name()
+            };
+            raise(
+                ctx,
+                X_CLASS_CAST,
+                &format!("a {have} is not a {}", (*class).name()),
+            );
         }
         o
     }

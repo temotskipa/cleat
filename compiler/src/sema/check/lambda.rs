@@ -55,7 +55,11 @@ impl<'p> Checker<'p> {
             ann_uses: Vec::new(),
             anns: Vec::new(),
             deprecated: None,
-            lambda: Some(LambdaClass { host: self.class, env, captures_this: None }),
+            lambda: Some(LambdaClass {
+                host: self.class,
+                env,
+                captures_this: None,
+            }),
             pos,
             decl_index: usize::MAX,
         });
@@ -75,7 +79,10 @@ impl<'p> Checker<'p> {
         let unit = self.unit_ty();
         let this_ty = Type::simple(class);
         self.push_frame(ret.cloned(), Some(this_ty.clone()));
-        self.frame().lambda = Some(LambdaFrame { class, captures: Vec::new() });
+        self.frame().lambda = Some(LambdaFrame {
+            class,
+            captures: Vec::new(),
+        });
         self.frame().inferring = ret.is_none();
         for (lp, t) in params.iter().zip(ptys.iter()) {
             self.declare(&lp.name, t.clone(), false, lp.pos, true);
@@ -86,7 +93,10 @@ impl<'p> Checker<'p> {
             LambdaBody::Expr(x) => {
                 let statement_form = matches!(
                     unparen(x).kind,
-                    ExprKind::Assign { .. } | ExprKind::IncDec { .. } | ExprKind::Call { .. } | ExprKind::SuperCall { .. }
+                    ExprKind::Assign { .. }
+                        | ExprKind::IncDec { .. }
+                        | ExprKind::Call { .. }
+                        | ExprKind::SuperCall { .. }
                 );
                 match ret {
                     Some(r) if *r == unit && statement_form => {
@@ -145,8 +155,20 @@ impl<'p> Checker<'p> {
         // The body starts by reading what the instance holds.
         let mut all = Vec::new();
         for c in &captures {
-            let this = TExpr { kind: TKind::This, ty: this_ty.clone() };
-            let read = TExpr { kind: TKind::Field(Box::new(this), FieldRef { class, index: c.field }), ty: c.ty.clone() };
+            let this = TExpr {
+                kind: TKind::This,
+                ty: this_ty.clone(),
+            };
+            let read = TExpr {
+                kind: TKind::Field(
+                    Box::new(this),
+                    FieldRef {
+                        class,
+                        index: c.field,
+                    },
+                ),
+                ty: c.ty.clone(),
+            };
             all.push(TStmt::Local(c.local, Some(read)));
         }
         all.extend(stmts);
@@ -157,7 +179,9 @@ impl<'p> Checker<'p> {
     /// The type a lambda's body gives its result, when its parameters have these types.
     /// Nothing the check does is kept.
     pub fn lambda_result(&mut self, e: &ast::Expr, ptys: &[Type]) -> Option<Type> {
-        let ExprKind::Lambda { params, body } = &unparen(e).kind else { return None };
+        let ExprKind::Lambda { params, body } = &unparen(e).kind else {
+            return None;
+        };
         let snap = self.snapshot();
         let class = self.new_lambda_class(None, e.pos);
         let (_, _, result) = self.lambda_body(class, params, ptys, body, None);
@@ -173,11 +197,18 @@ impl<'p> Checker<'p> {
     /// A lambda where the functional interface `target` is expected.
     pub fn lambda(&mut self, e: &ast::Expr, target: &Type) -> TExpr {
         let pos = e.pos;
-        let ExprKind::Lambda { params, body } = &unparen(e).kind else { unreachable!() };
+        let ExprKind::Lambda { params, body } = &unparen(e).kind else {
+            unreachable!()
+        };
         let iface = target.bare();
         let Some((fm, fs)) = self.functional_method(&iface) else {
             let s = self.show(target);
-            return self.error_expr(pos, format!("a lambda stands where a functional interface is expected, and `{s}` is not one"));
+            return self.error_expr(
+                pos,
+                format!(
+                    "a lambda stands where a functional interface is expected, and `{s}` is not one"
+                ),
+            );
         };
         let fmd = self.p.method(fm);
         let (name, discardable) = (fmd.name.clone(), fmd.discardable);
@@ -189,14 +220,26 @@ impl<'p> Checker<'p> {
             return self.error_expr(pos, "a lambda does not implement a generic method");
         }
         if fparams.len() != params.len() {
-            return self.error_expr(pos, format!("the lambda has {} parameters, and `{name}` of the interface has {}", params.len(), fparams.len()));
+            return self.error_expr(
+                pos,
+                format!(
+                    "the lambda has {} parameters, and `{name}` of the interface has {}",
+                    params.len(),
+                    fparams.len()
+                ),
+            );
         }
         for (lp, ft) in params.iter().zip(fparams.iter()) {
             if let Some(w) = &lp.ty {
                 let wt = self.resolve(w);
                 if !wt.is_error() && !self.p.same_type(&wt, ft) {
                     let (a, b) = (self.show(&wt), self.show(ft));
-                    self.err(lp.pos, format!("the parameter is written `{a}`, and the interface's method takes `{b}`"));
+                    self.err(
+                        lp.pos,
+                        format!(
+                            "the parameter is written `{a}`, and the interface's method takes `{b}`"
+                        ),
+                    );
                 }
             }
         }
@@ -205,7 +248,15 @@ impl<'p> Checker<'p> {
         let mparams: Vec<Param> = params
             .iter()
             .zip(fparams.iter())
-            .map(|(lp, t)| Param { name: lp.name.clone(), ty: t.clone(), varargs: false, is_final: false, ann_uses: Vec::new(), anns: Vec::new(), pos: lp.pos })
+            .map(|(lp, t)| Param {
+                name: lp.name.clone(),
+                ty: t.clone(),
+                varargs: false,
+                is_final: false,
+                ann_uses: Vec::new(),
+                anns: Vec::new(),
+                pos: lp.pos,
+            })
             .collect();
         self.p.classes[class as usize].methods.push(Method {
             name,
@@ -245,13 +296,21 @@ impl<'p> Checker<'p> {
             }
             values.push(self.capture_value(c));
         }
-        TExpr { kind: TKind::Lambda(Box::new(Lambda { class, captures: values })), ty: iface }
+        TExpr {
+            kind: TKind::Lambda(Box::new(Lambda {
+                class,
+                captures: values,
+            })),
+            ty: iface,
+        }
     }
 
     /// A method reference, checked as the lambda it is short for.
     pub fn method_ref(&mut self, e: &ast::Expr, expected: Option<&Type>) -> TExpr {
         let pos = e.pos;
-        let ExprKind::MethodRef { target, name } = &unparen(e).kind else { unreachable!() };
+        let ExprKind::MethodRef { target, name } = &unparen(e).kind else {
+            unreachable!()
+        };
         let Some(t) = expected.filter(|t| !t.is_error()) else {
             return self.error_expr(pos, "a method reference has no type of its own; it stands where a functional interface is expected");
         };
@@ -261,28 +320,55 @@ impl<'p> Checker<'p> {
         };
         let n = self.p.method(fm).params.len();
         let names: Vec<String> = (0..n).map(|i| format!("#a{i}")).collect();
-        let arg = |i: usize| ast::Expr { kind: ExprKind::Name(names[i].clone()), pos };
+        let arg = |i: usize| ast::Expr {
+            kind: ExprKind::Name(names[i].clone()),
+            pos,
+        };
         let lam = |body: ast::Expr| ast::Expr {
             kind: ExprKind::Lambda {
-                params: names.iter().map(|n| ast::LambdaParam { ty: None, name: n.clone(), pos }).collect(),
+                params: names
+                    .iter()
+                    .map(|n| ast::LambdaParam {
+                        ty: None,
+                        name: n.clone(),
+                        pos,
+                    })
+                    .collect(),
                 body: LambdaBody::Expr(Box::new(body)),
             },
             pos,
         };
         let call = |target: ast::Expr, args: Vec<ast::Expr>| ast::Expr {
-            kind: ExprKind::Call { target: Some(Box::new(target)), type_args: Vec::new(), name: name.clone(), args },
+            kind: ExprKind::Call {
+                target: Some(Box::new(target)),
+                type_args: Vec::new(),
+                name: name.clone(),
+                args,
+            },
             pos,
         };
         // What stands before `::` as an expression, when it is a type.
         let type_expr: Option<ast::Expr> = match target {
             RefTarget::Type(tr) => {
                 if name == "new" {
-                    let body = ast::Expr { kind: ExprKind::New { ty: tr.clone(), args: (0..n).map(arg).collect() }, pos };
+                    let body = ast::Expr {
+                        kind: ExprKind::New {
+                            ty: tr.clone(),
+                            args: (0..n).map(arg).collect(),
+                        },
+                        pos,
+                    };
                     return self.lambda(&lam(body), t);
                 }
-                let mut x = ast::Expr { kind: ExprKind::Name(tr.name[0].clone()), pos };
+                let mut x = ast::Expr {
+                    kind: ExprKind::Name(tr.name[0].clone()),
+                    pos,
+                };
                 for part in &tr.name[1..] {
-                    x = ast::Expr { kind: ExprKind::Field(Box::new(x), part.clone()), pos };
+                    x = ast::Expr {
+                        kind: ExprKind::Field(Box::new(x), part.clone()),
+                        pos,
+                    };
                 }
                 Some(x)
             }
@@ -304,15 +390,23 @@ impl<'p> Checker<'p> {
                     }
                     let mut parts = Vec::new();
                     path(x, &mut parts);
-                    let ty = ast::TypeRef { annotations: Vec::new(), name: parts, args: None, dims: Vec::new(), pos };
-                    let body = ast::Expr { kind: ExprKind::New { ty, args: (0..n).map(arg).collect() }, pos };
+                    let ty = ast::TypeRef {
+                        annotations: Vec::new(),
+                        name: parts,
+                        args: None,
+                        dims: Vec::new(),
+                        pos,
+                    };
+                    let body = ast::Expr {
+                        kind: ExprKind::New {
+                            ty,
+                            args: (0..n).map(arg).collect(),
+                        },
+                        pos,
+                    };
                     return self.lambda(&lam(body), t);
                 }
-                if is_type {
-                    Some((**x).clone())
-                } else {
-                    None
-                }
+                if is_type { Some((**x).clone()) } else { None }
             }
         };
         match type_expr {
@@ -327,7 +421,9 @@ impl<'p> Checker<'p> {
                 self.lambda(&lam(call(arg(0), (1..n).map(arg).collect())), t)
             }
             None => {
-                let RefTarget::Expr(x) = target else { unreachable!() };
+                let RefTarget::Expr(x) = target else {
+                    unreachable!()
+                };
                 // The receiver is evaluated once, when the reference is.
                 let v = self.check_expr(x, None);
                 if v.ty.is_error() {
@@ -338,10 +434,16 @@ impl<'p> Checker<'p> {
                 let f = self.frame();
                 f.flow.assigned.insert(id);
                 f.flow.maybe.insert(id);
-                let recv = ast::Expr { kind: ExprKind::Name(hidden), pos };
+                let recv = ast::Expr {
+                    kind: ExprKind::Name(hidden),
+                    pos,
+                };
                 let l = self.lambda(&lam(call(recv, (0..n).map(arg).collect())), t);
                 let ty = l.ty.clone();
-                TExpr { kind: TKind::Let(id, Box::new(v), Box::new(l)), ty }
+                TExpr {
+                    kind: TKind::Let(id, Box::new(v), Box::new(l)),
+                    ty,
+                }
             }
         }
     }

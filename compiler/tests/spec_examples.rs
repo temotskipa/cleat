@@ -13,7 +13,9 @@ struct Fence {
 }
 
 fn spec_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("spec")
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("spec")
 }
 
 /// The fenced examples of one chapter, named by the two digits its file begins with.
@@ -34,7 +36,10 @@ fn fences(chapter: &str) -> Vec<Fence> {
                 while !lines[j].starts_with("```") {
                     j += 1;
                 }
-                found.push(Fence { lines: lines[i + 1..j].iter().map(|s| s.to_string()).collect(), at: i + 2 });
+                found.push(Fence {
+                    lines: lines[i + 1..j].iter().map(|s| s.to_string()).collect(),
+                    at: i + 2,
+                });
                 i = j + 1;
             } else {
                 i += 1;
@@ -68,14 +73,25 @@ struct Plan {
 }
 
 fn p(kind: Kind) -> Plan {
-    Plan { kind, members: "", support: "", files: &[] }
+    Plan {
+        kind,
+        members: "",
+        support: "",
+        files: &[],
+    }
 }
 
 fn pm(kind: Kind, members: &'static str, support: &'static str) -> Plan {
-    Plan { kind, members, support, files: &[] }
+    Plan {
+        kind,
+        members,
+        support,
+        files: &[],
+    }
 }
 
-const SHAPES: &str = "interface Shape { } value class Circle implements Shape { public Rational radius; }";
+const SHAPES: &str =
+    "interface Shape { } value class Circle implements Shape { public Rational radius; }";
 const POSITIVE: &str = "@Refines annotation Positive; class Counts { @Narrows(Positive.class) public static Boolean isPositive(Int n) { return n > 0; } }";
 const CALC: &str = "sealed interface Expr permits Num, Neg, Binary { } value class Num implements Expr { public Rational value; } \
     value class Neg implements Expr { public Expr operand; } value class Binary implements Expr { public Op op; public Expr left; public Expr right; } \
@@ -96,7 +112,11 @@ fn plan(chapter: &str, index: usize) -> Plan {
         ("02", 2) => p(Prelude(None)),
         ("02", 3) => p(Unit),
         ("03", 0) => p(Unit),
-        ("03", 1) => pm(Unit, "", "class SubList<T> extends ArrayList<T> { } class ArrayListItr { }"),
+        ("03", 1) => pm(
+            Unit,
+            "",
+            "class SubList<T> extends ArrayList<T> { } class ArrayListItr { }",
+        ),
         ("04", 0) => p(Prelude(Some("Object"))),
         ("04", 1) => p(Prelude(None)),
         ("04", 2) => p(Prelude(None)),
@@ -119,10 +139,21 @@ fn plan(chapter: &str, index: usize) -> Plan {
         ("07", 1) => p(Prelude(Some("Array"))),
         ("07", 2) => p(Sigs("class Fence")),
         ("07", 3) => pm(Sigs("class Fence"), "", SHAPES),
-        ("07", 4) => pm(Stmts("void", "List<Circle> circles, List<Shape> shapes2"), "", SHAPES),
+        ("07", 4) => pm(
+            Stmts("void", "List<Circle> circles, List<Shape> shapes2"),
+            "",
+            SHAPES,
+        ),
         ("07", 5) => p(Members("class Fence")),
         ("07", 6) => p(Sigs("class Fence")),
-        ("07", 7) => pm(Stmts("void", "List<String> names, List<Shape> shapes, List<Circle> circles"), GENERIC_SIGS, SHAPES),
+        ("07", 7) => pm(
+            Stmts(
+                "void",
+                "List<String> names, List<Shape> shapes, List<Circle> circles",
+            ),
+            GENERIC_SIGS,
+            SHAPES,
+        ),
         ("07", 8) => p(Members("class Fence")),
         ("08", 0) => p(Unit),
         ("08", 1) => pm(Sigs("class Order"), "", "@Refines annotation Priced;"),
@@ -144,25 +175,40 @@ fn plan(chapter: &str, index: usize) -> Plan {
         ),
         ("08", 10) => p(Prelude(None)),
         ("08", 11) => p(Unit),
-        ("08", 12) => pm(Members("class Fence"), "", "@Target(Site.METHOD) annotation Check(String name);"),
+        ("08", 12) => pm(
+            Members("class Fence"),
+            "",
+            "@Target(Site.METHOD) annotation Check(String name);",
+        ),
         ("09", 0) => p(Prelude(None)),
         ("09", 1) => pm(
             Stmts("void", "String text, Int attempts"),
             "static Rational eval(Expr expr) { throw new IllegalStateException(); }",
             CALC,
         ),
-        ("09", 2) => pm(Stmts("void", "String path"), "static void process(File input) { }", ""),
+        ("09", 2) => pm(
+            Stmts("void", "String path"),
+            "static void process(File input) { }",
+            "",
+        ),
         // A public constructor names `Ledger`, so `Ledger` is public too, in its own file.
         ("09", 3) => Plan {
             kind: Unit,
             members: "",
             support: "",
-            files: &[("Ledger.cleat", "package spec; public class Ledger { public void register(Account account) { } }")],
+            files: &[(
+                "Ledger.cleat",
+                "package spec; public class Ledger { public void register(Account account) { } }",
+            )],
         },
         ("09", 4) => p(Unit),
         ("09", 5) => p(Sigs("class Fence")),
         ("12", 0) => p(Members("class Fence")),
-        ("12", 1) => pm(Stmts("void", ""), "static void step() { } static void cleanup() { }", ""),
+        ("12", 1) => pm(
+            Stmts("void", ""),
+            "static void step() { } static void cleanup() { }",
+            "",
+        ),
         ("12", 2) => pm(
             Stmts("void", "Boolean strict"),
             "static void use(Int n) { } static Boolean more() { return false; }",
@@ -182,7 +228,11 @@ fn plan(chapter: &str, index: usize) -> Plan {
             "static Int count(String text) { return text.length(); }",
             "",
         ),
-        ("13", 8) => pm(Stmts("void", "List<String> paths"), "static void index(String line) { }", ""),
+        ("13", 8) => pm(
+            Stmts("void", "List<String> paths"),
+            "static void index(String line) { }",
+            "",
+        ),
         _ => panic!("the example {chapter}#{index} has no plan in tests/spec_examples.rs"),
     }
 }
@@ -203,7 +253,10 @@ fn declared_type(line: &str) -> Option<(String, bool)> {
     if line.starts_with(' ') || line.starts_with('}') {
         return None;
     }
-    let words: Vec<&str> = code_of(line).split(|c: char| !c.is_alphanumeric() && c != '_' && c != '@').filter(|w| !w.is_empty()).collect();
+    let words: Vec<&str> = code_of(line)
+        .split(|c: char| !c.is_alphanumeric() && c != '_' && c != '@')
+        .filter(|w| !w.is_empty())
+        .collect();
     for (i, w) in words.iter().enumerate() {
         if matches!(*w, "class" | "interface" | "enum" | "annotation") && i + 1 < words.len() {
             return Some((words[i + 1].to_string(), words.contains(&"public")));
@@ -225,11 +278,17 @@ fn wrap(plan: &Plan, lines: &[String]) -> Vec<(PathBuf, String)> {
                 .collect();
             let publics: Vec<&(usize, String, bool)> = decls.iter().filter(|d| d.2).collect();
             if publics.len() <= 1 {
-                let name = publics.first().map(|d| d.1.clone()).unwrap_or_else(|| "Fence".to_string());
+                let name = publics
+                    .first()
+                    .map(|d| d.1.clone())
+                    .unwrap_or_else(|| "Fence".to_string());
                 return one(&name, format!("package spec;\n{body}\n{}\n", plan.support));
             }
             // One file for each type: a public type is in a file of its name.
-            assert!(plan.support.is_empty(), "an example split into files has no support");
+            assert!(
+                plan.support.is_empty(),
+                "an example split into files has no support"
+            );
             let mut files = Vec::new();
             let mut start = 0;
             let mut depth = 0i32;
@@ -248,23 +307,49 @@ fn wrap(plan: &Plan, lines: &[String]) -> Vec<(PathBuf, String)> {
                         }
                         text.push('\n');
                     }
-                    files.push((PathBuf::from(format!("{}.cleat", name.take().unwrap())), text));
+                    files.push((
+                        PathBuf::from(format!("{}.cleat", name.take().unwrap())),
+                        text,
+                    ));
                     start = i + 1;
                 }
             }
             files
         }
-        Kind::Members(head) => one("Fence", format!("package spec; {head} {{\n{body}\n{}\n}}\n{}\n", plan.members, plan.support)),
+        Kind::Members(head) => one(
+            "Fence",
+            format!(
+                "package spec; {head} {{\n{body}\n{}\n}}\n{}\n",
+                plan.members, plan.support
+            ),
+        ),
         Kind::Stmts(ret, params) => one(
             "Fence",
-            format!("package spec; class Fence {{ static {ret} run({params}) {{\n{body}\n}}\n{}\n}}\n{}\n", plan.members, plan.support),
+            format!(
+                "package spec; class Fence {{ static {ret} run({params}) {{\n{body}\n}}\n{}\n}}\n{}\n",
+                plan.members, plan.support
+            ),
         ),
         Kind::Sigs(head) => {
             let with_bodies: Vec<String> = lines
                 .iter()
-                .map(|l| if code_of(l).ends_with(')') { format!("{} {{ throw new IllegalStateException(); }}", code_of(l)) } else { l.clone() })
+                .map(|l| {
+                    if code_of(l).ends_with(')') {
+                        format!("{} {{ throw new IllegalStateException(); }}", code_of(l))
+                    } else {
+                        l.clone()
+                    }
+                })
                 .collect();
-            one("Fence", format!("package spec; {head} {{\n{}\n{}\n}}\n{}\n", with_bodies.join("\n"), plan.members, plan.support))
+            one(
+                "Fence",
+                format!(
+                    "package spec; {head} {{\n{}\n{}\n}}\n{}\n",
+                    with_bodies.join("\n"),
+                    plan.members,
+                    plan.support
+                ),
+            )
         }
         Kind::Prelude(_) => unreachable!(),
     }
@@ -275,15 +360,28 @@ fn wrap(plan: &Plan, lines: &[String]) -> Vec<(PathBuf, String)> {
 fn check(plan: &Plan, lines: &[String], what: &str) -> Vec<(usize, String)> {
     let mut files = wrap(plan, lines);
     let own = files.len();
-    files.extend(plan.files.iter().map(|(n, t)| (PathBuf::from(n), t.to_string())));
+    files.extend(
+        plan.files
+            .iter()
+            .map(|(n, t)| (PathBuf::from(n), t.to_string())),
+    );
     let diags = match analyze_sources(&files) {
         Ok(_) => Vec::new(),
         Err(d) => d,
     };
     let mut out = Vec::new();
     for d in diags {
-        let in_example = files[..own].iter().any(|(f, _)| *f == d.file) && d.line >= 2 && (d.line as usize - 2) < lines.len();
-        assert!(in_example, "{what}: a diagnostic outside the example: {}:{}:{}: {}", d.file.display(), d.line, d.column, d.message);
+        let in_example = files[..own].iter().any(|(f, _)| *f == d.file)
+            && d.line >= 2
+            && (d.line as usize - 2) < lines.len();
+        assert!(
+            in_example,
+            "{what}: a diagnostic outside the example: {}:{}:{}: {}",
+            d.file.display(),
+            d.line,
+            d.column,
+            d.message
+        );
         out.push((d.line as usize - 2, d.message));
     }
     out
@@ -291,7 +389,9 @@ fn check(plan: &Plan, lines: &[String], what: &str) -> Vec<(usize, String)> {
 
 fn run(chapter: &str, index: usize) {
     let all = fences(chapter);
-    let fence = all.get(index).unwrap_or_else(|| panic!("chapter {chapter} has no example {index}"));
+    let fence = all
+        .get(index)
+        .unwrap_or_else(|| panic!("chapter {chapter} has no example {index}"));
     let plan = plan(chapter, index);
     let what = format!("chapter {chapter}, the example at line {}", fence.at);
     if let Kind::Prelude(class) = &plan.kind {
@@ -302,14 +402,22 @@ fn run(chapter: &str, index: usize) {
         .lines
         .iter()
         .enumerate()
-        .filter(|(_, l)| comment_of(l).map(|c| c.starts_with("rejected")).unwrap_or(false))
+        .filter(|(_, l)| {
+            comment_of(l)
+                .map(|c| c.starts_with("rejected"))
+                .unwrap_or(false)
+        })
         .map(|(i, _)| i)
         .collect();
     let needed: Vec<usize> = fence
         .lines
         .iter()
         .enumerate()
-        .filter(|(_, l)| comment_of(l).map(|c| c.starts_with("without this line")).unwrap_or(false))
+        .filter(|(_, l)| {
+            comment_of(l)
+                .map(|c| c.starts_with("without this line"))
+                .unwrap_or(false)
+        })
         .map(|(i, _)| i)
         .collect();
     let expect = |lines: &[String], rejected: &[usize], what: &str| {
@@ -323,7 +431,12 @@ fn run(chapter: &str, index: usize) {
             );
         }
         for r in rejected {
-            assert!(diags.iter().any(|(l, _)| l == r), "{what}: line {} is marked rejected, and the checker accepts it\n    {}", r + 1, lines[*r]);
+            assert!(
+                diags.iter().any(|(l, _)| l == r),
+                "{what}: line {} is marked rejected, and the checker accepts it\n    {}",
+                r + 1,
+                lines[*r]
+            );
         }
     };
     expect(&fence.lines, &rejected, &what);
@@ -332,22 +445,37 @@ fn run(chapter: &str, index: usize) {
         let mut lines = fence.lines.clone();
         lines[*r] = String::new();
         let rest: Vec<usize> = rejected.iter().copied().filter(|x| x != r).collect();
-        expect(&lines, &rest, &format!("{what}, without its line {}", r + 1));
+        expect(
+            &lines,
+            &rest,
+            &format!("{what}, without its line {}", r + 1),
+        );
     }
     // A line the text calls necessary: without it the example is rejected.
     for n in &needed {
         let mut lines = fence.lines.clone();
         lines[*n] = String::new();
         let mut files = wrap(&plan, &lines);
-        files.extend(plan.files.iter().map(|(n, t)| (PathBuf::from(n), t.to_string())));
-        assert!(analyze_sources(&files).is_err(), "{what}: without line {} the example should be rejected, and the checker accepts it", n + 1);
+        files.extend(
+            plan.files
+                .iter()
+                .map(|(n, t)| (PathBuf::from(n), t.to_string())),
+        );
+        assert!(
+            analyze_sources(&files).is_err(),
+            "{what}: without line {} the example should be rejected, and the checker accepts it",
+            n + 1
+        );
     }
 }
 
 // ---- listings of prelude declarations ----
 
 fn show_anns(anns: &[ast::AnnotationUse]) -> String {
-    let mut names: Vec<String> = anns.iter().map(|a| format!("@{} ", a.name.join("."))).collect();
+    let mut names: Vec<String> = anns
+        .iter()
+        .map(|a| format!("@{} ", a.name.join(".")))
+        .collect();
     names.sort();
     names.concat()
 }
@@ -362,7 +490,9 @@ fn show_type(t: &ast::TypeRef) -> String {
                 ast::TypeArg::Type(t) => show_type(t),
                 ast::TypeArg::Wildcard(None, _) => "?".to_string(),
                 ast::TypeArg::Wildcard(Some((true, t)), _) => format!("? super {}", show_type(t)),
-                ast::TypeArg::Wildcard(Some((false, t)), _) => format!("? extends {}", show_type(t)),
+                ast::TypeArg::Wildcard(Some((false, t)), _) => {
+                    format!("? extends {}", show_type(t))
+                }
             })
             .collect();
         s.push_str(&format!("<{}>", parts.join(", ")));
@@ -383,7 +513,12 @@ fn show_tparams(ps: &[ast::TypeParam]) -> String {
                 ast::Variance::Invariant => "",
             };
             let bounds: Vec<String> = tp.bounds.iter().map(show_type).collect();
-            format!("{}{v}{} extends {}", show_anns(&tp.annotations), tp.name, bounds.join(" & "))
+            format!(
+                "{}{v}{} extends {}",
+                show_anns(&tp.annotations),
+                tp.name,
+                bounds.join(" & ")
+            )
         })
         .collect();
     parts.join(", ")
@@ -392,7 +527,11 @@ fn show_tparams(ps: &[ast::TypeParam]) -> String {
 /// The modifiers that are not annotations, and the qualifiers among the annotations.
 /// A qualifier written among the modifiers of a method belongs to its result.
 fn show_mods(m: &ast::Mods) -> String {
-    let quals: Vec<&ast::AnnotationUse> = m.annotations.iter().filter(|a| a.name.last().map(|n| n == "Nullable").unwrap_or(false)).collect();
+    let quals: Vec<&ast::AnnotationUse> = m
+        .annotations
+        .iter()
+        .filter(|a| a.name.last().map(|n| n == "Nullable").unwrap_or(false))
+        .collect();
     format!(
         "{:?} static={} final={} open={} abstract={} sealed={} foreign={} {}",
         m.audience,
@@ -402,7 +541,10 @@ fn show_mods(m: &ast::Mods) -> String {
         m.is_abstract,
         m.is_sealed,
         m.is_foreign,
-        quals.iter().map(|a| format!("@{}", a.name.join("."))).collect::<String>()
+        quals
+            .iter()
+            .map(|a| format!("@{}", a.name.join(".")))
+            .collect::<String>()
     )
 }
 
@@ -411,8 +553,18 @@ fn listed_anns(m: &ast::Mods) -> Vec<String> {
 }
 
 fn show_params(ps: &[ast::Param]) -> String {
-    let parts: Vec<String> =
-        ps.iter().map(|p| format!("{}{}{} {}", show_anns(&p.mods.annotations), show_type(&p.ty), if p.varargs { "..." } else { "" }, p.name)).collect();
+    let parts: Vec<String> = ps
+        .iter()
+        .map(|p| {
+            format!(
+                "{}{}{} {}",
+                show_anns(&p.mods.annotations),
+                show_type(&p.ty),
+                if p.varargs { "..." } else { "" },
+                p.name
+            )
+        })
+        .collect();
     parts.join(", ")
 }
 
@@ -424,7 +576,8 @@ fn prelude_type(name: &str) -> ast::TypeDecl {
             continue;
         }
         let text = std::fs::read_to_string(&path).unwrap();
-        let unit = parse::parse_unit(&path, &text).unwrap_or_else(|d| panic!("{}: {}", path.display(), d.message));
+        let unit = parse::parse_unit(&path, &text)
+            .unwrap_or_else(|d| panic!("{}: {}", path.display(), d.message));
         if let Some(t) = unit.types.into_iter().find(|t| t.name == name) {
             return t;
         }
@@ -434,49 +587,115 @@ fn prelude_type(name: &str) -> ast::TypeDecl {
 
 fn compare_with_prelude(lines: &[String], class: Option<&str>, what: &str) {
     // A listing ends a signature where its body would be.
-    let listed: Vec<String> = lines.iter().map(|l| if code_of(l).ends_with(')') { format!("{};", code_of(l)) } else { l.clone() }).collect();
+    let listed: Vec<String> = lines
+        .iter()
+        .map(|l| {
+            if code_of(l).ends_with(')') {
+                format!("{};", code_of(l))
+            } else {
+                l.clone()
+            }
+        })
+        .collect();
     let text = match class {
         Some(name) => format!("class {name} {{\n{}\n}}\n", listed.join("\n")),
         None => listed.join("\n"),
     };
-    let unit = parse::parse_unit(Path::new("listing.cleat"), &text).unwrap_or_else(|d| panic!("{what}: the listing does not parse: {}:{}: {}", d.line, d.column, d.message));
-    assert!(!unit.types.is_empty(), "{what}: the listing declares nothing");
+    let unit = parse::parse_unit(Path::new("listing.cleat"), &text).unwrap_or_else(|d| {
+        panic!(
+            "{what}: the listing does not parse: {}:{}: {}",
+            d.line, d.column, d.message
+        )
+    });
+    assert!(
+        !unit.types.is_empty(),
+        "{what}: the listing declares nothing"
+    );
     for listing in &unit.types {
         let real = prelude_type(&listing.name);
         let name = &listing.name;
         if class.is_none() {
-            assert_eq!(format!("{:?}", listing.kind), format!("{:?}", real.kind), "{what}: the kind of `{name}`");
-            assert_eq!(show_mods(&listing.mods), show_mods(&real.mods), "{what}: the modifiers of `{name}`");
-            assert_eq!(show_tparams(&listing.type_params), show_tparams(&real.type_params), "{what}: the type parameters of `{name}`");
+            assert_eq!(
+                format!("{:?}", listing.kind),
+                format!("{:?}", real.kind),
+                "{what}: the kind of `{name}`"
+            );
+            assert_eq!(
+                show_mods(&listing.mods),
+                show_mods(&real.mods),
+                "{what}: the modifiers of `{name}`"
+            );
+            assert_eq!(
+                show_tparams(&listing.type_params),
+                show_tparams(&real.type_params),
+                "{what}: the type parameters of `{name}`"
+            );
             for a in listed_anns(&listing.mods) {
-                assert!(listed_anns(&real.mods).contains(&a), "{what}: the prelude's `{name}` does not carry `@{a}`");
+                assert!(
+                    listed_anns(&real.mods).contains(&a),
+                    "{what}: the prelude's `{name}` does not carry `@{a}`"
+                );
             }
             if !listing.extends.is_empty() {
-                let (a, b): (Vec<String>, Vec<String>) = (listing.extends.iter().map(show_type).collect(), real.extends.iter().map(show_type).collect());
+                let (a, b): (Vec<String>, Vec<String>) = (
+                    listing.extends.iter().map(show_type).collect(),
+                    real.extends.iter().map(show_type).collect(),
+                );
                 assert_eq!(a, b, "{what}: what `{name}` extends");
             }
-            assert_eq!(listing.elements.len(), real.elements.len(), "{what}: the elements of `{name}`");
+            assert_eq!(
+                listing.elements.len(),
+                real.elements.len(),
+                "{what}: the elements of `{name}`"
+            );
             for (x, y) in listing.elements.iter().zip(real.elements.iter()) {
-                assert_eq!((show_type(&x.ty), &x.name, x.default.is_some()), (show_type(&y.ty), &y.name, y.default.is_some()), "{what}: an element of `{name}`");
+                assert_eq!(
+                    (show_type(&x.ty), &x.name, x.default.is_some()),
+                    (show_type(&y.ty), &y.name, y.default.is_some()),
+                    "{what}: an element of `{name}`"
+                );
             }
         }
         for member in &listing.members {
             match member {
                 ast::Member::Method(m) => {
                     let sig = |m: &ast::MethodDecl| {
-                        format!("<{}> {}({}) this={}", show_tparams(&m.type_params), m.name, show_params(&m.params), m.receiver.as_ref().map(show_type).unwrap_or_default())
+                        format!(
+                            "<{}> {}({}) this={}",
+                            show_tparams(&m.type_params),
+                            m.name,
+                            show_params(&m.params),
+                            m.receiver.as_ref().map(show_type).unwrap_or_default()
+                        )
                     };
                     let found = real.members.iter().find_map(|r| match r {
                         ast::Member::Method(r) if sig(r) == sig(m) => Some(r),
                         _ => None,
                     });
                     let Some(r) = found else {
-                        panic!("{what}: the prelude's `{name}` declares no method `{}`", sig(m));
+                        panic!(
+                            "{what}: the prelude's `{name}` declares no method `{}`",
+                            sig(m)
+                        );
                     };
-                    assert_eq!(show_mods(&m.mods), show_mods(&r.mods), "{what}: the modifiers of `{name}.{}`", m.name);
-                    assert_eq!(m.result.as_ref().map(show_type), r.result.as_ref().map(show_type), "{what}: the result of `{name}.{}`", m.name);
+                    assert_eq!(
+                        show_mods(&m.mods),
+                        show_mods(&r.mods),
+                        "{what}: the modifiers of `{name}.{}`",
+                        m.name
+                    );
+                    assert_eq!(
+                        m.result.as_ref().map(show_type),
+                        r.result.as_ref().map(show_type),
+                        "{what}: the result of `{name}.{}`",
+                        m.name
+                    );
                     for a in listed_anns(&m.mods) {
-                        assert!(listed_anns(&r.mods).contains(&a), "{what}: the prelude's `{name}.{}` does not carry `@{a}`", m.name);
+                        assert!(
+                            listed_anns(&r.mods).contains(&a),
+                            "{what}: the prelude's `{name}.{}` does not carry `@{a}`",
+                            m.name
+                        );
                     }
                 }
                 ast::Member::Ctor(c) => {
@@ -486,13 +705,24 @@ fn compare_with_prelude(lines: &[String], class: Option<&str>, what: &str) {
                         _ => None,
                     });
                     let Some(r) = found else {
-                        panic!("{what}: the prelude's `{name}` declares no constructor ({})", sig(c).unwrap_or_default());
+                        panic!(
+                            "{what}: the prelude's `{name}` declares no constructor ({})",
+                            sig(c).unwrap_or_default()
+                        );
                     };
-                    assert_eq!(show_mods(&c.mods), show_mods(&r.mods), "{what}: the modifiers of a constructor of `{name}`");
+                    assert_eq!(
+                        show_mods(&c.mods),
+                        show_mods(&r.mods),
+                        "{what}: the modifiers of a constructor of `{name}`"
+                    );
                 }
                 ast::Member::Field(f) => {
                     let found = real.members.iter().any(|r| matches!(r, ast::Member::Field(r) if r.name == f.name && show_type(&r.ty) == show_type(&f.ty)));
-                    assert!(found, "{what}: the prelude's `{name}` declares no field `{}`", f.name);
+                    assert!(
+                        found,
+                        "{what}: the prelude's `{name}` declares no field `{}`",
+                        f.name
+                    );
                 }
                 ast::Member::StaticInit(_) => {}
             }
@@ -596,8 +826,15 @@ fn every_example_has_a_test() {
         let count = fences(chapter).len();
         total += count;
         for index in 0..count {
-            assert!(TESTED.contains(&(chapter.as_str(), index)), "the example {chapter}#{index} has no test");
+            assert!(
+                TESTED.contains(&(chapter.as_str(), index)),
+                "the example {chapter}#{index} has no test"
+            );
         }
     }
-    assert_eq!(total, TESTED.len(), "a test names an example that the specification no longer has");
+    assert_eq!(
+        total,
+        TESTED.len(),
+        "a test names an example that the specification no longer has"
+    );
 }

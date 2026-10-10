@@ -18,7 +18,12 @@ pub struct Diagnostic {
 
 impl Diagnostic {
     pub fn general(file: &Path, message: impl Into<String>) -> Diagnostic {
-        Diagnostic { file: file.to_path_buf(), line: 1, column: 1, message: message.into() }
+        Diagnostic {
+            file: file.to_path_buf(),
+            line: 1,
+            column: 1,
+            message: message.into(),
+        }
     }
 }
 
@@ -64,7 +69,9 @@ pub fn analyze(roots: &[&Path]) -> Result<sema::program::Program, Vec<Diagnostic
 }
 
 /// Checks source given as text, each with the name of its file, as one program.
-pub fn analyze_sources(sources: &[(PathBuf, String)]) -> Result<sema::program::Program, Vec<Diagnostic>> {
+pub fn analyze_sources(
+    sources: &[(PathBuf, String)],
+) -> Result<sema::program::Program, Vec<Diagnostic>> {
     let mut units = Vec::new();
     let mut errors = Vec::new();
     for (path, text) in sources {
@@ -80,8 +87,11 @@ pub fn analyze_sources(sources: &[(PathBuf, String)]) -> Result<sema::program::P
 }
 
 fn analyze_units(mut units: Vec<ast::Unit>) -> Result<sema::program::Program, Vec<Diagnostic>> {
-    static PRELUDE: std::sync::OnceLock<Result<Vec<ast::Unit>, Vec<Diagnostic>>> = std::sync::OnceLock::new();
-    let prelude = PRELUDE.get_or_init(|| parse_project(&prelude_dir())).clone()?;
+    static PRELUDE: std::sync::OnceLock<Result<Vec<ast::Unit>, Vec<Diagnostic>>> =
+        std::sync::OnceLock::new();
+    let prelude = PRELUDE
+        .get_or_init(|| parse_project(&prelude_dir()))
+        .clone()?;
     let same = |a: &Path, b: &Path| match (a.canonicalize(), b.canonicalize()) {
         (Ok(x), Ok(y)) => x == y,
         _ => false,
@@ -91,7 +101,10 @@ fn analyze_units(mut units: Vec<ast::Unit>) -> Result<sema::program::Program, Ve
             continue;
         }
         // A file of the prelude itself, or one that stands in place of a prelude file.
-        let known = r.package.len() == 1 && prelude.iter().any(|u| same(&r.file, &u.file) || r.file.file_name() == u.file.file_name());
+        let known = r.package.len() == 1
+            && prelude
+                .iter()
+                .any(|u| same(&r.file, &u.file) || r.file.file_name() == u.file.file_name());
         if !known {
             return Err(vec![Diagnostic::general(
                 &r.file,
@@ -101,7 +114,8 @@ fn analyze_units(mut units: Vec<ast::Unit>) -> Result<sema::program::Program, Ve
     }
     for u in prelude {
         let replaced = units.iter().any(|r| {
-            same(&r.file, &u.file) || (r.package == ["cleat"] && r.file.file_name() == u.file.file_name())
+            same(&r.file, &u.file)
+                || (r.package == ["cleat"] && r.file.file_name() == u.file.file_name())
         });
         if !replaced {
             units.push(u);
@@ -120,7 +134,9 @@ fn analyze_units(mut units: Vec<ast::Unit>) -> Result<sema::program::Program, Ve
 pub fn prelude_dir() -> PathBuf {
     match std::env::var_os("CLEAT_PRELUDE") {
         Some(p) => PathBuf::from(p),
-        None => Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("prelude"),
+        None => Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("prelude"),
     }
 }
 
@@ -131,24 +147,51 @@ pub fn build(root: &Path, entry: &str, output: &Path) -> Result<(), Vec<Diagnost
 
 /// Compiles the files under every root as one program. The result is the reports that
 /// do not reject the program.
-pub fn build_roots(roots: &[&Path], entry: &str, output: &Path) -> Result<Vec<Diagnostic>, Vec<Diagnostic>> {
+pub fn build_roots(
+    roots: &[&Path],
+    entry: &str,
+    output: &Path,
+) -> Result<Vec<Diagnostic>, Vec<Diagnostic>> {
     build_with(roots, entry, output, &[])
 }
 
 /// As `build_roots`, linking the given files too: the libraries or objects that supply
 /// the foreign methods of the program.
-pub fn build_with(roots: &[&Path], entry: &str, output: &Path, link: &[PathBuf]) -> Result<Vec<Diagnostic>, Vec<Diagnostic>> {
+pub fn build_with(
+    roots: &[&Path],
+    entry: &str,
+    output: &Path,
+    link: &[PathBuf],
+) -> Result<Vec<Diagnostic>, Vec<Diagnostic>> {
     let mut p = analyze(roots)?;
     let first = roots.first().copied().unwrap_or(Path::new("."));
     let fail = |message: String| vec![Diagnostic::general(first, message)];
-    let mut found: Vec<u32> = p.classes.iter().filter(|c| c.qname == entry).map(|c| c.id).collect();
+    let mut found: Vec<u32> = p
+        .classes
+        .iter()
+        .filter(|c| c.qname == entry)
+        .map(|c| c.id)
+        .collect();
     if found.is_empty() {
-        found = p.classes.iter().filter(|c| c.name == entry && c.lambda.is_none()).map(|c| c.id).collect();
+        found = p
+            .classes
+            .iter()
+            .filter(|c| c.name == entry && c.lambda.is_none())
+            .map(|c| c.id)
+            .collect();
     }
     if found.len() != 1 {
-        return Err(fail(format!("the entry class `{entry}` names {} classes of the program", found.len())));
+        return Err(fail(format!(
+            "the entry class `{entry}` names {} classes of the program",
+            found.len()
+        )));
     }
-    let (ir, shim) = emit::emit(&mut p, found[0]).map_err(|errors| errors.into_iter().map(|m| Diagnostic::general(first, m)).collect::<Vec<_>>())?;
+    let (ir, shim) = emit::emit(&mut p, found[0]).map_err(|errors| {
+        errors
+            .into_iter()
+            .map(|m| Diagnostic::general(first, m))
+            .collect::<Vec<_>>()
+    })?;
     emit::link::link(&ir, &shim, output, link).map_err(fail)?;
     Ok(std::mem::take(&mut p.warnings))
 }
@@ -158,7 +201,10 @@ fn collect(root: &Path) -> Result<Vec<(PathBuf, String)>, Vec<Diagnostic>> {
     walk(root, &mut files).map_err(|message| vec![Diagnostic::general(root, message)])?;
     files.sort_by(|a, b| a.0.cmp(&b.0));
     if files.is_empty() {
-        return Err(vec![Diagnostic::general(root, "the project contains no .cleat files")]);
+        return Err(vec![Diagnostic::general(
+            root,
+            "the project contains no .cleat files",
+        )]);
     }
     Ok(files)
 }

@@ -35,7 +35,12 @@ fn expr_assigns(e: &ast::Expr, out: &mut Vec<String>) {
             target_name(target, out);
             expr_assigns(target, out);
         }
-        Paren(x) | Field(x, _) | Unary(_, x) | Cast(_, x) | InstanceOf(x, _) | NewArray { len: x, .. } => expr_assigns(x, out),
+        Paren(x)
+        | Field(x, _)
+        | Unary(_, x)
+        | Cast(_, x)
+        | InstanceOf(x, _)
+        | NewArray { len: x, .. } => expr_assigns(x, out),
         Call { target, args, .. } => {
             if let Some(t) = target {
                 expr_assigns(t, out);
@@ -61,7 +66,10 @@ fn expr_assigns(e: &ast::Expr, out: &mut Vec<String>) {
                 }
             }
         }
-        MethodRef { target: ast::RefTarget::Expr(x), .. } => expr_assigns(x, out),
+        MethodRef {
+            target: ast::RefTarget::Expr(x),
+            ..
+        } => expr_assigns(x, out),
         // A lambda cannot assign a local of the enclosing method.
         _ => {}
     }
@@ -93,7 +101,12 @@ fn stmt_assigns(s: &ast::Stmt, out: &mut Vec<String>) {
             expr_assigns(c, out);
             stmt_assigns(b, out);
         }
-        For { init, cond, update, body } => {
+        For {
+            init,
+            cond,
+            update,
+            body,
+        } => {
             init.iter().for_each(|s| stmt_assigns(s, out));
             if let Some(c) = cond {
                 expr_assigns(c, out);
@@ -109,7 +122,11 @@ fn stmt_assigns(s: &ast::Stmt, out: &mut Vec<String>) {
             expr_assigns(selector, out);
             arms.iter().for_each(|(_, s, _)| stmt_assigns(s, out));
         }
-        Try { block, catches, finally } => {
+        Try {
+            block,
+            catches,
+            finally,
+        } => {
             block_assigns(block, out);
             catches.iter().for_each(|c| block_assigns(&c.block, out));
             if let Some(f) = finally {
@@ -190,7 +207,11 @@ impl<'p> Checker<'p> {
         let unit = self.unit_ty();
         match &e.kind {
             ExprKind::Assign { op, target, value } => self.assign(*op, target, value, e.pos, false),
-            ExprKind::IncDec { inc, prefix, target } => self.inc_dec(*inc, *prefix, target, e.pos, false),
+            ExprKind::IncDec {
+                inc,
+                prefix,
+                target,
+            } => self.inc_dec(*inc, *prefix, target, e.pos, false),
             ExprKind::Call { .. } | ExprKind::SuperCall { .. } => {
                 let v = self.check_expr(e, None);
                 if v.ty.is_error() {
@@ -210,27 +231,51 @@ impl<'p> Checker<'p> {
                 if !needs_expected(e) {
                     self.check_expr(e, None);
                 }
-                self.error_expr(e.pos, "this expression is not a statement: its value would be discarded")
+                self.error_expr(
+                    e.pos,
+                    "this expression is not a statement: its value would be discarded",
+                )
             }
         }
     }
 
-    fn find_label(&mut self, name: &Option<String>, want_loop: bool, pos: Pos, word: &str) -> Option<usize> {
+    fn find_label(
+        &mut self,
+        name: &Option<String>,
+        want_loop: bool,
+        pos: Pos,
+        word: &str,
+    ) -> Option<usize> {
         let f = self.frame_ref();
         let found = match name {
-            Some(n) => f.labels.iter().rposition(|l| l.name.as_deref() == Some(n.as_str())),
-            None => f.labels.iter().rposition(|l| if want_loop { l.is_loop } else { l.breakable }),
+            Some(n) => f
+                .labels
+                .iter()
+                .rposition(|l| l.name.as_deref() == Some(n.as_str())),
+            None => f
+                .labels
+                .iter()
+                .rposition(|l| if want_loop { l.is_loop } else { l.breakable }),
         };
         let Some(i) = found else {
             match name {
-                Some(n) => self.err(pos, format!("no statement labeled `{n}` encloses this `{word}`")),
+                Some(n) => self.err(
+                    pos,
+                    format!("no statement labeled `{n}` encloses this `{word}`"),
+                ),
                 None if want_loop => self.err(pos, format!("`{word}` is not inside a loop")),
-                None => self.err(pos, format!("`{word}` is not inside a loop or a switch statement")),
+                None => self.err(
+                    pos,
+                    format!("`{word}` is not inside a loop or a switch statement"),
+                ),
             }
             return None;
         };
         if want_loop && !self.frame_ref().labels[i].is_loop {
-            self.err(pos, format!("`{word}` with a label continues a loop, and this label is not on a loop"));
+            self.err(
+                pos,
+                format!("`{word}` with a label continues a loop, and this label is not on a loop"),
+            );
             return None;
         }
         if let Some(mark) = self.frame_ref().in_finally.last() {
@@ -242,22 +287,55 @@ impl<'p> Checker<'p> {
         Some(i)
     }
 
-    fn push_label(&mut self, name: Option<String>, is_loop: bool, breakable: bool, pos: Pos) -> u32 {
+    fn push_label(
+        &mut self,
+        name: Option<String>,
+        is_loop: bool,
+        breakable: bool,
+        pos: Pos,
+    ) -> u32 {
         if let Some(n) = &name {
-            if self.frame_ref().labels.iter().any(|l| l.name.as_deref() == Some(n.as_str())) {
-                self.err(pos, format!("the label `{n}` is already on an enclosing statement"));
+            if self
+                .frame_ref()
+                .labels
+                .iter()
+                .any(|l| l.name.as_deref() == Some(n.as_str()))
+            {
+                self.err(
+                    pos,
+                    format!("the label `{n}` is already on an enclosing statement"),
+                );
             }
         }
         let id = self.new_label();
-        self.frame().labels.push(Label { name, id, is_loop, breakable, break_flows: Vec::new(), continue_flows: Vec::new() });
+        self.frame().labels.push(Label {
+            name,
+            id,
+            is_loop,
+            breakable,
+            break_flows: Vec::new(),
+            continue_flows: Vec::new(),
+        });
         id
     }
 
-    fn local_decl(&mut self, l: &ast::Local, value: Option<TExpr>, fixed: Option<Type>, is_final: bool) -> (LocalId, Option<TExpr>) {
+    fn local_decl(
+        &mut self,
+        l: &ast::Local,
+        value: Option<TExpr>,
+        fixed: Option<Type>,
+        is_final: bool,
+    ) -> (LocalId, Option<TExpr>) {
         // `value` and `fixed` serve the forms that bind a name without an initializer of
         // their own: the variable of a `for` over a collection, for one.
         let m = &l.mods;
-        if m.audience.is_some() || m.is_static || m.is_open || m.is_abstract || m.is_sealed || m.is_foreign {
+        if m.audience.is_some()
+            || m.is_static
+            || m.is_open
+            || m.is_abstract
+            || m.is_sealed
+            || m.is_foreign
+        {
             self.err(l.pos, "a local accepts `final` and qualifiers only");
         }
         let (ty, init) = match (&l.ty, &l.init, value) {
@@ -379,9 +457,19 @@ impl<'p> Checker<'p> {
                     exit = Flow::join(exit, bf);
                 }
                 self.frame().flow = exit;
-                out.push(TStmt::Loop { label, cond: Some(ce), update: Vec::new(), body: stmts });
+                out.push(TStmt::Loop {
+                    label,
+                    cond: Some(ce),
+                    update: Vec::new(),
+                    body: stmts,
+                });
             }
-            StmtKind::For { init, cond, update, body } => {
+            StmtKind::For {
+                init,
+                cond,
+                update,
+                body,
+            } => {
                 let name = self.pending_label.take();
                 self.push_scope();
                 let mut block = Vec::new();
@@ -438,7 +526,12 @@ impl<'p> Checker<'p> {
                 }
                 self.frame().flow = exit;
                 self.pop_scope();
-                block.push(TStmt::Loop { label, cond: ce, update: ups, body: stmts });
+                block.push(TStmt::Loop {
+                    label,
+                    cond: ce,
+                    update: ups,
+                    body: stmts,
+                });
                 out.push(TStmt::Block(block));
             }
             StmtKind::ForEach { local, iter, body } => {
@@ -450,7 +543,12 @@ impl<'p> Checker<'p> {
                     Type::error()
                 } else if self.p.may_be_null(&it.ty) {
                     let s = self.show(&it.ty);
-                    self.err(iter.pos, format!("a `for` statement visits an `Iterable`, and a `{s}` may be `null`"));
+                    self.err(
+                        iter.pos,
+                        format!(
+                            "a `for` statement visits an `Iterable`, and a `{s}` may be `null`"
+                        ),
+                    );
                     Type::error()
                 } else {
                     match self.p.supertype_at(&cap, iterable) {
@@ -460,7 +558,12 @@ impl<'p> Checker<'p> {
                         }
                         None => {
                             let s = self.show(&it.ty);
-                            self.err(iter.pos, format!("a `for` statement visits an `Iterable`, and `{s}` is not one"));
+                            self.err(
+                                iter.pos,
+                                format!(
+                                    "a `for` statement visits an `Iterable`, and `{s}` is not one"
+                                ),
+                            );
                             Type::error()
                         }
                     }
@@ -468,13 +571,30 @@ impl<'p> Checker<'p> {
                 self.push_scope();
                 let mut block = Vec::new();
                 let (cond, next) = if elem.is_error() {
-                    (TExpr { kind: TKind::Bool(true), ty: Type::error() }, TExpr { kind: TKind::Null, ty: Type::error() })
+                    (
+                        TExpr {
+                            kind: TKind::Bool(true),
+                            ty: Type::error(),
+                        },
+                        TExpr {
+                            kind: TKind::Null,
+                            ty: Type::error(),
+                        },
+                    )
                 } else {
-                    let iterator = self.call_method(it, "iterator", CallSite::new(Vec::new(), iter.pos));
+                    let iterator =
+                        self.call_method(it, "iterator", CallSite::new(Vec::new(), iter.pos));
                     let tmp = self.temp(iterator.ty.clone());
-                    let read = TExpr { kind: TKind::Local(tmp), ty: iterator.ty.clone() };
+                    let read = TExpr {
+                        kind: TKind::Local(tmp),
+                        ty: iterator.ty.clone(),
+                    };
                     block.push(TStmt::Local(tmp, Some(iterator)));
-                    let cond = self.call_method(read.clone(), "hasNext", CallSite::new(Vec::new(), iter.pos));
+                    let cond = self.call_method(
+                        read.clone(),
+                        "hasNext",
+                        CallSite::new(Vec::new(), iter.pos),
+                    );
                     let next = self.call_method(read, "next", CallSite::new(Vec::new(), iter.pos));
                     (cond, next)
                 };
@@ -498,11 +618,20 @@ impl<'p> Checker<'p> {
                 exit.reachable = true;
                 self.frame().flow = exit;
                 self.pop_scope();
-                block.push(TStmt::Loop { label, cond: Some(cond), update: Vec::new(), body: stmts });
+                block.push(TStmt::Loop {
+                    label,
+                    cond: Some(cond),
+                    update: Vec::new(),
+                    body: stmts,
+                });
                 out.push(TStmt::Block(block));
             }
             StmtKind::Switch { selector, arms } => self.switch_stmt(selector, arms, pos, out),
-            StmtKind::Try { block, catches, finally } => self.try_stmt(block, catches, finally, pos, out),
+            StmtKind::Try {
+                block,
+                catches,
+                finally,
+            } => self.try_stmt(block, catches, finally, pos, out),
             StmtKind::Using { resources, block } => {
                 self.push_scope();
                 let stmts = self.using(resources, block);
@@ -538,7 +667,10 @@ impl<'p> Checker<'p> {
                 let throwable = Type::simple(self.p.wk.throwable);
                 if !v.ty.is_error() && !self.p.is_subtype(&v.ty, &throwable) {
                     let s = self.show(&v.ty);
-                    self.err(e.pos, format!("`throw` raises a `Throwable`, and this is a `{s}`"));
+                    self.err(
+                        e.pos,
+                        format!("`throw` raises a `Throwable`, and this is a `{s}`"),
+                    );
                 }
                 out.push(TStmt::Throw(v));
                 self.frame().flow.reachable = false;
@@ -551,20 +683,38 @@ impl<'p> Checker<'p> {
                 if let Some(d) = detail {
                     let v = self.check_expr(d, None);
                     if !v.ty.is_error() {
-                        args.push(ArgIn::Done(self.call_method(v, "toString", CallSite::new(Vec::new(), d.pos))));
+                        args.push(ArgIn::Done(self.call_method(
+                            v,
+                            "toString",
+                            CallSite::new(Vec::new(), d.pos),
+                        )));
                     }
                 }
                 let ex = Type::simple(self.p.wk.assertion_exception);
                 let raise = self.construct(ex, CallSite::new(args, pos));
                 self.frame().flow = base;
                 self.apply_facts(&cond.t);
-                let not = TExpr { kind: TKind::Not(Box::new(ce)), ty: boolean };
+                let not = TExpr {
+                    kind: TKind::Not(Box::new(ce)),
+                    ty: boolean,
+                };
                 out.push(TStmt::If(not, vec![TStmt::Throw(raise)], Vec::new()));
             }
             StmtKind::Labeled(name, inner) => {
-                if matches!(inner.kind, StmtKind::While(..) | StmtKind::For { .. } | StmtKind::ForEach { .. }) {
-                    if self.frame_ref().labels.iter().any(|l| l.name.as_deref() == Some(name.as_str())) {
-                        self.err(pos, format!("the label `{name}` is already on an enclosing statement"));
+                if matches!(
+                    inner.kind,
+                    StmtKind::While(..) | StmtKind::For { .. } | StmtKind::ForEach { .. }
+                ) {
+                    if self
+                        .frame_ref()
+                        .labels
+                        .iter()
+                        .any(|l| l.name.as_deref() == Some(name.as_str()))
+                    {
+                        self.err(
+                            pos,
+                            format!("the label `{name}` is already on an enclosing statement"),
+                        );
                     }
                     self.pending_label = Some(name.clone());
                     self.stmt(inner, out);
@@ -630,7 +780,10 @@ impl<'p> Checker<'p> {
             }
             Some(e) => {
                 if ret == unit {
-                    self.err(pos, "`return` with an operand is rejected in a method whose result is `Unit`");
+                    self.err(
+                        pos,
+                        "`return` with an operand is rejected in a method whose result is `Unit`",
+                    );
                     if !needs_expected(e) {
                         self.check_expr(e, None);
                     }
@@ -676,21 +829,31 @@ impl<'p> Checker<'p> {
         let sty = sel.ty.clone();
         if !sty.is_error() && self.p.may_be_null(&sty) {
             let s = self.show(&sty);
-            self.err(selector.pos, format!("the selector of a switch is not `@Nullable`, and this is a `{s}`"));
+            self.err(
+                selector.pos,
+                format!("the selector of a switch is not `@Nullable`, and this is a `{s}`"),
+            );
         }
         let tmp = self.temp(sty.clone());
         let base = self.frame().flow.clone();
-        let has_const = heads.iter().any(|(h, _)| matches!(h, ArmHead::Constants(_)));
+        let has_const = heads
+            .iter()
+            .any(|(h, _)| matches!(h, ArmHead::Constants(_)));
         let has_type = heads.iter().any(|(h, _)| matches!(h, ArmHead::Type(..)));
         if has_const && has_type {
-            self.err(selector.pos, "one switch uses constant arms or type arms, not both");
+            self.err(
+                selector.pos,
+                "one switch uses constant arms or type arms, not both",
+            );
         }
         if has_const && !sty.is_error() {
             let ok = match sty.class_id() {
                 Some(id) => {
                     let w = &self.p.wk;
-                    matches!(self.p.num_kind(id), Some(NumKind::Signed(_) | NumKind::Unsigned(_)))
-                        || id == w.char_
+                    matches!(
+                        self.p.num_kind(id),
+                        Some(NumKind::Signed(_) | NumKind::Unsigned(_))
+                    ) || id == w.char_
                         || id == w.boolean
                         || id == w.string
                         || self.p.class(id).is_enum()
@@ -730,7 +893,9 @@ impl<'p> Checker<'p> {
                                 seen.push(k);
                                 vals.push(v);
                             }
-                            None => self.err(c.pos, "the constant of a `case` is a constant expression"),
+                            None => {
+                                self.err(c.pos, "the constant of a `case` is a constant expression")
+                            }
                         }
                     }
                     ArmTest::Constants(vals)
@@ -738,13 +903,21 @@ impl<'p> Checker<'p> {
                 ArmHead::Type(tr, name) => {
                     let ty = self.resolve(tr);
                     if ty.nullable || !ty.quals.is_empty() {
-                        self.err(tr.pos, "a type arm tests the class of the selector, and names no qualifier");
+                        self.err(
+                            tr.pos,
+                            "a type arm tests the class of the selector, and names no qualifier",
+                        );
                     }
                     let ty = ty.bare();
                     if !ty.is_error() && !sty.is_error() {
                         if self.disjoint(&sty, &ty) {
                             let (a, b) = (self.show(&sty), self.show(&ty));
-                            self.err(tr.pos, format!("`{a}` and `{b}` are disjoint, so this arm could never match"));
+                            self.err(
+                                tr.pos,
+                                format!(
+                                    "`{a}` and `{b}` are disjoint, so this arm could never match"
+                                ),
+                            );
                         }
                         let mut dead = false;
                         for prev in &types {
@@ -777,7 +950,9 @@ impl<'p> Checker<'p> {
             || sty.is_error()
             || match sty.class_id() {
                 Some(id) if has_type => self.covers(id, &types, 0),
-                Some(id) if id == self.p.wk.boolean => seen.contains(&Const::Bool(true)) && seen.contains(&Const::Bool(false)),
+                Some(id) if id == self.p.wk.boolean => {
+                    seen.contains(&Const::Bool(true)) && seen.contains(&Const::Bool(false))
+                }
                 Some(id) if self.p.class(id).is_enum() => {
                     let c = self.p.class(id);
                     let all: Vec<FieldRef> = c
@@ -785,7 +960,10 @@ impl<'p> Checker<'p> {
                         .iter()
                         .enumerate()
                         .filter(|(_, f)| f.enum_ordinal.is_some())
-                        .map(|(i, _)| FieldRef { class: id, index: i as u32 })
+                        .map(|(i, _)| FieldRef {
+                            class: id,
+                            index: i as u32,
+                        })
                         .collect();
                     all.iter().all(|f| seen.contains(&Const::Enum(*f)))
                 }
@@ -795,7 +973,13 @@ impl<'p> Checker<'p> {
         (sel, tmp, arms, exhaustive, flows)
     }
 
-    fn switch_stmt(&mut self, selector: &ast::Expr, arms: &[(ArmHead, ast::Stmt, Pos)], pos: Pos, out: &mut Vec<TStmt>) {
+    fn switch_stmt(
+        &mut self,
+        selector: &ast::Expr,
+        arms: &[(ArmHead, ast::Stmt, Pos)],
+        pos: Pos,
+        out: &mut Vec<TStmt>,
+    ) {
         let label = self.push_label(None, false, true, pos);
         let heads: Vec<(&ArmHead, Pos)> = arms.iter().map(|(h, _, p)| (h, *p)).collect();
         let (sel, temp, tarms, exhaustive, flows) = self.switch_heads(selector, &heads, |ck, i| {
@@ -814,28 +998,52 @@ impl<'p> Checker<'p> {
             flow = Flow::join(flow, bf);
         }
         self.frame().flow = flow;
-        out.push(TStmt::Switch { label, selector: sel, temp, arms: tarms });
+        out.push(TStmt::Switch {
+            label,
+            selector: sel,
+            temp,
+            arms: tarms,
+        });
     }
 
-    pub fn switch_expr(&mut self, selector: &ast::Expr, arms: &[(ArmHead, ArmValue, Pos)], expected: Option<&Type>, pos: Pos) -> TExpr {
+    pub fn switch_expr(
+        &mut self,
+        selector: &ast::Expr,
+        arms: &[(ArmHead, ArmValue, Pos)],
+        expected: Option<&Type>,
+        pos: Pos,
+    ) -> TExpr {
         let heads: Vec<(&ArmHead, Pos)> = arms.iter().map(|(h, _, p)| (h, *p)).collect();
-        let (sel, temp, mut tarms, exhaustive, flows) = self.switch_heads(selector, &heads, |ck, i| match &arms[i].1 {
-            ArmValue::Expr(e) => ck.check_expr(e, expected),
-            ArmValue::Throw(e) => {
-                let v = ck.check_expr(e, None);
-                let throwable = Type::simple(ck.p.wk.throwable);
-                if !v.ty.is_error() && !ck.p.is_subtype(&v.ty, &throwable) {
-                    let s = ck.show(&v.ty);
-                    ck.err(e.pos, format!("`throw` raises a `Throwable`, and this is a `{s}`"));
+        let (sel, temp, mut tarms, exhaustive, flows) =
+            self.switch_heads(selector, &heads, |ck, i| match &arms[i].1 {
+                ArmValue::Expr(e) => ck.check_expr(e, expected),
+                ArmValue::Throw(e) => {
+                    let v = ck.check_expr(e, None);
+                    let throwable = Type::simple(ck.p.wk.throwable);
+                    if !v.ty.is_error() && !ck.p.is_subtype(&v.ty, &throwable) {
+                        let s = ck.show(&v.ty);
+                        ck.err(
+                            e.pos,
+                            format!("`throw` raises a `Throwable`, and this is a `{s}`"),
+                        );
+                    }
+                    ck.frame().flow.reachable = false;
+                    TExpr {
+                        kind: TKind::Throw(Box::new(v)),
+                        ty: Type::error(),
+                    }
                 }
-                ck.frame().flow.reachable = false;
-                TExpr { kind: TKind::Throw(Box::new(v)), ty: Type::error() }
-            }
-        });
+            });
         if !exhaustive {
-            self.err(pos, "a switch expression is exhaustive: add the missing arms or a `default` arm");
+            self.err(
+                pos,
+                "a switch expression is exhaustive: add the missing arms or a `default` arm",
+            );
         }
-        let mut flow = Flow { reachable: false, ..Flow::default() };
+        let mut flow = Flow {
+            reachable: false,
+            ..Flow::default()
+        };
         for f in flows {
             flow = Flow::join(flow, f);
         }
@@ -850,7 +1058,11 @@ impl<'p> Checker<'p> {
         let ty = match expected {
             Some(t) if !t.is_error() => t.clone(),
             _ => {
-                let cands: Vec<Type> = tarms.iter().filter(|(_, e)| !is_throw(e) && !e.ty.is_error()).map(|(_, e)| e.ty.clone()).collect();
+                let cands: Vec<Type> = tarms
+                    .iter()
+                    .filter(|(_, e)| !is_throw(e) && !e.ty.is_error())
+                    .map(|(_, e)| e.ty.clone())
+                    .collect();
                 failed = tarms.iter().any(|(_, e)| !is_throw(e) && e.ty.is_error());
                 let mut pick = None;
                 for c in &cands {
@@ -866,7 +1078,11 @@ impl<'p> Checker<'p> {
                     }
                     if all {
                         let nullable = cands.iter().any(|o| o.is_null_literal());
-                        pick = Some(if nullable { c.clone().nullable() } else { c.clone() });
+                        pick = Some(if nullable {
+                            c.clone().nullable()
+                        } else {
+                            c.clone()
+                        });
                         break;
                     }
                 }
@@ -883,9 +1099,18 @@ impl<'p> Checker<'p> {
         };
         let _ = failed;
         for (i, (_, e)) in tarms.iter_mut().enumerate() {
-            let v = std::mem::replace(e, TExpr { kind: TKind::Null, ty: Type::error() });
+            let v = std::mem::replace(
+                e,
+                TExpr {
+                    kind: TKind::Null,
+                    ty: Type::error(),
+                },
+            );
             *e = if is_throw(&v) {
-                TExpr { kind: v.kind, ty: ty.clone() }
+                TExpr {
+                    kind: v.kind,
+                    ty: ty.clone(),
+                }
             } else {
                 let apos = match &arms[i].1 {
                     ArmValue::Expr(x) | ArmValue::Throw(x) => x.pos,
@@ -893,14 +1118,31 @@ impl<'p> Checker<'p> {
                 self.coerce(v, &ty, apos)
             };
         }
-        TExpr { kind: TKind::Switch { selector: Box::new(sel), temp, arms: tarms }, ty }
+        TExpr {
+            kind: TKind::Switch {
+                selector: Box::new(sel),
+                temp,
+                arms: tarms,
+            },
+            ty,
+        }
     }
 
     // ---- try and using ----
 
-    fn try_stmt(&mut self, block: &ast::Block, catches: &[ast::Catch], finally: &Option<ast::Block>, pos: Pos, out: &mut Vec<TStmt>) {
+    fn try_stmt(
+        &mut self,
+        block: &ast::Block,
+        catches: &[ast::Catch],
+        finally: &Option<ast::Block>,
+        pos: Pos,
+        out: &mut Vec<TStmt>,
+    ) {
         if catches.is_empty() && finally.is_none() {
-            self.err(pos, "a `try` statement has at least one `catch` clause or a `finally` block");
+            self.err(
+                pos,
+                "a `try` statement has at least one `catch` clause or a `finally` block",
+            );
         }
         let base = self.frame().flow.clone();
         let mut assigned = Vec::new();
@@ -911,7 +1153,9 @@ impl<'p> Checker<'p> {
         // A handler starts with what was assigned before the statement.
         let mut handler_start = base.clone();
         handler_start.maybe.extend(after_try.maybe.iter().copied());
-        handler_start.maybe_fields.extend(after_try.maybe_fields.iter().copied());
+        handler_start
+            .maybe_fields
+            .extend(after_try.maybe_fields.iter().copied());
         let mut after = after_try;
         let mut tcatches = Vec::new();
         let mut earlier: Vec<Type> = Vec::new();
@@ -944,7 +1188,11 @@ impl<'p> Checker<'p> {
             self.pop_scope();
             let end = std::mem::take(&mut self.frame().flow);
             after = Flow::join(after, end);
-            tcatches.push(TCatch { ty, local, body: stmts });
+            tcatches.push(TCatch {
+                ty,
+                local,
+                body: stmts,
+            });
         }
         let tfinally = match finally {
             Some(fb) => {
@@ -953,7 +1201,9 @@ impl<'p> Checker<'p> {
                 self.frame().flow = start;
                 self.kill_facts(&assigned);
                 let mut in_catches = Vec::new();
-                catches.iter().for_each(|c| block_assigns(&c.block, &mut in_catches));
+                catches
+                    .iter()
+                    .for_each(|c| block_assigns(&c.block, &mut in_catches));
                 self.kill_facts(&in_catches);
                 let mark = self.frame_ref().labels.len();
                 self.frame().in_finally.push(mark);
@@ -977,7 +1227,11 @@ impl<'p> Checker<'p> {
                 None
             }
         };
-        out.push(TStmt::Try { body, catches: tcatches, finally: tfinally });
+        out.push(TStmt::Try {
+            body,
+            catches: tcatches,
+            finally: tfinally,
+        });
     }
 
     fn using(&mut self, resources: &[ast::Local], block: &ast::Block) -> Vec<TStmt> {
@@ -990,13 +1244,22 @@ impl<'p> Checker<'p> {
         }
         let (local, init) = self.local_decl(r, None, None, true);
         let ty = self.frame_ref().locals[local as usize].ty.clone();
-        let mut close = TExpr { kind: TKind::Null, ty: Type::error() };
+        let mut close = TExpr {
+            kind: TKind::Null,
+            ty: Type::error(),
+        };
         if !ty.is_error() {
             if self.p.may_be_null(&ty) {
                 let s = self.show(&ty);
-                self.err(r.pos, format!("a `using` binding is not `@Nullable`, and this is a `{s}`"));
+                self.err(
+                    r.pos,
+                    format!("a `using` binding is not `@Nullable`, and this is a `{s}`"),
+                );
             } else {
-                let read = TExpr { kind: TKind::Local(local), ty: ty.clone() };
+                let read = TExpr {
+                    kind: TKind::Local(local),
+                    ty: ty.clone(),
+                };
                 close = self.call_method(read, "close", CallSite::new(Vec::new(), r.pos));
                 if !close.ty.is_error() && close.ty != unit {
                     self.err(r.pos, "`using` calls `close()`, whose result is `Unit`");
@@ -1005,7 +1268,12 @@ impl<'p> Checker<'p> {
         }
         let body = self.using(&resources[1..], block);
         match init {
-            Some(init) => vec![TStmt::Using { local, init, close, body }],
+            Some(init) => vec![TStmt::Using {
+                local,
+                init,
+                close,
+                body,
+            }],
             None => body,
         }
     }
@@ -1017,7 +1285,9 @@ fn machine_type(p: &Program, t: &Type, depth: u32) -> bool {
     if t.nullable || !t.quals.is_empty() {
         return false;
     }
-    let Ty::Class(id, args) = &t.ty else { return false };
+    let Ty::Class(id, args) = &t.ty else {
+        return false;
+    };
     let w = &p.wk;
     if !args.is_empty() {
         return false;
@@ -1031,7 +1301,10 @@ fn machine_type(p: &Program, t: &Type, depth: u32) -> bool {
             depth < 8
                 && c.kind == ast::TypeKind::ValueClass
                 && c.package != "cleat"
-                && c.fields.iter().filter(|f| !f.is_static).all(|f| machine_type(p, &f.ty, depth + 1))
+                && c.fields
+                    .iter()
+                    .filter(|f| !f.is_static)
+                    .all(|f| machine_type(p, &f.ty, depth + 1))
         }
     }
 }
@@ -1042,7 +1315,9 @@ fn check_foreign(p: &mut Program, id: ClassId, mi: usize) {
     let unit_ty = Type::simple(p.wk.unit);
     for prm in &m.params {
         let ok = machine_type(p, &prm.ty, 0)
-            || p.array_elem(&prm.ty).map(|e| !prm.ty.nullable && machine_type(p, &e, 0)).unwrap_or(false);
+            || p.array_elem(&prm.ty)
+                .map(|e| !prm.ty.nullable && machine_type(p, &e, 0))
+                .unwrap_or(false);
         if !ok {
             let s = p.show(&prm.ty);
             p.error(unit, prm.pos, format!("a parameter of a `foreign` method is a machine type or an array of one, and `{s}` is neither"));
@@ -1050,7 +1325,13 @@ fn check_foreign(p: &mut Program, id: ClassId, mi: usize) {
     }
     if m.ret != unit_ty && !machine_type(p, &m.ret, 0) {
         let s = p.show(&m.ret);
-        p.error(unit, m.pos, format!("the result of a `foreign` method is a machine type or `void`, and `{s}` is neither"));
+        p.error(
+            unit,
+            m.pos,
+            format!(
+                "the result of a `foreign` method is a machine type or `void`, and `{s}` is neither"
+            ),
+        );
     }
     if !m.tparams.is_empty() {
         p.error(unit, m.pos, "a `foreign` method has no type parameters");
@@ -1059,7 +1340,17 @@ fn check_foreign(p: &mut Program, id: ClassId, mi: usize) {
 
 fn own_type(p: &Program, id: ClassId) -> Type {
     let n = p.class(id).tparams.len();
-    Type::class(id, (0..n).map(|i| Arg::Ty(Type::var(Tv { owner: TvOwner::Class(id), index: i as u32 }))).collect())
+    Type::class(
+        id,
+        (0..n)
+            .map(|i| {
+                Arg::Ty(Type::var(Tv {
+                    owner: TvOwner::Class(id),
+                    index: i as u32,
+                }))
+            })
+            .collect(),
+    )
 }
 
 pub fn check_class(p: &mut Program, id: ClassId) {
@@ -1074,11 +1365,20 @@ pub fn check_class(p: &mut Program, id: ClassId) {
             check_foreign(p, id, mi);
         }
         let Some(body) = &m.body else { continue };
-        let mref = MethodRef { class: id, index: mi as u32 };
+        let mref = MethodRef {
+            class: id,
+            index: mi as u32,
+        };
         let mut ck = Checker::new(p, id, m.is_static);
         ck.method = Some(mref);
         for (i, tp) in m.tparams.iter().enumerate() {
-            ck.cx.tvars.push((tp.name.clone(), Tv { owner: TvOwner::Method(mref), index: i as u32 }));
+            ck.cx.tvars.push((
+                tp.name.clone(),
+                Tv {
+                    owner: TvOwner::Method(mref),
+                    index: i as u32,
+                },
+            ));
         }
         let this_ty = if m.is_static {
             None
@@ -1116,7 +1416,10 @@ fn check_ctor(p: &mut Program, id: ClassId, ci: usize) {
     let this_ty = own_type(ck.p, id);
     ck.push_frame(None, Some(this_ty.clone()));
     ck.frame().is_ctor = true;
-    let this = TExpr { kind: TKind::This, ty: this_ty };
+    let this = TExpr {
+        kind: TKind::This,
+        ty: this_ty,
+    };
     let mut stmts: Vec<TStmt> = Vec::new();
 
     if c.is_value() {
@@ -1129,9 +1432,18 @@ fn check_ctor(p: &mut Program, id: ClassId, ci: usize) {
             }
             let prm = &k.params[fi as usize];
             let local = ck.declare(&prm.name, prm.ty.clone(), true, prm.pos, true);
-            let read = TExpr { kind: TKind::Local(local), ty: prm.ty.clone() };
-            let fref = FieldRef { class: id, index: i as u32 };
-            stmts.push(TStmt::Expr(TExpr { kind: TKind::AssignField(Box::new(this.clone()), fref, Box::new(read)), ty: f.ty.clone() }));
+            let read = TExpr {
+                kind: TKind::Local(local),
+                ty: prm.ty.clone(),
+            };
+            let fref = FieldRef {
+                class: id,
+                index: i as u32,
+            };
+            stmts.push(TStmt::Expr(TExpr {
+                kind: TKind::AssignField(Box::new(this.clone()), fref, Box::new(read)),
+                ty: f.ty.clone(),
+            }));
             fi += 1;
         }
         ck.frame().ctor = CtorPhase::After;
@@ -1147,16 +1459,32 @@ fn check_ctor(p: &mut Program, id: ClassId, ci: usize) {
     let hidden: Vec<TExpr> = if c.is_enum() {
         let name = ck.declare("#name", ck.string(), true, k.pos, true);
         let ordinal = ck.declare("#ordinal", ck.int(), true, k.pos, true);
-        vec![TExpr { kind: TKind::Local(name), ty: ck.string() }, TExpr { kind: TKind::Local(ordinal), ty: ck.int() }]
+        vec![
+            TExpr {
+                kind: TKind::Local(name),
+                ty: ck.string(),
+            },
+            TExpr {
+                kind: TKind::Local(ordinal),
+                ty: ck.int(),
+            },
+        ]
     } else {
         Vec::new()
     };
     for prm in &k.params {
         ck.declare(&prm.name, prm.ty.clone(), prm.is_final, prm.pos, true);
     }
-    let empty = ast::Block { stmts: Vec::new(), pos: k.pos, end: k.pos };
+    let empty = ast::Block {
+        stmts: Vec::new(),
+        pos: k.pos,
+        end: k.pos,
+    };
     let body = k.body.as_ref().unwrap_or(&empty);
-    let calls_this = matches!(body.stmts.first().map(|s| &s.kind), Some(StmtKind::CtorCall(false, _)));
+    let calls_this = matches!(
+        body.stmts.first().map(|s| &s.kind),
+        Some(StmtKind::CtorCall(false, _))
+    );
     if !calls_this {
         // Field initializers run first, in source order.
         for (i, f) in c.fields.iter().enumerate() {
@@ -1166,8 +1494,14 @@ fn check_ctor(p: &mut Program, id: ClassId, ci: usize) {
             let Some(init) = &f.init else { continue };
             let v = ck.check_expr(init, Some(&f.ty));
             let v = ck.coerce(v, &f.ty, init.pos);
-            let fref = FieldRef { class: id, index: i as u32 };
-            stmts.push(TStmt::Expr(TExpr { kind: TKind::AssignField(Box::new(this.clone()), fref, Box::new(v)), ty: f.ty.clone() }));
+            let fref = FieldRef {
+                class: id,
+                index: i as u32,
+            };
+            stmts.push(TStmt::Expr(TExpr {
+                kind: TKind::AssignField(Box::new(this.clone()), fref, Box::new(v)),
+                ty: f.ty.clone(),
+            }));
             let fl = &mut ck.frame().flow;
             fl.fields.insert(i as u32);
             fl.maybe_fields.insert(i as u32);
@@ -1182,7 +1516,13 @@ fn check_ctor(p: &mut Program, id: ClassId, ci: usize) {
                 continue;
             }
             if !ck.frame_ref().flow.fields.contains(&(i as u32)) {
-                ck.err(pos, format!("the field `{}` is not assigned on every path to the `super(...)` call", f.name));
+                ck.err(
+                    pos,
+                    format!(
+                        "the field `{}` is not assigned on every path to the `super(...)` call",
+                        f.name
+                    ),
+                );
             }
         }
     };
@@ -1198,12 +1538,18 @@ fn check_ctor(p: &mut Program, id: ClassId, ci: usize) {
             ck.frame().flow.reachable = true;
         }
         if seen_call {
-            ck.err(s.pos, "a constructor body contains at most one `super(...)` or `this(...)` call");
+            ck.err(
+                s.pos,
+                "a constructor body contains at most one `super(...)` or `this(...)` call",
+            );
             continue;
         }
         seen_call = true;
         if !*is_super && si != 0 {
-            ck.err(s.pos, "`this(...)`, when written, is the first statement of the constructor");
+            ck.err(
+                s.pos,
+                "`this(...)`, when written, is the first statement of the constructor",
+            );
         }
         if *is_super && c.is_enum() {
             ck.err(s.pos, "an enum constructor does not write `super(...)`");
@@ -1214,7 +1560,11 @@ fn check_ctor(p: &mut Program, id: ClassId, ci: usize) {
         }
         let site = CallSite::new(args.iter().map(ArgIn::Ast).collect(), s.pos);
         if let Some((ctor, checked)) = ck.ctor_call(*is_super, site) {
-            let mut all = if *is_super { Vec::new() } else { hidden.clone() };
+            let mut all = if *is_super {
+                Vec::new()
+            } else {
+                hidden.clone()
+            };
             all.extend(checked);
             stmts.push(TStmt::CtorCall { ctor, args: all });
         }
@@ -1231,7 +1581,10 @@ fn check_ctor(p: &mut Program, id: ClassId, ci: usize) {
         if c.superclass.is_some() {
             if let Some((ctor, checked)) = ck.ctor_call(true, CallSite::new(args, k.pos)) {
                 if was {
-                    stmts.push(TStmt::CtorCall { ctor, args: checked });
+                    stmts.push(TStmt::CtorCall {
+                        ctor,
+                        args: checked,
+                    });
                 }
             }
         }
@@ -1249,17 +1602,34 @@ fn check_static_init(p: &mut Program, id: ClassId) {
     let own = Type::simple(id);
     // An enum creates its constants first.
     for (i, f) in c.fields.iter().enumerate() {
-        let Some(ordinal) = f.enum_ordinal else { continue };
+        let Some(ordinal) = f.enum_ordinal else {
+            continue;
+        };
         let site = CallSite::new(f.enum_args.iter().map(ArgIn::Ast).collect(), f.pos);
         if let Some((ctor, args)) = ck.ctor_call(false, site) {
             let mut all = vec![
-                TExpr { kind: TKind::Str(f.name.clone()), ty: ck.string() },
-                TExpr { kind: TKind::Int(ordinal as i128), ty: ck.int() },
+                TExpr {
+                    kind: TKind::Str(f.name.clone()),
+                    ty: ck.string(),
+                },
+                TExpr {
+                    kind: TKind::Int(ordinal as i128),
+                    ty: ck.int(),
+                },
             ];
             all.extend(args);
-            let new = TExpr { kind: TKind::New { ctor, args: all }, ty: own.clone() };
-            let fref = FieldRef { class: id, index: i as u32 };
-            stmts.push(TStmt::Expr(TExpr { kind: TKind::AssignStatic(fref, Box::new(new)), ty: own.clone() }));
+            let new = TExpr {
+                kind: TKind::New { ctor, args: all },
+                ty: own.clone(),
+            };
+            let fref = FieldRef {
+                class: id,
+                index: i as u32,
+            };
+            stmts.push(TStmt::Expr(TExpr {
+                kind: TKind::AssignStatic(fref, Box::new(new)),
+                ty: own.clone(),
+            }));
         }
         let fl = &mut ck.frame().flow;
         fl.fields.insert(i as u32);
@@ -1287,8 +1657,14 @@ fn check_static_init(p: &mut Program, id: ClassId) {
                 let init = f.init.as_ref().unwrap();
                 let v = ck.check_expr(init, Some(&f.ty));
                 let v = ck.coerce(v, &f.ty, init.pos);
-                let fref = FieldRef { class: id, index: i as u32 };
-                stmts.push(TStmt::Expr(TExpr { kind: TKind::AssignStatic(fref, Box::new(v)), ty: f.ty.clone() }));
+                let fref = FieldRef {
+                    class: id,
+                    index: i as u32,
+                };
+                stmts.push(TStmt::Expr(TExpr {
+                    kind: TKind::AssignStatic(fref, Box::new(v)),
+                    ty: f.ty.clone(),
+                }));
                 let fl = &mut ck.frame().flow;
                 fl.fields.insert(i as u32);
                 fl.maybe_fields.insert(i as u32);

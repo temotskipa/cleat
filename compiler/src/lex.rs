@@ -28,10 +28,40 @@ pub struct Token {
 }
 
 pub const KEYWORDS: &[&str] = &[
-    "abstract", "assert", "break", "case", "catch", "class", "continue", "else", "enum",
-    "extends", "final", "finally", "for", "if", "implements", "import", "instanceof",
-    "interface", "new", "package", "private", "protected", "public", "return", "static",
-    "super", "switch", "this", "throw", "try", "using", "var", "void", "while",
+    "abstract",
+    "assert",
+    "break",
+    "case",
+    "catch",
+    "class",
+    "continue",
+    "else",
+    "enum",
+    "extends",
+    "final",
+    "finally",
+    "for",
+    "if",
+    "implements",
+    "import",
+    "instanceof",
+    "interface",
+    "new",
+    "package",
+    "private",
+    "protected",
+    "public",
+    "return",
+    "static",
+    "super",
+    "switch",
+    "this",
+    "throw",
+    "try",
+    "using",
+    "var",
+    "void",
+    "while",
 ];
 
 pub const RESERVED: &[&str] = &[
@@ -44,10 +74,9 @@ pub const WORD_LITERALS: &[&str] = &["true", "false", "null"];
 /// own, because it also closes type argument lists. The parser joins adjacent `>` and
 /// `=` tokens into `>>`, `>=` and `>>=`.
 const PUNCTS: &[&str] = &[
-    "<<=", "...", "->", "::", "++", "--", "&&", "||", "??", "==", "!=",
-    "<=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<", "(", ")", "{", "}",
-    "[", "]", ";", ",", ".", "@", "+", "-", "*", "/", "%", "&", "|", "^", "~", "!", "<", ">",
-    "?", ":", "=",
+    "<<=", "...", "->", "::", "++", "--", "&&", "||", "??", "==", "!=", "<=", "+=", "-=", "*=",
+    "/=", "%=", "&=", "|=", "^=", "<<", "(", ")", "{", "}", "[", "]", ";", ",", ".", "@", "+", "-",
+    "*", "/", "%", "&", "|", "^", "~", "!", "<", ">", "?", ":", "=",
 ];
 
 pub fn line_col(text: &str, pos: Pos) -> (u32, u32) {
@@ -69,7 +98,12 @@ pub fn line_col(text: &str, pos: Pos) -> (u32, u32) {
 
 pub fn diag(file: &Path, text: &str, pos: Pos, message: impl Into<String>) -> Diagnostic {
     let (line, column) = line_col(text, pos);
-    Diagnostic { file: file.to_path_buf(), line, column, message: message.into() }
+    Diagnostic {
+        file: file.to_path_buf(),
+        line,
+        column,
+        message: message.into(),
+    }
 }
 
 struct Lexer<'a> {
@@ -81,7 +115,13 @@ struct Lexer<'a> {
 }
 
 pub fn lex(file: &Path, text: &str) -> Result<Vec<Token>, Diagnostic> {
-    let mut lx = Lexer { file, text, chars: text.char_indices().collect(), i: 0, out: Vec::new() };
+    let mut lx = Lexer {
+        file,
+        text,
+        chars: text.char_indices().collect(),
+        i: 0,
+        out: Vec::new(),
+    };
     lx.run()?;
     Ok(lx.out)
 }
@@ -160,7 +200,7 @@ impl<'a> Lexer<'a> {
                 loop {
                     match self.peek(0) {
                         None | Some('\n') | Some('\r') => {
-                            return self.err(start, "this string literal is never closed")
+                            return self.err(start, "this string literal is never closed");
                         }
                         Some('"') => {
                             self.i += 1;
@@ -178,7 +218,7 @@ impl<'a> Lexer<'a> {
                 self.i += 1;
                 let ch = match self.peek(0) {
                     None | Some('\n') | Some('\r') | Some('\'') => {
-                        return self.err(start, "a character literal holds exactly one scalar")
+                        return self.err(start, "a character literal holds exactly one scalar");
                     }
                     Some('\\') => self.escape()?,
                     Some(c) => {
@@ -265,7 +305,11 @@ impl<'a> Lexer<'a> {
         if matches!(self.peek(0), Some('e') | Some('E')) {
             let sign = matches!(self.peek(1), Some('+') | Some('-'));
             let digit_at = if sign { 2 } else { 1 };
-            if self.peek(digit_at).map(|c| c.is_ascii_digit()).unwrap_or(false) {
+            if self
+                .peek(digit_at)
+                .map(|c| c.is_ascii_digit())
+                .unwrap_or(false)
+            {
                 is_decimal = true;
                 d.push('e');
                 self.i += 1;
@@ -277,15 +321,23 @@ impl<'a> Lexer<'a> {
             }
         }
         self.no_suffix(start)?;
-        self.push(start, if is_decimal { Tok::Dec(d) } else { Tok::Int(d, 10) });
+        self.push(
+            start,
+            if is_decimal {
+                Tok::Dec(d)
+            } else {
+                Tok::Int(d, 10)
+            },
+        );
         Ok(())
     }
 
     fn no_suffix(&self, start: usize) -> Result<(), Diagnostic> {
         match self.peek(0) {
-            Some(c) if is_ident_part(c) => {
-                self.err(start, "a numeric literal has no suffix and is not followed by a letter")
-            }
+            Some(c) if is_ident_part(c) => self.err(
+                start,
+                "a numeric literal has no suffix and is not followed by a letter",
+            ),
             _ => Ok(()),
         }
     }
@@ -343,7 +395,10 @@ impl<'a> Lexer<'a> {
         };
         match char::from_u32(n) {
             Some(ch) => Ok(ch),
-            None => self.err(start, "this escape names a surrogate or a number above 10FFFF"),
+            None => self.err(
+                start,
+                "this escape names a surrogate or a number above 10FFFF",
+            ),
         }
     }
 
@@ -355,7 +410,12 @@ impl<'a> Lexer<'a> {
         match self.peek(0) {
             Some('\r') if self.peek(1) == Some('\n') => self.i += 2,
             Some('\n') | Some('\r') => self.i += 1,
-            _ => return self.err(start, "a text block opens with `\"\"\"` and the end of the line"),
+            _ => {
+                return self.err(
+                    start,
+                    "a text block opens with `\"\"\"` and the end of the line",
+                );
+            }
         }
         // Raw lines up to the closing delimiter. Escapes are kept as written until the
         // indent has been removed.
@@ -392,7 +452,10 @@ impl<'a> Lexer<'a> {
         }
         let indent = lines.pop().unwrap();
         if indent.iter().any(|c| *c != ' ' && *c != '\t') {
-            return self.err(start, "the closing `\"\"\"` of a text block stands on a line of its own");
+            return self.err(
+                start,
+                "the closing `\"\"\"` of a text block stands on a line of its own",
+            );
         }
         let mut raw = String::new();
         for (n, line) in lines.iter().enumerate() {

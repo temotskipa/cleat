@@ -26,7 +26,11 @@ unsafe fn fail(ctx: *mut Ctx, n: &Num, class: &str) {
         };
         // Without a text, printing the float raised, and that exception stands.
         if let Some(shown) = shown {
-            raise(ctx, X_ARITHMETIC, &format!("{shown} is not a value of {class}"));
+            raise(
+                ctx,
+                X_ARITHMETIC,
+                &format!("{shown} is not a value of {class}"),
+            );
         }
     }
 }
@@ -50,7 +54,11 @@ fn exact_f64(n: &Num) -> Option<f64> {
     match n {
         Num::I(v) => {
             let f = *v as f64;
-            if f as i128 == *v && f.abs() < 1.7e38 { Some(f) } else { None }
+            if f as i128 == *v && f.abs() < 1.7e38 {
+                Some(f)
+            } else {
+                None
+            }
         }
         Num::F32(f) => Some(*f as f64),
         Num::F64(f) => Some(*f),
@@ -63,7 +71,11 @@ fn exact_f32(n: &Num) -> Option<f32> {
     }
     let d = exact_f64(n)?;
     let f = d as f32;
-    if (f as f64 == d) || d.is_nan() { Some(f) } else { None }
+    if (f as f64 == d) || d.is_nan() {
+        Some(f)
+    } else {
+        None
+    }
 }
 
 fn nearest_f64(n: &Num) -> f64 {
@@ -119,7 +131,16 @@ macro_rules! exact_int_impl {
         }
     )* };
 }
-exact_int_impl!((i8, "Int8"), (i16, "Int16"), (i32, "Int32"), (i64, "Int"), (u8, "UInt8"), (u16, "UInt16"), (u32, "UInt32"), (u64, "UInt64"));
+exact_int_impl!(
+    (i8, "Int8"),
+    (i16, "Int16"),
+    (i32, "Int32"),
+    (i64, "Int"),
+    (u8, "UInt8"),
+    (u16, "UInt16"),
+    (u32, "UInt32"),
+    (u64, "UInt64")
+);
 impl Exact for f32 {
     unsafe fn exact(ctx: *mut Ctx, n: Num) -> f32 {
         match exact_f32(&n) {
@@ -192,7 +213,13 @@ nearest!(Float32, f32, float32_nearest, nearest_f32; (Int, i64), (UInt64, u64), 
 // ---- the integer classes ----
 
 unsafe fn overflow<T: Default>(ctx: *mut Ctx, what: &str, class: &str) -> T {
-    unsafe { raise(ctx, X_ARITHMETIC, &format!("{what} is not a value of {class}")) };
+    unsafe {
+        raise(
+            ctx,
+            X_ARITHMETIC,
+            &format!("{what} is not a value of {class}"),
+        )
+    };
     T::default()
 }
 
@@ -206,7 +233,14 @@ macro_rules! wrapping {
         }
     )* };
 }
-wrapping!((Int8, i8, int8_wrapping), (Int16, i16, int16_wrapping), (Int32, i32, int32_wrapping), (UInt8, u8, uint8_wrapping), (UInt16, u16, uint16_wrapping), (UInt32, u32, uint32_wrapping));
+wrapping!(
+    (Int8, i8, int8_wrapping),
+    (Int16, i16, int16_wrapping),
+    (Int32, i32, int32_wrapping),
+    (UInt8, u8, uint8_wrapping),
+    (UInt16, u16, uint16_wrapping),
+    (UInt32, u32, uint32_wrapping)
+);
 
 /// The machine operations of `Int` and `UInt64`.
 macro_rules! int_class {

@@ -233,11 +233,30 @@ pub enum StmtKind {
     Empty,
     If(Expr, Box<Stmt>, Option<Box<Stmt>>),
     While(Expr, Box<Stmt>),
-    For { init: Vec<Stmt>, cond: Option<Expr>, update: Vec<Expr>, body: Box<Stmt> },
-    ForEach { local: Local, iter: Expr, body: Box<Stmt> },
-    Switch { selector: Expr, arms: Vec<(ArmHead, Stmt, Pos)> },
-    Try { block: Block, catches: Vec<Catch>, finally: Option<Block> },
-    Using { resources: Vec<Local>, block: Block },
+    For {
+        init: Vec<Stmt>,
+        cond: Option<Expr>,
+        update: Vec<Expr>,
+        body: Box<Stmt>,
+    },
+    ForEach {
+        local: Local,
+        iter: Expr,
+        body: Box<Stmt>,
+    },
+    Switch {
+        selector: Expr,
+        arms: Vec<(ArmHead, Stmt, Pos)>,
+    },
+    Try {
+        block: Block,
+        catches: Vec<Catch>,
+        finally: Option<Block>,
+    },
+    Using {
+        resources: Vec<Local>,
+        block: Block,
+    },
     Return(Option<Expr>),
     Break(Option<String>),
     Continue(Option<String>),
@@ -358,29 +377,63 @@ pub enum ExprKind {
     /// `target.name`
     Field(Box<Expr>, String),
     /// `target.<targs>name(args)`, or `name(args)` with no target.
-    Call { target: Option<Box<Expr>>, type_args: Vec<TypeArg>, name: String, args: Vec<Expr> },
-    SuperCall { name: String, args: Vec<Expr> },
+    Call {
+        target: Option<Box<Expr>>,
+        type_args: Vec<TypeArg>,
+        name: String,
+        args: Vec<Expr>,
+    },
+    SuperCall {
+        name: String,
+        args: Vec<Expr>,
+    },
     Index(Box<Expr>, Box<Expr>),
-    New { ty: TypeRef, args: Vec<Expr> },
+    New {
+        ty: TypeRef,
+        args: Vec<Expr>,
+    },
     /// `new T[len]` followed by further brackets: `elem` is the element type.
-    NewArray { elem: TypeRef, len: Box<Expr> },
+    NewArray {
+        elem: TypeRef,
+        len: Box<Expr>,
+    },
     /// `new T[] { ... }`: `ty` is the array type.
-    ArrayLit { ty: TypeRef, elems: Vec<Expr> },
+    ArrayLit {
+        ty: TypeRef,
+        elems: Vec<Expr>,
+    },
     ClassLit(TypeRef),
     /// `target::name`. The target is an expression when it could be one.
-    MethodRef { target: RefTarget, name: String },
-    Lambda { params: Vec<LambdaParam>, body: LambdaBody },
+    MethodRef {
+        target: RefTarget,
+        name: String,
+    },
+    Lambda {
+        params: Vec<LambdaParam>,
+        body: LambdaBody,
+    },
     Unary(UnOp, Box<Expr>),
     Binary(BinOp, Box<Expr>, Box<Expr>),
     And(Box<Expr>, Box<Expr>),
     Or(Box<Expr>, Box<Expr>),
     Cond(Box<Expr>, Box<Expr>, Box<Expr>),
     Coalesce(Box<Expr>, Box<Expr>),
-    Assign { op: Option<BinOp>, target: Box<Expr>, value: Box<Expr> },
-    IncDec { inc: bool, prefix: bool, target: Box<Expr> },
+    Assign {
+        op: Option<BinOp>,
+        target: Box<Expr>,
+        value: Box<Expr>,
+    },
+    IncDec {
+        inc: bool,
+        prefix: bool,
+        target: Box<Expr>,
+    },
     Cast(TypeRef, Box<Expr>),
     InstanceOf(Box<Expr>, TypeRef),
-    Switch { selector: Box<Expr>, arms: Vec<(ArmHead, ArmValue, Pos)> },
+    Switch {
+        selector: Box<Expr>,
+        arms: Vec<(ArmHead, ArmValue, Pos)>,
+    },
 }
 
 #[derive(Clone, Debug)]
