@@ -58,7 +58,7 @@ impl<'a> Parser<'a> {
             Tok::Ident(s) => format!("`{s}`"),
             Tok::Int(s, _) | Tok::Dec(s) => format!("`{s}`"),
             Tok::Char(_) => "a character literal".into(),
-            Tok::Str(_) => "a string literal".into(),
+            Tok::Str(_) | Tok::Template(_) => "a string literal".into(),
             Tok::Punct(p) => format!("`{p}`"),
             Tok::Eof => "the end of the file".into(),
         }
@@ -1399,6 +1399,50 @@ impl<'a> Parser<'a> {
         self.postfix()
     }
 
+    /// A string with embedded expressions, which section 6.9 makes the sum of its
+    /// parts: `"a\{x}b"` is `"a" + x + "b"`. A part with no characters is left out,
+    /// except the first.
+    fn template(&mut self, parts: Vec<lex::Part>, pos: Pos) -> R<Expr> {
+        let text = |s: String| Expr {
+            kind: ExprKind::Str(s),
+            pos,
+        };
+        let plus = |l: Expr, r: Expr| Expr {
+            kind: ExprKind::Binary(BinOp::Add, Box::new(l), Box::new(r)),
+            pos,
+        };
+        let mut e: Option<Expr> = None;
+        for part in parts {
+            match part {
+                lex::Part::Text(s) => {
+                    e = Some(match e {
+                        None => text(s),
+                        Some(l) if s.is_empty() => l,
+                        Some(l) => plus(l, text(s)),
+                    })
+                }
+                lex::Part::Code(toks) => {
+                    let mut inner = Parser {
+                        file: self.file,
+                        text: self.text,
+                        toks,
+                        i: 0,
+                        in_arm_head: false,
+                    };
+                    let x = inner.expr()?;
+                    if !matches!(inner.tok(), Tok::Eof) {
+                        return inner.err(format!(
+                            "expected the `}}` of the embedded expression, found {}",
+                            inner.describe()
+                        ));
+                    }
+                    e = Some(plus(e.unwrap(), x));
+                }
+            }
+        }
+        Ok(e.unwrap())
+    }
+
     /// `"(" type ")"`, accepted only when what follows can begin a cast operand.
     fn cast_head(&mut self) -> R<TypeRef> {
         self.expect_punct("(")?;
@@ -1406,7 +1450,7 @@ impl<'a> Parser<'a> {
         self.expect_punct(")")?;
         let ok = match self.tok() {
             Tok::Ident(w) => !matches!(w.as_str(), "instanceof"),
-            Tok::Int(..) | Tok::Dec(_) | Tok::Char(_) | Tok::Str(_) => true,
+            Tok::Int(..) | Tok::Dec(_) | Tok::Char(_) | Tok::Str(_) | Tok::Template(_) => true,
             Tok::Punct("(") | Tok::Punct("!") | Tok::Punct("~") => true,
             _ => false,
         };
@@ -1582,6 +1626,10 @@ impl<'a> Parser<'a> {
             Tok::Str(s) => {
                 self.i += 1;
                 ExprKind::Str(s)
+            }
+            Tok::Template(parts) => {
+                self.i += 1;
+                return self.template(parts, pos);
             }
             Tok::Punct("(") => {
                 if self.lambda_ahead() {

@@ -29,5 +29,17 @@ public class Sentences01 {
             """;
         //@ rule: source.tokens.escapes-apply-after
         Console.println("escaped block: " + tabbed.equals("\tx"));
+
+        String word = "cat";
+        Int count = 2;
+        //@ rule: source.tokens.embedded-expression-begins
+        //@ rule: source.tokens.embedded-read-tokens
+        Console.println("embedded: \{word} \{ "[" + word + "]" } \{ count > 1 ? "{" : "}" } \{ '}' }");
+        String listed = """
+            \{word}
+              \{count + 1}
+            """;
+        //@ rule: source.tokens.embedded-ends-line
+        Console.println("embedded in a block: " + listed.equals("cat\n  3"));
     }
 }

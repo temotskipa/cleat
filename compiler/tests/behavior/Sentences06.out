@@ -81,3 +81,5 @@ listed elements: first second third 123
 build: 0 1 2 3 | 0 1 4 9 4
 boolean operators: false true true false | false true true false
 boolean equals: true true false false true
+embedded parts: left right | 11 null 3
+first part kept: 12 2

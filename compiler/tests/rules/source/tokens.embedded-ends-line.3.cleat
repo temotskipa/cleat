@@ -1,0 +1,3 @@
+//@ rule: source.tokens.embedded-ends-line
+//@ rejected: an embedded expression is not empty
+class A { String f() { return "a\{  }b"; } }

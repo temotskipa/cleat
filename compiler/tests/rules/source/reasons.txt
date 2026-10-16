@@ -12,3 +12,4 @@ source.units.specification-defines-prelude: It says what the document covers.
 source.packages.not-object-no: It says what a package is; the import cases name types through packages.
 source.imports.simple-name-used: It introduces the list after it, whose lines have their own cases.
 source.scope.type-parameter-says: It points to section 7.1, whose sentences have their own cases.
+source.tokens.embedded-section-says: It points to section 6.9, whose sentences have their own cases.

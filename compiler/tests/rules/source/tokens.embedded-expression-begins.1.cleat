@@ -1,0 +1,3 @@
+//@ rule: source.tokens.embedded-expression-begins
+//@ accepted
+class A { String f(Int n, String s) { return "n is \{n}, s is \{s}."; } }

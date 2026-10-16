@@ -293,6 +293,14 @@ No value is converted to a `String` implicitly. <!-- r[numbers.text.no-value-con
 `"count: " + n` is `String.plus`, which calls `n.toString()`. <!-- r[numbers.text.count-string-plus] -->
 `n + " items"` is rejected when `n` is an `Int`, because `Int.plus` has no `String` parameter. <!-- r[numbers.text.items-rejected-int] -->
 
+A string literal with embedded expressions is the sum of its parts: `"a\{x}b"` is `"a" + x + "b"`, checked and evaluated as that expression is. <!-- r[numbers.text.embedded-sum-parts] -->
+A part with no characters is left out, except the first, so `"\{n} items"` is `"" + n + " items"` and joins text whatever the class of `n`. <!-- r[numbers.text.part-no-characters] -->
+
+```java
+Int done = 3;
+String report = "\{done} of \{done + 1} done";     // "3 of 4 done"
+```
+
 These are the `String` methods the language defines. <!-- r[numbers.text.string-methods-language] -->
 The prelude may declare more in ordinary source. <!-- r[numbers.text.prelude-declare-more] -->
 

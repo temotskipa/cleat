@@ -285,7 +285,7 @@ Syntax that maps to a named method or interface is not on the list, because user
 
 **What writing them showed.**
 
-- `"count: " + n` works and `n + " items"` does not, because `+` is a method of the left operand. String interpolation is the obvious later fix.
+- `"count: " + n` works and `n + " items"` does not, because `+` is a method of the left operand. An embedded expression, `"\{n} items"`, is now the fix.
 - With implicit lossless conversion (decision 17), [Ledger.cleat](programs/Ledger.cleat) multiplies a `Rational` price by an `Int` count directly. Before that decision it needed `Rational.from(quantity)`.
 - `??` (decision 18) replaced a five-line null test in two programs with `(counts[word] ?? 0) + 1`.
 - Generic containers narrow `T?` to `T` with a cast, `(T) slots[i]`. It is correct even when `T` is nullable, because the type argument exists at run time.
@@ -468,6 +468,10 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 - A case names its rules with a line `//@ rule: label`: a program in `compiler/tests/rules/<chapter>/` with `//@ rejected: words` or `//@ accepted`, a line above a statement of a run program, a line above a test, or a line of that chapter's `reasons.txt` for a rule no program shows. A reason that only pointed to a line of a run program or to a test is now a marker there.
 - The test asks that every rule has a case and that every case names a rule. It no longer asks a sentence with the words of a requirement for a checker's program or a reason in particular, so a line of a run program now counts as that sentence's case.
 - The case of section 1.2's whitespace has a carriage return on its own. The earlier table wrote it before a line feed, and the old reader dropped it with the line ending.
+
+**Additions to the language.** Assumed. On 2026-10-16 you asked for whatever would make the language better. Each of these can be taken out without touching the rest.
+
+- **Embedded expressions.** In a string literal or a text block, `\{x}` embeds an expression: `"a\{x}b"` is `"a" + x + "b"`, checked and evaluated as that sum is, so it is a constant when the sum is one. The spelling is the one Java proposed for its string templates. A backslash and a brace was already rejected, so no program changes meaning, and `$` would not do, because `$` is a character of an identifier. The first part stays even when it is empty, so `"\{a}\{b}"` joins two numbers as text instead of adding them. An embedded expression ends on the line where it begins, so a text block's indent applies to whole lines. There is no format specifier; a program calls `toFixed` or a method of its own inside the braces.
 
 **Changed in the specification while implementing it.**
 

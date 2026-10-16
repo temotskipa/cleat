@@ -16,15 +16,33 @@ pub enum Tok {
     Dec(String),
     Char(char),
     Str(String),
+    /// A string literal or a text block with embedded expressions: its text and the
+    /// tokens of each expression, in turn, beginning and ending with text.
+    Template(Vec<Part>),
     /// A separator or an operator.
     Punct(&'static str),
     Eof,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub tok: Tok,
     pub pos: Pos,
+}
+
+/// A part of a string with embedded expressions.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Part {
+    Text(String),
+    /// The tokens of an embedded expression, ending with `Eof` at its `}`.
+    Code(Vec<Token>),
+}
+
+/// A character of a text block's content, or the place of an embedded expression.
+#[derive(Clone, PartialEq)]
+enum Elem {
+    C(char),
+    E(usize),
 }
 
 pub const KEYWORDS: &[&str] = &[
@@ -111,15 +129,20 @@ struct Lexer<'a> {
     text: &'a str,
     chars: Vec<(usize, char)>,
     i: usize,
+    /// Where the lexer stops: the end of the text, or the `}` of an embedded expression.
+    end: usize,
     out: Vec<Token>,
 }
 
 pub fn lex(file: &Path, text: &str) -> Result<Vec<Token>, Diagnostic> {
+    let chars: Vec<(usize, char)> = text.char_indices().collect();
+    let end = chars.len();
     let mut lx = Lexer {
         file,
         text,
-        chars: text.char_indices().collect(),
+        chars,
         i: 0,
+        end,
         out: Vec::new(),
     };
     lx.run()?;
@@ -144,7 +167,90 @@ impl<'a> Lexer<'a> {
     }
 
     fn peek(&self, n: usize) -> Option<char> {
+        if self.i + n >= self.end {
+            return None;
+        }
         self.chars.get(self.i + n).map(|c| c.1)
+    }
+
+    fn at(&self, k: usize) -> Option<char> {
+        self.chars.get(k).map(|c| c.1)
+    }
+
+    /// The index of the `}` that closes the embedded expression whose `\{` is at
+    /// `start`. The expression ends on its line, and strings and braces in it nest.
+    fn embedded_end(&self, start: usize) -> Result<usize, Diagnostic> {
+        let mut k = start + 2;
+        let mut depth = 0;
+        loop {
+            match self.at(k) {
+                None => {
+                    return self.err(
+                        start,
+                        "this embedded expression is not closed on the line where it begins",
+                    );
+                }
+                Some('\n') | Some('\r') => {
+                    return self.err(
+                        start,
+                        "this embedded expression is not closed on the line where it begins",
+                    );
+                }
+                Some('{') => depth += 1,
+                Some('}') if depth == 0 => return Ok(k),
+                Some('}') => depth -= 1,
+                Some('"') => {
+                    k += 1;
+                    loop {
+                        match self.at(k) {
+                            None | Some('\n') | Some('\r') => {
+                                return self.err(start, "this embedded expression is not closed on the line where it begins");
+                            }
+                            Some('"') => break,
+                            Some('\\') if self.at(k + 1) == Some('{') => {
+                                k = self.embedded_end(k)?
+                            }
+                            Some('\\') => k += 1,
+                            _ => {}
+                        }
+                        k += 1;
+                    }
+                }
+                Some('\'') => {
+                    k += 1;
+                    while !matches!(self.at(k), None | Some('\'') | Some('\n') | Some('\r')) {
+                        if self.at(k) == Some('\\') {
+                            k += 1;
+                        }
+                        k += 1;
+                    }
+                }
+                _ => {}
+            }
+            k += 1;
+        }
+    }
+
+    /// Reads the embedded expression whose `\{` is at `self.i`, and returns its tokens.
+    fn embedded(&mut self) -> Result<Vec<Token>, Diagnostic> {
+        let start = self.i;
+        let close = self.embedded_end(start)?;
+        let mut inner = Lexer {
+            file: self.file,
+            text: self.text,
+            chars: std::mem::take(&mut self.chars),
+            i: start + 2,
+            end: close,
+            out: Vec::new(),
+        };
+        let done = inner.run();
+        self.chars = inner.chars;
+        done?;
+        if inner.out.len() == 1 {
+            return self.err(start, "an embedded expression is not empty");
+        }
+        self.i = close + 1;
+        Ok(inner.out)
     }
 
     fn starts_with(&self, s: &str) -> bool {
@@ -197,6 +303,7 @@ impl<'a> Lexer<'a> {
             } else if c == '"' {
                 self.i += 1;
                 let mut s = String::new();
+                let mut parts = Vec::new();
                 loop {
                     match self.peek(0) {
                         None | Some('\n') | Some('\r') => {
@@ -206,6 +313,10 @@ impl<'a> Lexer<'a> {
                             self.i += 1;
                             break;
                         }
+                        Some('\\') if self.peek(1) == Some('{') => {
+                            parts.push(Part::Text(std::mem::take(&mut s)));
+                            parts.push(Part::Code(self.embedded()?));
+                        }
                         Some('\\') => s.push(self.escape()?),
                         Some(c) => {
                             s.push(c);
@@ -213,7 +324,12 @@ impl<'a> Lexer<'a> {
                         }
                     }
                 }
-                self.push(start, Tok::Str(s));
+                if parts.is_empty() {
+                    self.push(start, Tok::Str(s));
+                } else {
+                    parts.push(Part::Text(s));
+                    self.push(start, Tok::Template(parts));
+                }
             } else if c == '\'' {
                 self.i += 1;
                 let ch = match self.peek(0) {
@@ -239,7 +355,7 @@ impl<'a> Lexer<'a> {
                 self.push(start, Tok::Punct(p));
             }
         }
-        let end = self.chars.len();
+        let end = self.end;
         self.push(end, Tok::Eof);
         Ok(())
     }
@@ -418,8 +534,9 @@ impl<'a> Lexer<'a> {
             }
         }
         // Raw lines up to the closing delimiter. Escapes are kept as written until the
-        // indent has been removed.
-        let mut lines: Vec<Vec<char>> = vec![Vec::new()];
+        // indent has been removed; an embedded expression is read where it stands.
+        let mut lines: Vec<Vec<Elem>> = vec![Vec::new()];
+        let mut embeds: Vec<Vec<Token>> = Vec::new();
         loop {
             match self.peek(0) {
                 None => return self.err(start, "this text block is never closed"),
@@ -435,62 +552,97 @@ impl<'a> Lexer<'a> {
                     self.i += 1;
                     lines.push(Vec::new());
                 }
+                Some('\\') if self.peek(1) == Some('{') => {
+                    let tokens = self.embedded()?;
+                    lines.last_mut().unwrap().push(Elem::E(embeds.len()));
+                    embeds.push(tokens);
+                }
                 Some('\\') => {
                     let line = lines.last_mut().unwrap();
-                    line.push('\\');
+                    line.push(Elem::C('\\'));
                     self.i += 1;
                     if let Some(c) = self.peek(0) {
-                        line.push(c);
+                        line.push(Elem::C(c));
                         self.i += 1;
                     }
                 }
                 Some(c) => {
-                    lines.last_mut().unwrap().push(c);
+                    lines.last_mut().unwrap().push(Elem::C(c));
                     self.i += 1;
                 }
             }
         }
+        let blank = |c: &Elem| matches!(c, Elem::C(' ' | '\t'));
         let indent = lines.pop().unwrap();
-        if indent.iter().any(|c| *c != ' ' && *c != '\t') {
+        if !indent.iter().all(blank) {
             return self.err(
                 start,
                 "the closing `\"\"\"` of a text block stands on a line of its own",
             );
         }
-        let mut raw = String::new();
+        let mut raw: Vec<Elem> = Vec::new();
         for (n, line) in lines.iter().enumerate() {
             if line.len() < indent.len() || line[..indent.len()] != indent[..] {
-                if !line.iter().all(|c| *c == ' ' || *c == '\t') {
+                if !line.iter().all(blank) {
                     return self.err(start, "every line of a text block begins with its indent");
                 }
             } else {
-                raw.extend(line[indent.len()..].iter());
+                raw.extend(line[indent.len()..].iter().cloned());
             }
             if n + 1 < lines.len() {
-                raw.push('\n');
+                raw.push(Elem::C('\n'));
             }
         }
-        // Apply escapes with a nested lexer over the unindented content.
-        let mut inner = Lexer {
-            file: self.file,
-            text: &raw,
-            chars: raw.char_indices().collect(),
-            i: 0,
-            out: Vec::new(),
-        };
-        let mut s = String::new();
-        while let Some(c) = inner.peek(0) {
-            if c == '\\' {
-                match inner.escape() {
-                    Ok(ch) => s.push(ch),
-                    Err(e) => return self.err(start, e.message),
+        // Apply escapes with a nested lexer over each run of unindented content.
+        let mut parts = Vec::new();
+        for run in raw.split(|e| matches!(e, Elem::E(_))) {
+            let text: String = run
+                .iter()
+                .map(|e| match e {
+                    Elem::C(c) => *c,
+                    Elem::E(_) => unreachable!(),
+                })
+                .collect();
+            let chars: Vec<(usize, char)> = text.char_indices().collect();
+            let mut inner = Lexer {
+                file: self.file,
+                text: &text,
+                end: chars.len(),
+                chars,
+                i: 0,
+                out: Vec::new(),
+            };
+            let mut s = String::new();
+            while let Some(c) = inner.peek(0) {
+                if c == '\\' {
+                    match inner.escape() {
+                        Ok(ch) => s.push(ch),
+                        Err(e) => return self.err(start, e.message),
+                    }
+                } else {
+                    s.push(c);
+                    inner.i += 1;
                 }
-            } else {
-                s.push(c);
-                inner.i += 1;
             }
+            parts.push(Part::Text(s));
         }
-        self.push(start, Tok::Str(s));
+        if embeds.is_empty() {
+            let Some(Part::Text(s)) = parts.pop() else {
+                unreachable!()
+            };
+            self.push(start, Tok::Str(s));
+        } else {
+            // The runs of text and the expressions alternate, beginning and ending with text.
+            let mut all = Vec::new();
+            let mut codes = embeds.into_iter();
+            for (k, part) in parts.into_iter().enumerate() {
+                if k > 0 {
+                    all.push(Part::Code(codes.next().unwrap()));
+                }
+                all.push(part);
+            }
+            self.push(start, Tok::Template(all));
+        }
         Ok(())
     }
 }

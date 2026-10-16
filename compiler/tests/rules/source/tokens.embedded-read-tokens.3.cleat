@@ -1,0 +1,3 @@
+//@ rule: source.tokens.embedded-read-tokens
+//@ rejected: `>>>` is not an operator
+class A { String f(Int n) { return "\{ n >>> 1 }"; } }

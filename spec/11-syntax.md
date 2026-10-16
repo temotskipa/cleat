@@ -34,8 +34,9 @@ exponent        = ("e" | "E") ["+" | "-"] digits
 digits          = digit {["_"] digit}
 
 char-literal    = "'" (plain-character | escape) "'"
-string-literal  = '"' {plain-character | escape} '"'
-text-block      = '"""' {" " | tab} line-break {character | escape} '"""'
+string-literal  = '"' {plain-character | escape | embedding} '"'
+text-block      = '"""' {" " | tab} line-break {character | escape | embedding} '"""'
+embedding       = "\{" expr "}"
 escape          = "\n" | "\t" | "\r" | "\\" | '\"' | "\'"
                 | "\u" hex-digit hex-digit hex-digit hex-digit
                 | "\u{" hex-digit {hex-digit} "}"
@@ -51,6 +52,7 @@ assign-op       = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^="
 
 A `letter` is a character in Unicode category L, and a `number` one in category N. <!-- r[syntax.tokens.letter-character-unicode] -->
 A `plain-character` is any scalar other than the closing quote, a backslash and a line break. <!-- r[syntax.tokens.plain-character-scalar] -->
+The `expr` of an `embedding` is read from tokens of its own, by [section 11.6](#116-expressions), up to the `}` that matches its `\{`. <!-- r[syntax.tokens.expr-embedding-read] -->
 A block comment ends at the first `*/`. <!-- r[syntax.tokens.block-comment-ends] -->
 An identifier is not a keyword, a reserved word, or one of the three word literals. <!-- r[syntax.tokens.identifier-not-keyword] -->
 

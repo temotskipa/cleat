@@ -1,0 +1,3 @@
+//@ rule: source.tokens.character-after-backslash-rejected
+//@ accepted
+class A { String f(Int n) { return "a\{n}b\{n}"; } }

@@ -1,0 +1,3 @@
+//@ rule: numbers.text.part-no-characters
+//@ rejected: `String` is not assignable to `Int`
+class A { String f(Int a, Int b) { return a + b + ""; } }

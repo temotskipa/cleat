@@ -1,0 +1,6 @@
+//@ rule: source.tokens.embedded-expression-begins
+//@ accepted
+class A { String f(Int n) { return """
+    first \{n}
+    second \{n + 1}
+    """; } }

@@ -84,7 +84,7 @@ The escapes are: <!-- r[source.tokens.escapes] -->
 | `\u{` one to six hexadecimal digits `}` | The scalar with that number <!-- r[source.tokens.six-hexadecimal-digits] --> |
 
 An escape that names a surrogate, or a number above 10FFFF, is rejected. <!-- r[source.tokens.escape-names-surrogate] -->
-Any other character after a backslash is rejected. <!-- r[source.tokens.character-after-backslash-rejected] -->
+Any other character after a backslash is rejected, except the `{` that begins an embedded expression. <!-- r[source.tokens.character-after-backslash-rejected] -->
 
 A text block is a string literal that spans lines. <!-- r[source.tokens.text-block-string] -->
 It opens with `"""` and the end of that line, and it closes with `"""`. <!-- r[source.tokens.opens-end-line] -->
@@ -98,6 +98,15 @@ String help = """
     usage: calc <expression>
       prints the exact value
     """;                        // "usage: calc <expression>\n  prints the exact value"
+```
+
+**Embedded expressions.** In a string literal or a text block, `\{` begins an embedded expression, and the matching `}` ends it. <!-- r[source.tokens.embedded-expression-begins] -->
+The expression is read as tokens of its own, so it may hold braces and string literals of its own. <!-- r[source.tokens.embedded-read-tokens] -->
+It ends on the line where it begins, and it is not empty. <!-- r[source.tokens.embedded-ends-line] -->
+[Section 6.9](06-numbers.md#69-char-and-string) says what such a literal is. <!-- r[source.tokens.embedded-section-says] -->
+
+```java
+String line = "\{name} has \{count} items";
 ```
 
 **Separators and operators.** The separators are `( ) { } [ ] ; , . @ :: ... ->`. <!-- r[source.tokens.separators-operators-reference] -->

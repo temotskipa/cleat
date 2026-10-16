@@ -1,0 +1,3 @@
+//@ rule: numbers.text.part-no-characters
+//@ accepted
+class A { String f(Int a, Int b, Int? c) { return "\{a}\{b}\{c}"; } }

@@ -1,0 +1,6 @@
+//@ rule: source.tokens.embedded-ends-line
+//@ rejected: this embedded expression is not closed on the line where it begins
+class A { String f(Int n) { return """
+    a \{ n +
+    1 } b
+    """; } }

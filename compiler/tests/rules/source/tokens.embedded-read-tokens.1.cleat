@@ -1,0 +1,3 @@
+//@ rule: source.tokens.embedded-read-tokens
+//@ accepted
+class A { String f(String s, Int n) { return "\{ "[" + s + "]" } and \{ n > 0 ? "{" : "}" } \{ '}' }"; } }

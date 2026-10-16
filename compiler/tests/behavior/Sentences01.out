@@ -6,3 +6,5 @@ text block: true true
 indent: true
 line breaks: 14 10
 escaped block: true
+embedded: cat [cat] { }
+embedded in a block: true

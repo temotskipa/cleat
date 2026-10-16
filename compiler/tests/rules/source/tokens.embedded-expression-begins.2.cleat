@@ -1,0 +1,3 @@
+//@ rule: source.tokens.embedded-expression-begins
+//@ rejected: this embedded expression is not closed on the line where it begins
+class A { String f(Int n) { return "n is \{n"; } }

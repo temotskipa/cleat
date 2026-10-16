@@ -1,0 +1,3 @@
+//@ rule: numbers.text.embedded-sum-parts
+//@ rejected: the constant of a `case` is a constant expression
+class A { Int f(String s, Int n) { return switch (s) { case "v\{n}" -> 1; default -> 0; }; } }

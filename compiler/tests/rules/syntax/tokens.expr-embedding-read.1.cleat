@@ -1,0 +1,3 @@
+//@ rule: syntax.tokens.expr-embedding-read
+//@ accepted
+class A { String f(Boolean b) { return "\{ b ? "yes" : "no" }\{ (b) }"; } }

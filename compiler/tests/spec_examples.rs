@@ -107,6 +107,7 @@ fn plan(chapter: &str, index: usize) -> Plan {
     use Kind::*;
     match (chapter, index) {
         ("01", 0) => p(Stmts("void", "")),
+        ("01", 1) => p(Stmts("void", "String name, Int count")),
         ("02", 0) => p(Prelude(Some("Object"))),
         ("02", 1) => p(Prelude(None)),
         ("02", 2) => p(Prelude(None)),
@@ -135,6 +136,7 @@ fn plan(chapter: &str, index: usize) -> Plan {
         ("06", 0) => p(Prelude(None)),
         ("06", 1) => p(Stmts("void", "Float64 total, Float64 mass")),
         ("06", 2) => p(Stmts("void", "")),
+        ("06", 3) => p(Stmts("void", "")),
         ("07", 0) => p(Unit),
         ("07", 1) => p(Prelude(Some("Array"))),
         ("07", 2) => p(Sigs("class Fence")),
@@ -751,6 +753,7 @@ macro_rules! examples {
 
 examples![
     (source_text_block, "01", 0),
+    (source_embedded_expressions, "01", 1),
     //@ rule: objects.root.declares
     (objects_root_methods, "02", 0),
     (objects_static_requirement, "02", 1),
@@ -773,6 +776,7 @@ examples![
     (numbers_interfaces, "06", 0),
     (numbers_literals, "06", 1),
     (numbers_conversion, "06", 2),
+    (numbers_embedded_expressions, "06", 3),
     (generics_type_parameters, "07", 0),
     (generics_method, "07", 1),
     (generics_bounds, "07", 2),

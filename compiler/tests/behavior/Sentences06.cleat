@@ -566,5 +566,15 @@ public class Sentences06 {
         Console.println("boolean operators: " + (yes & no) + " " + (yes | no) + " " + (yes ^ no) + " " + !yes + " | " + yes.and(no) + " " + yes.or(no) + " " + yes.xor(no) + " " + yes.not());
         //@ rule: numbers.boolean.equals-true-values
         Console.println("boolean equals: " + (yes == true) + " " + (no == false) + " " + (yes == no) + " " + yes.equals(no) + " " + no.equals(false));
+
+        // ---- 6.9, embedded expressions ----
+        Int? missing = null;
+        var joined = "\{Trace.note("left")}\{Trace.note("right")} \{missing} \{1 + 2}";
+        //@ rule: numbers.text.embedded-sum-parts
+        Console.println("embedded parts: " + Trace.take() + "| " + joined);
+        Int a = 1;
+        Int b = 2;
+        //@ rule: numbers.text.part-no-characters
+        Console.println("first part kept: \{a}\{b} " + "\{a}\{b}".length());
     }
 }

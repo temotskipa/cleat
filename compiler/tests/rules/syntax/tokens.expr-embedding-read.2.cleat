@@ -1,0 +1,3 @@
+//@ rule: syntax.tokens.expr-embedding-read
+//@ rejected: expected
+class A { String f(Int n) { return "\{ n n }"; } }

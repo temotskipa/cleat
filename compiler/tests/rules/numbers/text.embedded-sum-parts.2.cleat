@@ -1,0 +1,3 @@
+//@ rule: numbers.text.embedded-sum-parts
+//@ accepted
+class A { static final String V = "v\{2}"; Int f(String s) { return switch (s) { case "v\{2}" -> 1; default -> 0; }; } }
