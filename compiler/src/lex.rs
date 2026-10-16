@@ -79,11 +79,12 @@ pub const KEYWORDS: &[&str] = &[
     "using",
     "var",
     "void",
+    "when",
     "while",
 ];
 
 pub const RESERVED: &[&str] = &[
-    "boolean", "byte", "char", "double", "float", "inline", "int", "long", "short", "when",
+    "boolean", "byte", "char", "double", "float", "inline", "int", "long", "short",
 ];
 
 pub const WORD_LITERALS: &[&str] = &["true", "false", "null"];

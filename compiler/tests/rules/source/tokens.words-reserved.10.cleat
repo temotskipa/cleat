@@ -1,3 +1,0 @@
-//@ rule: source.tokens.words-reserved
-//@ rejected: `when` is a reserved word
-class A { Int when = 1; }

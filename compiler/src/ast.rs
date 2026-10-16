@@ -224,7 +224,8 @@ pub struct Local {
 #[derive(Clone, Debug)]
 pub enum ArmHead {
     Constants(Vec<Expr>),
-    Type(TypeRef, String),
+    /// `case T name`, with the guard after `when` if one is written.
+    Type(TypeRef, String, Option<Box<Expr>>),
     Default,
 }
 

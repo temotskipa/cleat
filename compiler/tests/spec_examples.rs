@@ -126,6 +126,7 @@ fn plan(chapter: &str, index: usize) -> Plan {
             "static Rational apply(Op op, Rational left, Rational right) { return left; }",
             CALC,
         ),
+        ("04", 4) => pm(Members("class Fence"), "", CALC),
         ("05", 0) => p(Sigs("value class String")),
         ("05", 1) => p(Prelude(None)),
         ("05", 2) => p(Stmts("void", "Map<String, Int> counts, String word")),
@@ -766,6 +767,8 @@ examples![
     (methods_function_interfaces, "04", 1),
     (methods_iterable, "04", 2),
     (methods_switch_over_types, "04", 3),
+    //@ rule: methods.statements.guard-narrows-arm
+    (methods_switch_guard, "04", 4),
     (null_receiver, "05", 0),
     (null_class, "05", 1),
     (null_narrowing, "05", 2),

@@ -321,8 +321,10 @@ An arm is one of three kinds: <!-- r[methods.statements.arm-three-kinds] -->
   Writing one constant twice in a switch is rejected. <!-- r[methods.statements.writing-constant-twice] -->
 - `case T name -> body` matches when the selector is an instance of `T`, as `instanceof` tests. <!-- r[methods.statements.case-name-arrow] -->
   In the body, `name` is a local of type `T` that holds the selector and is not assignable. <!-- r[methods.statements.body-name-local] -->
+  `case T name when guard -> body` matches only when, besides, `guard` is `true`. <!-- r[methods.statements.case-guard-matches] -->
+  The guard has type `Boolean`, sees `name`, and is evaluated only after the selector has been found an instance of `T`. <!-- r[methods.statements.guard-boolean-sees] -->
   `T` must not be disjoint from the selector's type. <!-- r[methods.statements.not-disjoint-selector] -->
-  An arm that cannot match because an earlier arm names `T` or a supertype of `T` is rejected. <!-- r[methods.statements.arm-match-because] -->
+  An arm that cannot match because an earlier arm without a guard names `T` or a supertype of `T` is rejected. <!-- r[methods.statements.arm-match-because] -->
 - `default -> body` matches when no other arm does. <!-- r[methods.statements.default-arrow-body] -->
   A switch has at most one, written last. <!-- r[methods.statements.switch-most-written] -->
 
@@ -335,7 +337,7 @@ In a switch expression, each body is an expression or a `throw` statement, and t
 Its type follows the rule for `?:`, applied across all arms. <!-- r[methods.statements.type-follows-rule] -->
 
 A switch is exhaustive when it has a `default` arm, when its constants are both `true` and `false`, when its constants are every constant of an enum, or when its type arms cover the selector's type. <!-- r[methods.statements.switch-exhaustive-default] -->
-Type arms cover a type `S` when one of them names `S` or a supertype of `S`. <!-- r[methods.statements.type-arms-cover] -->
+Type arms cover a type `S` when one of them that has no guard names `S` or a supertype of `S`. <!-- r[methods.statements.type-arms-cover] -->
 They also cover `S` when `S` is a sealed interface or a sealed abstract class and they cover every type in its `permits` clause. <!-- r[methods.statements.cover-sealed-interface] -->
 
 ```java
@@ -344,6 +346,19 @@ static Rational eval(Expr expr) {
         case Num n -> n.value;
         case Neg n -> -eval(n.operand);
         case Binary b -> apply(b.op, eval(b.left), eval(b.right));
+    };
+}
+```
+
+A guard narrows an arm to the cases that need their own body, and the arm after it takes the rest: <!-- r[methods.statements.guard-narrows-arm] -->
+
+```java
+static String describe(Expr expr) {
+    return switch (expr) {
+        case Num n when n.value == 0 -> "zero";
+        case Num n -> "a number";
+        case Neg n -> "a negation";
+        case Binary b -> "an operation";
     };
 }
 ```

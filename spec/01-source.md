@@ -39,7 +39,7 @@ A keyword is not an identifier. <!-- r[source.tokens.keyword-not-identifier] -->
 abstract assert break case catch class continue else enum extends final
 finally for if implements import instanceof interface new package private
 protected public return static super switch this throw try using var void
-while
+when while
 ```
 
 These words are keywords only in one position each, and identifiers everywhere else. <!-- r[source.tokens.words-keywords-only] -->
@@ -59,7 +59,7 @@ These words are reserved. <!-- r[source.tokens.words-reserved] -->
 A reserved word is rejected wherever an identifier would be accepted. <!-- r[source.tokens.reserved-word-rejected] -->
 
 ```
-boolean byte char double float inline int long short when
+boolean byte char double float inline int long short
 ```
 
 **Literals.** `true`, `false` and `null` are literals and not identifiers. <!-- r[source.tokens.literals-true-false] -->

@@ -391,7 +391,7 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 
 **Chapter 1, source.**
 
-- The words Cleat adds to Java's are keywords in one position each and identifiers elsewhere: `value`, `annotation`, `open`, `sealed`, `permits`, `foreign`, `only`, `in`, `out` and `default`. A method may be named `open`. `inline` and `when` are reserved.
+- The words Cleat adds to Java's are keywords in one position each and identifiers elsewhere: `value`, `annotation`, `open`, `sealed`, `permits`, `foreign`, `only`, `in`, `out` and `default`. A method may be named `open`. `inline` is reserved, and `when`, reserved until the guards of section 4.9, is a keyword.
 - `1e10` is a decimal literal.
 - A program declares no package named `cleat` or beginning `cleat.`.
 - A type name is looked up as a type parameter, then in the file, the named imports, the package, the `*` imports and the prelude.
@@ -472,6 +472,7 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 **Additions to the language.** Assumed. On 2026-10-16 you asked for whatever would make the language better. Each of these can be taken out without touching the rest.
 
 - **Embedded expressions.** In a string literal or a text block, `\{x}` embeds an expression: `"a\{x}b"` is `"a" + x + "b"`, checked and evaluated as that sum is, so it is a constant when the sum is one. The spelling is the one Java proposed for its string templates. A backslash and a brace was already rejected, so no program changes meaning, and `$` would not do, because `$` is a character of an identifier. The first part stays even when it is empty, so `"\{a}\{b}"` joins two numbers as text instead of adding them. An embedded expression ends on the line where it begins, so a text block's indent applies to whole lines. There is no format specifier; a program calls `toFixed` or a method of its own inside the braces.
+- **Guards on type arms.** `case T name when guard -> body` matches when the selector is a `T` and the guard is `true`. The guard is checked after the type, sees `name`, and its facts when `true` hold in the body. An arm with a guard covers nothing for exhaustiveness and does not make a later arm unreachable, so `case Circle c when c.r == 0` can stand before `case Circle c`. Only a type arm takes a guard. `when` was already reserved, so making it a keyword takes no name from a program. A lambda in a guard stands among the arguments of a call, because the `->` after the guard ends the head.
 
 **Changed in the specification while implementing it.**
 

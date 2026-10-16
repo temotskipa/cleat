@@ -624,15 +624,14 @@ fn the_record_and_chapter_1_name_the_same_contextual_words() {
         .flat_map(|r| ticks(&r[0]))
         .collect();
     let reserved = words_after(&one, "These words are reserved.");
-    // The line names the contextual words, then a method name as an example, then two reserved words.
+    // The line names the contextual words, then a method name as an example, then a
+    // reserved word and a word that is now a keyword.
     let first: BTreeSet<String> = named.iter().take(10).cloned().collect();
     assert_eq!(first, contextual);
-    for w in ["inline", "when"] {
-        assert!(
-            named.iter().any(|n| n == w) && reserved.contains(w),
-            "`{w}`"
-        );
-    }
+    assert!(named.iter().any(|n| n == "inline") && reserved.contains("inline"));
+    assert!(named.iter().any(|n| n == "when") && !reserved.contains("when"));
+    let keywords = words_after(&one, "These words are keywords.");
+    assert!(keywords.contains("when"));
 }
 
 #[test]

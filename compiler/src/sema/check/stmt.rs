@@ -836,7 +836,8 @@ impl<'p> Checker<'p> {
             );
         }
         let tmp = self.temp(sty.clone());
-        let base = self.frame().flow.clone();
+        let mut base = self.frame().flow.clone();
+        let boolean = self.boolean();
         let has_const = heads
             .iter()
             .any(|(h, _)| matches!(h, ArmHead::Constants(_)));
@@ -901,7 +902,7 @@ impl<'p> Checker<'p> {
                     }
                     ArmTest::Constants(vals)
                 }
-                ArmHead::Type(tr, name) => {
+                ArmHead::Type(tr, name, guard) => {
                     let ty = self.resolve(tr);
                     if ty.nullable || !ty.quals.is_empty() {
                         self.err(
@@ -927,15 +928,30 @@ impl<'p> Checker<'p> {
                             }
                         }
                         if dead {
-                            self.err(tr.pos, "this arm cannot match: an earlier arm names its type or a supertype of it");
+                            self.err(tr.pos, "this arm cannot match: an earlier arm without a guard names its type or a supertype of it");
                         }
-                        types.push(ty.clone());
+                        // Section 4.9: an arm with a guard covers nothing and hides nothing.
+                        if guard.is_none() {
+                            types.push(ty.clone());
+                        }
                     }
                     let id = self.declare(name, ty.clone(), true, *hpos, false);
                     let f = self.frame();
                     f.flow.assigned.insert(id);
                     f.flow.maybe.insert(id);
-                    ArmTest::Type(ty, id)
+                    // Section 12.4: the guard's facts when `true` hold in the body. When it
+                    // is `false` the next arm is tried, from what the guard did.
+                    let g = guard.as_ref().map(|g| {
+                        let cond = self.check_cond(g);
+                        let ge = self.coerce(cond.e, &boolean, g.pos);
+                        let tested = self.frame().flow.clone();
+                        self.apply_facts(&cond.f);
+                        let failed = std::mem::replace(&mut self.frame().flow, tested);
+                        self.apply_facts(&cond.t);
+                        base = Flow::join(base.clone(), failed);
+                        Box::new(ge)
+                    });
+                    ArmTest::Type(ty, id, g)
                 }
                 ArmHead::Default => {
                     has_default = true;

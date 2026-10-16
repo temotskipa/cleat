@@ -1,0 +1,3 @@
+//@ rule: syntax.expressions.lambda-among-arguments
+//@ accepted
+class A { static Boolean any(Int[] xs, Function1<Int, Boolean> p) { for (Int x : xs) { if (p.invoke(x)) { return true; } } return false; } Int f(Object o) { return switch (o) { case Int[] xs when any(xs, (x) -> x > 0) -> 1; default -> 0; }; } }

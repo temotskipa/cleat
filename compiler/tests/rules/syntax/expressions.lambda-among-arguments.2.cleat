@@ -1,0 +1,3 @@
+//@ rule: syntax.expressions.lambda-among-arguments
+//@ accepted
+class A { Int f(Object o, Boolean b) { return switch (o) { case String s when (b) -> 1; default -> 0; }; } }

@@ -1578,7 +1578,7 @@ impl<'a, 'p> Func<'a, 'p> {
                 self.br(next);
                 self.label(&hit);
             }
-            ArmTest::Type(ty, local) => {
+            ArmTest::Type(ty, local, guard) => {
                 let s = self.read(sel);
                 let s = self.convert(s, sr, Repr::Ref);
                 let td = self.type_desc(ty);
@@ -1592,6 +1592,14 @@ impl<'a, 'p> Func<'a, 'p> {
                 let v = self.convert(s, Repr::Ref, self.repr(ty));
                 let st = self.locals[*local as usize].clone();
                 self.write(&st, &v);
+                if let Some(g) = guard {
+                    let k = self.expr(g);
+                    let k = self.val(&k);
+                    let k = self.truth(&k);
+                    let pass = self.new_label("arm.guard");
+                    self.cond_br(&k, &pass, next);
+                    self.label(&pass);
+                }
             }
         }
     }

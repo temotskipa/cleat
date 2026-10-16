@@ -60,8 +60,9 @@ pub struct Lambda {
 pub enum ArmTest {
     /// The selector equals one of these constants.
     Constants(Vec<TExpr>),
-    /// The selector is an instance of the type, bound to the local.
-    Type(Type, LocalId),
+    /// The selector is an instance of the type, bound to the local, and the guard, if
+    /// there is one, is `true`.
+    Type(Type, LocalId, Option<Box<TExpr>>),
     Default,
 }
 

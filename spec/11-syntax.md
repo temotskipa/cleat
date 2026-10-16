@@ -175,7 +175,7 @@ expr-list       = expr {"," expr}
 catch-clause    = "catch" "(" type identifier ")" block
 resource        = (type | "var") identifier "=" expr
 arm-head        = "case" expr-list
-                | "case" type identifier
+                | "case" type identifier ["when" expr]
                 | "default"
 ```
 
@@ -239,7 +239,8 @@ The grammar derives more than is legal, and these rules settle what it leaves op
 - **Casts.** `(` type `)` begins a cast only when the token after `)` is not `-`, `++` or `--`. <!-- r[syntax.expressions.casts-type-begins] -->
   `(n) - 1` is a subtraction, and a negated operand is cast as `(Int) (-n)`. <!-- r[syntax.expressions.subtraction-negated-operand] -->
 - **Lambdas.** A `(` begins a lambda when the token after its matching `)` is `->`. <!-- r[syntax.expressions.lambdas-begins-lambda] -->
-  The head of a switch arm is the exception: the `->` after its constants ends the head, so `case (1) -> x` is an arm whose constant is `(1)`. <!-- r[syntax.expressions.head-switch-arm] -->
+  The head of a switch arm is the exception: the `->` after its constants or its guard ends the head, so `case (1) -> x` is an arm whose constant is `(1)`. <!-- r[syntax.expressions.head-switch-arm] -->
+  A lambda among the arguments of a call in a guard is still a lambda. <!-- r[syntax.expressions.lambda-among-arguments] -->
 - **Type arguments in an expression.** A `<` after a name begins type arguments when the tokens up to the matching `>` are type arguments and the next token is `::`, or `.` followed by `class`. <!-- r[syntax.expressions.type-arguments-expression] -->
   Everywhere else it is the comparison operator. <!-- r[syntax.expressions.everywhere-else-comparison] -->
   The type after `new` and after `instanceof`, and the type arguments of a call, which follow its `.`, are never mistaken for one. <!-- r[syntax.expressions.type-after-new] -->

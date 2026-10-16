@@ -1,0 +1,3 @@
+//@ rule: flow.narrowing.guard-facts-body
+//@ accepted
+class A { Int f(Object o, String? t) { return switch (o) { case String s when t != null -> t.length(); default -> 0; }; } }

@@ -56,3 +56,4 @@ foreign: 5 9000000000 2 770 false true
 a value C returns: 3r1 d3 d-3 a negative remainder
 an array C writes: d0 a negative remainder d1 d2 100
 inner values first: d0 d0 halves | d1 d2 halves d3 d4 halves 4
+guards: g g | empty text other

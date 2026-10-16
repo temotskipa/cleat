@@ -1158,13 +1158,21 @@ impl<'a> Parser<'a> {
         let typed = self.attempt(|p| {
             let ty = p.type_ref()?;
             let name = p.ident()?;
-            if !p.is_punct("->") {
+            if !p.is_punct("->") && !p.is_word("when") {
                 return p.err("not a type arm");
             }
             Ok((ty, name))
         });
         if let Some((ty, name)) = typed {
-            return Ok(ArmHead::Type(ty, name));
+            let guard = if self.eat_word("when") {
+                self.in_arm_head = true;
+                let g = self.expr();
+                self.in_arm_head = false;
+                Some(Box::new(g?))
+            } else {
+                None
+            };
+            return Ok(ArmHead::Type(ty, name, guard));
         }
         self.in_arm_head = true;
         let list = (|| {
@@ -1181,6 +1189,15 @@ impl<'a> Parser<'a> {
     // ---- expressions ----
 
     fn args(&mut self) -> R<Vec<Expr>> {
+        // A lambda among the arguments of a call is one even in the head of an arm,
+        // whose `->` cannot stand inside the parentheses.
+        let head = std::mem::replace(&mut self.in_arm_head, false);
+        let args = self.arg_list();
+        self.in_arm_head = head;
+        args
+    }
+
+    fn arg_list(&mut self) -> R<Vec<Expr>> {
         let mut args = Vec::new();
         while !self.is_punct(")") {
             args.push(self.expr()?);

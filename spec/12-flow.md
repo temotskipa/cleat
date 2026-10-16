@@ -193,6 +193,7 @@ A fact holds at a point when it holds on every path that reaches the point. <!--
   After the statement, a fact holds when it holds at the end of each branch that can complete normally. <!-- r[flow.narrowing.after-statement-fact] -->
 - In `while (c) s` and in a `for` statement, the facts of `c` when `true` hold at the start of the body, and its facts when `false` hold after the loop unless a `break` leaves it. <!-- r[flow.narrowing.while-for-statement] -->
 - In `c ? a : b`, the facts of `c` when `true` hold in `a`, and its facts when `false` hold in `b`. <!-- r[flow.narrowing.facts-true-hold] -->
+- In a type arm `case T x when c -> body`, the facts of `c` when `true` hold in `body`. <!-- r[flow.narrowing.guard-facts-body] -->
 - In `a ?? b`, no fact comes from the test of `a`. <!-- r[flow.narrowing.coalesce-no-fact] -->
 - `assert c;` gives the facts of `c` when `true` to what follows. <!-- r[flow.narrowing.assert-gives-facts] -->
 - A fact that holds before a `try` statement holds in its `catch` and `finally` blocks when the `try` block does not assign the variable. <!-- r[flow.narrowing.fact-holds-before-try] -->

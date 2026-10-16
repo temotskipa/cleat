@@ -1,0 +1,3 @@
+//@ rule: flow.narrowing.guard-facts-body
+//@ rejected: `length` is sent to a `String?`
+class A { Int f(Object o, String? t) { return switch (o) { case String s when t != null -> 1; case String s -> t.length(); default -> 0; }; } }

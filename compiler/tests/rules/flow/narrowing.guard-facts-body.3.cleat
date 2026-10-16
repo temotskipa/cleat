@@ -1,0 +1,3 @@
+//@ rule: flow.narrowing.guard-facts-body
+//@ accepted
+class A { void f(Object o) { final Int k; switch (o) { case String s when (k = 1) > 2 -> { } default -> { } } } }

@@ -504,6 +504,15 @@ public class Sentences04 {
         Trace.note("after");
     }
 
+    // A guard runs only for a selector of its arm's type.
+    static String sized(Object o) {
+        return switch (o) {
+            case String s when Trace.is("g", s.isEmpty()) -> "empty";
+            case String s -> "text";
+            default -> "other";
+        };
+    }
+
     public static void main() {
         var circle = new Circle();
         Shape shape = circle;
@@ -968,5 +977,10 @@ public class Sentences04 {
         //@ rule: execution.values.value-class-produced
         //@ rule: execution.values.field-holds-value
         Console.println("inner values first: " + built + "| " + Trace.take() + pairs[1].second.quot);
+
+        var guarded = sized("") + " " + sized("ab") + " " + sized(3);
+        //@ rule: methods.statements.case-guard-matches
+        //@ rule: methods.statements.guard-boolean-sees
+        Console.println("guards: " + Trace.take() + "| " + guarded);
     }
 }
