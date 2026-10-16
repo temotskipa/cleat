@@ -44,7 +44,7 @@ The name is still open. It can wait.
 
 **Recommendation.**
 
-- `@Nullable T` contains every value of `T`, and `null`. `T` is a subtype of `@Nullable T`. Writing the annotation twice changes nothing.
+- `@Nullable T` contains every value of `T`, and `null`. `T` is a subtype of `@Nullable T`. `@Nullable` on a type that already contains `null` changes nothing.
 - `null` is the one instance of `Null`. `Null` is not a subclass of `Object`. `@Nullable Object` is the top type.
 - A method may be called on a `@Nullable` receiver only when the method declares a `@Nullable` receiver. In the prelude those are `equals`, `hashCode`, `toString` and the final `identical`. `equals` takes `@Nullable Object`, which is what lets `x == null` typecheck.
 - Narrowing works as the spec has it now: `== null`, `!= null` and `instanceof` narrow a local or parameter that is not reassigned in the region. A cast `(T) e` from `@Nullable T` is the checked form and raises on `null`.
@@ -331,6 +331,7 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 - A class that declares no constructor has an implicit one, with the audience of the class.
 - Instance initializer blocks are gone.
 - A value class may write its one constructor in a compact form, `public Range { ... }`, to give it an audience or a check. Value-class fields have no initializers.
+- Every value of a value class goes through its constructor, so a compact form's check holds for all of them. The language constructs two values the program does not write `new` for: the default of `new T[n]`, once for each array, and a struct that C gives back, a field's value before the value that holds it. After a foreign call the arrays are constructed in parameter order, then the result, and an element takes C's value only once its constructor has returned. The other reading, that a value built from defaults or from C skips the check, would let `new Positive[3]` or a C function make a value that its class's constructor rejects.
 - `Throwable` has a message, a cause and a list of suppressed exceptions. The message is the empty string when none was given.
 - `catch` clauses behave as in Java. `return`, `break` and `continue` are rejected in a `finally` block.
 - In `using`, an exception from the block wins and one from `close` is suppressed on it. The earlier text had it the other way round.
@@ -364,7 +365,7 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 - `@Implicit` is limited to keep it tame. The method sits in the target class, both classes are value classes, it is not generic, and at most one conversion applies to a value. That it is exact and never raises is a promise by its author, which the language does not check.
 - Integers do not convert implicitly to floats, because the everyday `Int` does not fit a float exactly.
 - With mixed numeric operands, `i == n` compares after conversion while `i.equals(n)` is `false`, as in Java.
-- `@Nullable` is an annotation like any other, so the rule that an annotation is written once in one position holds for it and for every qualifier: `@Nullable @Nullable String` is rejected, among the modifiers and before a type alike. The owner said on 2026-10-10 that `@Nullable` was not being treated as a proper annotation. Decision 1's sentence that writing it twice changes nothing is read of the type: `@Nullable` on a type that already contains `null` is the same type.
+- `@Nullable` is an annotation like any other, so the rule that an annotation is written once in one position holds for it and for every qualifier: `@Nullable @Nullable String` is rejected, among the modifiers and before a type alike. The owner said on 2026-10-10 that `@Nullable` was not being treated as a proper annotation. Decision 1's recommendation had said that writing it twice changes nothing. Its model is assumed, so it now says the same of the type: `@Nullable` on a type that already contains `null` changes nothing.
 - Only a qualifier stands next to the type of a declaration. A declaration annotation is written before the modifiers, as section 8.2 says, and `public @Route("/x") void f()` is rejected. Section 11.4's grammar lets annotations and modifiers alternate, and the checker now enforces the order.
 
 **Chapter 12, flow.**
@@ -452,7 +453,7 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 - A machine number, `Boolean`, `Char` and `Pointer` are held unboxed where their static type says what they are. Every other value is a pointer to an object, a value class the program declares included.
 - Generic code is compiled once. Type arguments are passed at run time, and an array stores machine numbers unboxed.
 - Each thread has 16 MB of stack. A call that finds less than 1 MB left ends the program with status 1.
-- A foreign method that passes a value class goes through C source the compiler writes and clang compiles, so the struct follows the platform's own convention. A value that C returns is built from its fields, without running a compact constructor's body. An array of value classes is copied to C structs and back into fresh values.
+- A foreign method that passes a value class goes through C source the compiler writes and clang compiles, so the struct follows the platform's own convention. That source declares the C function under a name of its own, bound to the symbol by an assembler label, so a header such as `stdlib.h` that declares `div`, or a second foreign method with the same symbol, cannot conflict with it. A value that C returns is built from its fields and then constructed in place, as section 9.6 asks. An array of value classes is copied to C structs and back into fresh values, and each is constructed before it takes its element's place.
 - The earlier checker, backend and tests covered the `Int32` subset of the old design and are removed. They remain in history.
 - The numeric classes and the small regular files of the prelude are written by `compiler/tools/gen_numbers.py` and `compiler/tools/prelude_core.py`.
 
@@ -468,3 +469,4 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 - Section 2.6 says that the method a class declares for a static requirement carries `@Override`, as section 8.8 asks of every method that implements an interface method.
 - Section 5.1 said that `@Nullable` written twice on one type use is the same as written once, and section 8.2 says that an annotation is written at most once in one position. Section 5.1 now speaks of `@Nullable` applied to a type that already contains `null`, and section 8.2 says what one position is. The checker had accepted a repeated qualifier among the modifiers of a declaration and rejects it now.
 - Section 11.4 says that an annotation after a modifier is a qualifier, as section 8.2 places a declaration annotation before the modifiers. The checker had accepted `public @Route("/x") void f()`.
+- Section 9.6 says that every value of a value class is produced by its constructor, and sections 4.11 and 6.10 say when the language constructs one: a struct that C gives back, and the default of `new T[n]`. Neither section had said whether a compact form's body runs on those values, and the compiler skipped it.

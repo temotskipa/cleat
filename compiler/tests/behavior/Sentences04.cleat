@@ -389,6 +389,37 @@ value class Neg implements Expr {
     public Expr operand;
 }
 
+value class Division {
+    public Int32 quot;
+    public Int32 rem;
+
+    public Division {
+        Trace.note("d" + quot);
+        if (rem < 0) {
+            throw new IllegalArgumentException("a negative remainder");
+        }
+    }
+}
+
+value class Raw {
+    public Int32 quot;
+    public Int32 rem;
+}
+
+value class Halves {
+    public Division first;
+    public Division second;
+
+    Halves {
+        Trace.note("halves");
+    }
+}
+
+value class RawHalves {
+    public Raw first;
+    public Raw second;
+}
+
 public class Sentences04 {
     static Int zero = 0;
 
@@ -400,6 +431,14 @@ public class Sentences04 {
     foreign static UInt64 strlen(UInt8[] text);
 
     foreign static Pointer memset(UInt8[] target, Int32 value, UInt64 count);
+
+    foreign static Division div(Int32 n, Int32 d);
+
+    @Symbol("memcpy")
+    foreign static Pointer copyDivisions(Division[] target, Raw[] source, UInt64 count);
+
+    @Symbol("memcpy")
+    foreign static Pointer copyHalves(Halves[] target, RawHalves[] source, UInt64 count);
 
     static Int index() {
         Trace.note("index");
@@ -805,5 +844,27 @@ public class Sentences04 {
         UInt8[] buffer = new UInt8[4];
         Pointer where = memset(buffer, 7, 3);
         Console.println("foreign: " + abs(-5) + " " + magnitude(-9000000000) + " " + strlen(bytes) + " " + buffer[0] + buffer[2] + buffer[3] + " " + (where == Pointer.zero()) + " " + (Pointer.zero() == Pointer.zero()));
+        var whole = div(7, 2);
+        var returned = "" + whole.quot + "r" + whole.rem + " " + Trace.take();
+        try {
+            returned = returned + div(-7, 2).quot;
+        } catch (IllegalArgumentException e) {
+            returned = returned + Trace.take() + e.message();
+        }
+        Console.println("a value C returns: " + returned);
+        Division[] into = new Division[3];
+        var written = Trace.take();
+        Raw[] from = new Raw[] { new Raw(1, 1), new Raw(2, -1), new Raw(3, 3) };
+        try {
+            Pointer copied = copyDivisions(into, from, 24);
+        } catch (IllegalArgumentException e) {
+            written = written + e.message() + " " + Trace.take();
+        }
+        Console.println("an array C writes: " + written + into[0].quot + into[1].quot + into[2].quot);
+        Halves[] pairs = new Halves[2];
+        var built = Trace.take();
+        RawHalves[] raw = new RawHalves[] { new RawHalves(new Raw(1, 0), new Raw(2, 0)), new RawHalves(new Raw(3, 0), new Raw(4, 0)) };
+        Pointer moved = copyHalves(pairs, raw, 32);
+        Console.println("inner values first: " + built + "| " + Trace.take() + pairs[1].second.quot);
     }
 }

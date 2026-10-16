@@ -145,6 +145,8 @@ The compact form has no parameter list. Its body runs after the fields are bound
 
 Without a compact form, the constructor has the audience of the class and no body.
 
+Every value of a value class is produced by its constructor, whatever the constructor's audience. Besides `new`, two things construct a value: `new T[n]` makes the default of a value class under [section 6.10](06-numbers.md#610-arrays), and a foreign call makes a value from a struct that C gives back under [section 4.11](04-methods.md#411-foreign-methods). In both, a field that holds a value of a value class is constructed before the value that holds it.
+
 Two evaluations of `new` on a value class with equal arguments produce equal values. A value class with no fields has one value: `new Unit()` always produces the same one.
 
 ## 9.7 Class initialization

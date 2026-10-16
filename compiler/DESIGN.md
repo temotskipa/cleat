@@ -83,7 +83,10 @@ caller widen them and code that rustc or clang compiled relies on it.
 One that takes or returns a value class goes through C source the compiler writes
 (`emit/mod.rs`, `foreign_shim`) and gives to clang with the module. The C code copies
 an object's fields into the struct C expects and back, so the platform's own rules for
-passing structs apply.
+passing structs apply. It declares the C function under its own name, `cleat_c_<class>_<index>`,
+bound to the symbol by an assembler label, so a header's declaration of the same symbol
+cannot conflict. After the call, `shim_call` constructs each value C wrote, in place
+(`construct_from_c`, `construct_elements`), as section 9.6 asks.
 
 ## Limits
 
@@ -106,6 +109,11 @@ context, and a call that finds the stack full ends the program.
   "is not a", "are not", "has no"). A sentence that no checker can decide names the
   run test that covers it, most often `tests/behavior/Rules.cleat`. A test fails when a
   chapter gains a sentence of either kind and no case names it.
+  `tests/spec_rules/described_NN.rs` gives each of chapter NN's remaining sentences, the
+  ones that define or describe, a case of one of four ways: programs for the checker, a
+  line of a run test (`tests/behavior/SentencesNN.cleat` for most), another test by name,
+  or a reason no program can show it. A phrase names its sentence and must be found in
+  exactly one, so every sentence of the specification has exactly one case.
 - `tests/prelude_intrinsics.rs`: every `@Intrinsic` method of the prelude, with the reason
   it is not written in the language.
 - `tests/rejections.rs` and `tests/declarations.rs`: programs the checker must reject.

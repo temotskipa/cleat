@@ -594,6 +594,29 @@ pub const SENTENCES: &[Rule] = &[
     ),
     ran(
         "09",
+        "Every value of a value class is produced by its constructor, whatever the constructor's audience",
+        "Sentences04",
+        "inner values first: d0 d0 halves | d1 d2 halves",
+    ),
+    stated(
+        "09",
+        "Besides `new`, two things construct a value",
+        "It introduces the two cases after it, which have their own case.",
+    ),
+    ran(
+        "09",
+        "makes the default of a value class under",
+        "Sentences04",
+        "an array C writes: d0 a negative remainder d1",
+    ),
+    ran(
+        "09",
+        "In both, a field that holds a value of a value class is constructed before the value that holds it",
+        "Sentences04",
+        "inner values first: d0 d0 halves | d1 d2 halves d3 d4 halves 4",
+    ),
+    ran(
+        "09",
         "Two evaluations of `new` on a value class with equal arguments produce equal values",
         RUN,
         "equal arguments: true true false",

@@ -1150,6 +1150,12 @@ pub const SENTENCES: &[Rule] = &[
     ),
     ran(
         "06",
+        "That value is constructed once each time `new T[n]` creates an array",
+        RUN,
+        "a default's constructor: made | made | 0 raises raises",
+    ),
+    ran(
+        "06",
         "evaluates the elements from left to right",
         RUN,
         "listed elements: first second third 123",

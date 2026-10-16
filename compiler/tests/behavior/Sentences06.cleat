@@ -110,6 +110,24 @@ value class Pair {
     public Boolean flag;
 }
 
+value class Logged {
+    public Int count;
+
+    public Logged {
+        Trace.note("made");
+    }
+}
+
+value class Positive {
+    public Int count;
+
+    public Positive {
+        if (count < 1) {
+            throw new ArithmeticException("not positive");
+        }
+    }
+}
+
 class Generic {
     public static <T extends Numeric<T>> String both() {
         return "" + T.zero() + " " + T.one();
@@ -427,6 +445,14 @@ public class Sentences06 {
             var a = new Int[zero - 1];
         }) + " " + new Int[zero].length());
         Console.println("the defaults: " + new @Nullable String[2][1] + " " + new Int[2][1] + " " + new Float64[2][1] + " " + new Rational[2][1] + " " + new UInt8[2][1] + " " + new Char[2][1].code() + " " + new Boolean[2][1] + " " + new Pair[2][1] + " " + new Int[3].length());
+        var logged = new Logged[3];
+        var once = Trace.take();
+        var emptied = new Logged[zero];
+        Console.println("a default's constructor: " + once + "| " + Trace.take() + "| " + logged[2].count + " " + raises(() -> {
+            var p = new Positive[2];
+        }) + " " + raises(() -> {
+            var p = new Positive[zero];
+        }));
         var listed = new Int[] { Trace.note("first"), Trace.note("second") + 1, Trace.note("third") + 2 };
         Console.println("listed elements: " + Trace.take() + listed[0] + listed[1] + listed[2]);
         var squares = Array.<Int>build(4, (index) -> {

@@ -83,6 +83,87 @@ public class Structs {
     );
 }
 
+/// Section 4.11: after the call, each array of value classes is constructed in the order
+/// of the parameters, element by element, and the result after them. An element whose
+/// compact constructor raises, and every element after it, keeps its value.
+#[test]
+fn values_from_c_are_constructed_array_by_array_and_then_the_result() {
+    let dir = scratch("foreign_constructed");
+    let c = write(
+        &dir,
+        "divisions.c",
+        r#"
+#include <stdint.h>
+struct division { int32_t quot; int32_t rem; };
+struct division shift_all(struct division *a, int64_t n, struct division *b, int64_t m, int32_t rem) {
+    for (int64_t k = 0; k < n; k++) a[k].quot += 10;
+    for (int64_t k = 0; k < m; k++) { b[k].quot += 20; b[k].rem = rem; }
+    struct division r = { 99, 1 };
+    return r;
+}
+"#,
+    );
+    let source = write(
+        &dir,
+        "Divisions.cleat",
+        r#"
+package t;
+
+class Trace {
+    public static String log = "";
+
+    public static String take() {
+        var all = log;
+        log = "";
+        return all;
+    }
+}
+
+value class Division {
+    public Int32 quot;
+    public Int32 rem;
+
+    public Division {
+        Trace.log = Trace.log + "d" + quot + " ";
+        if (rem < 0) {
+            throw new IllegalArgumentException("raised");
+        }
+    }
+}
+
+public class Divisions {
+    @Symbol("shift_all")
+    foreign static Division shiftAll(Division[] a, Int n, Division[] b, Int m, Int32 rem);
+
+    public static void main() {
+        Division[] a = new Division[] { new Division(1, 1), new Division(2, 1) };
+        Division[] b = new Division[] { new Division(3, 1) };
+        var skipped = Trace.take();
+        Division r = shiftAll(a, a.length(), b, b.length(), 1);
+        Console.println(Trace.take() + "| " + a[0].quot + " " + a[1].quot + " " + b[0].quot + " " + r.quot);
+        Division[] c = new Division[] { new Division(1, 1) };
+        Division[] d = new Division[] { new Division(2, 1), new Division(3, 1) };
+        skipped = Trace.take();
+        try {
+            Division s = shiftAll(c, c.length(), d, d.length(), -1);
+        } catch (IllegalArgumentException e) {
+            Console.println(Trace.take() + e.message() + " | " + c[0].quot + " " + d[0].quot + " " + d[1].quot);
+        }
+    }
+}
+"#,
+    );
+    let exe = dir.join("divisions.exe");
+    cleatc::build_with(&[source.as_path()], "t.Divisions", &exe, &[c])
+        .unwrap_or_else(|e| panic!("{}", e[0].message));
+    expect(
+        &exe,
+        &[],
+        0,
+        "d11 d12 d23 d99 | 11 12 23 99\nd11 d22 raised | 11 2 3\n",
+    );
+}
+
 #[test]
 fn a_full_stack_ends_the_program() {
     let (_, exe) = build_text(

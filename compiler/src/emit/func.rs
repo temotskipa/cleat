@@ -572,8 +572,8 @@ impl<'a, 'p> Func<'a, 'p> {
                     && !elem.nullable
                     && matches!(elem.ty, Ty::Class(..))
                 {
-                    // Every element is the default value of the class.
-                    if let Some(d) = self.default_value(elem, 0) {
+                    // Every element is the default value of the class, constructed once.
+                    if let Some(d) = self.default_value(elem, 0, true) {
                         let (a, d) = (self.val(&arr), self.val(&d));
                         self.ins(&format!("call void @cl_array_fill(ptr {a}, ptr {d})"));
                     }
@@ -943,7 +943,10 @@ impl<'a, 'p> Func<'a, 'p> {
 
     /// The default value `new T[n]` gives an element whose class is not `@Nullable`
     /// and is held as a pointer: `Rational` zero, or a value class built from defaults.
-    fn default_value(&mut self, t: &Type, depth: u32) -> Option<Val> {
+    /// When `made` is true, each value is constructed as section 9.6 says, a field's
+    /// value first. A foreign call builds its result without that and constructs it from
+    /// what C wrote.
+    fn default_value(&mut self, t: &Type, depth: u32, made: bool) -> Option<Val> {
         let Ty::Class(id, args) = &t.ty else {
             return None;
         };
@@ -966,7 +969,7 @@ impl<'a, 'p> Func<'a, 'p> {
                 continue;
             }
             let ft = s.apply(&f.ty);
-            if let Some(d) = self.default_value(&ft, depth + 1) {
+            if let Some(d) = self.default_value(&ft, depth + 1, made) {
                 let (o, d) = (self.val(&obj), self.val(&d));
                 let (lty, index, _) = self.e.field_place(
                     *id,
@@ -982,7 +985,107 @@ impl<'a, 'p> Func<'a, 'p> {
                 self.ins(&format!("store ptr {d}, ptr {p}"));
             }
         }
+        if made {
+            self.construct_in_place(&obj, *id);
+        }
         Some(obj)
+    }
+
+    /// Runs the constructor of a value class on an object whose fields are in place, as
+    /// `new` would with those fields (section 9.6). Only a compact form has a body to run.
+    fn construct_in_place(&mut self, obj: &Val, id: ClassId) {
+        let c = self.e.p.class(id);
+        let Some(k) = c
+            .ctors
+            .iter()
+            .position(|k| k.of_value && !k.implicit && !k.intrinsic)
+        else {
+            return;
+        };
+        let fields: Vec<FieldRef> = (0..c.fields.len() as u32)
+            .filter(|&index| !c.fields[index as usize].is_static)
+            .map(|index| FieldRef { class: id, index })
+            .collect();
+        let sig = self.e.ctor_sig(id, k as u32);
+        let mut vals = Vec::new();
+        for (f, pr) in fields.iter().zip(sig.params.iter()) {
+            let o = self.val(obj);
+            vals.push((self.load_field(&o, id, *f, *pr), *pr));
+        }
+        let this = self.val(obj);
+        let mut all = vec!["ptr %ctx".to_string(), format!("ptr {this}")];
+        for (v, pr) in &vals {
+            let x = self.val(v);
+            all.push(format!("{} {x}", pr.ll()));
+        }
+        let f = self.e.ctor_symbol(id, k as u32);
+        self.ins(&format!("call void {f}({})", all.join(", ")));
+        self.check();
+    }
+
+    /// Constructs a value from the fields C left in an object: each field that holds a
+    /// value of a value class first, then the value (sections 4.11 and 9.6).
+    fn construct_from_c(&mut self, obj: &Val, id: ClassId) {
+        let c = self.e.p.class(id).clone();
+        for (i, f) in c.fields.iter().enumerate() {
+            let Some(inner) = f.ty.class_id() else {
+                continue;
+            };
+            if f.is_static || !self.e.is_struct(&f.ty) {
+                continue;
+            }
+            let o = self.val(obj);
+            let fref = FieldRef {
+                class: id,
+                index: i as u32,
+            };
+            let v = self.load_field(&o, id, fref, Repr::Ref);
+            self.construct_from_c(&v, inner);
+        }
+        self.construct_in_place(obj, id);
+    }
+
+    /// After a foreign call, each fresh element that C wrote is constructed and then
+    /// takes the place of the element it was copied from, in index order (section 4.11).
+    fn construct_elements(&mut self, target: &Val, fresh: &Val, id: ClassId) {
+        self.ntmp += 1;
+        let at = format!("%v{}", self.ntmp);
+        self.allocas.push_str(&format!("  {at} = alloca i64\n"));
+        self.ins(&format!("store i64 0, ptr {at}"));
+        let (head, body, done) = (
+            self.new_label("element"),
+            self.new_label("construct"),
+            self.new_label("constructed"),
+        );
+        self.br(&head);
+        self.label(&head);
+        let a = self.val(target);
+        let lp = self.tmp();
+        self.ins(&format!(
+            "{lp} = getelementptr inbounds i8, ptr {a}, i64 16"
+        ));
+        let n = self.tmp();
+        self.ins(&format!("{n} = load i64, ptr {lp}"));
+        let i = self.tmp();
+        self.ins(&format!("{i} = load i64, ptr {at}"));
+        let more = self.tmp();
+        self.ins(&format!("{more} = icmp slt i64 {i}, {n}"));
+        self.cond_br(&more, &body, &done);
+        self.label(&body);
+        let b = self.val(fresh);
+        let ep = self.elem_addr(&b, &i, Repr::Ref);
+        let e = self.tmp();
+        self.ins(&format!("{e} = load ptr, ptr {ep}"));
+        let element = self.root(&e);
+        self.construct_from_c(&element, id);
+        let (a, e) = (self.val(target), self.val(&element));
+        let tp = self.elem_addr(&a, &i, Repr::Ref);
+        self.ins(&format!("store ptr {e}, ptr {tp}"));
+        let next = self.tmp();
+        self.ins(&format!("{next} = add i64 {i}, 1"));
+        self.ins(&format!("store i64 {next}, ptr {at}"));
+        self.br(&head);
+        self.label(&done);
     }
 
     /// The descriptor of a lambda's class: the class applied to the type variables in
@@ -1316,9 +1419,12 @@ impl<'a, 'p> Func<'a, 'p> {
             Elements(Val),
             Length(Val),
         }
-        let ret_ty = self.e.p.method(c.method).ret.clone();
+        let md = self.e.p.method(c.method);
+        let ret_ty = md.ret.clone();
+        let params: Vec<Type> = md.params.iter().map(|p| p.ty.clone()).collect();
         let mut pieces = Vec::new();
-        for (a, kind) in c.args.iter().zip(shim.params.iter()) {
+        let mut written = Vec::new();
+        for ((a, kind), pt) in c.args.iter().zip(shim.params.iter()).zip(params.iter()) {
             let v = self.expr(a);
             match kind {
                 ShimParam::Scalar(r) => {
@@ -1328,13 +1434,17 @@ impl<'a, 'p> Func<'a, 'p> {
                 ShimParam::Struct => pieces.push(Piece::Value("ptr", v)),
                 ShimParam::Array => pieces.push(Piece::Elements(v)),
                 ShimParam::StructArray => {
-                    // The function writes into fresh values, which then take the
-                    // elements' places.
+                    // The function writes into fresh values, which are constructed after
+                    // the call and then take the elements' places.
                     let o = self.val(&v);
                     let f = self.tmp();
                     self.ins(&format!("{f} = call ptr @cl_ffi_fresh(ptr %ctx, ptr {o})"));
                     self.check();
                     let fresh = self.root(&f);
+                    let elem = self.e.p.array_elem(pt).and_then(|e| e.class_id());
+                    if let Some(id) = elem {
+                        written.push((v.clone(), fresh.clone(), id));
+                    }
                     pieces.push(Piece::Elements(v.clone()));
                     pieces.push(Piece::Elements(fresh));
                     pieces.push(Piece::Length(v));
@@ -1342,7 +1452,7 @@ impl<'a, 'p> Func<'a, 'p> {
             }
         }
         let result = if shim.ret_struct {
-            self.default_value(&ret_ty, 0)
+            self.default_value(&ret_ty, 0, false)
         } else {
             None
         };
@@ -1390,6 +1500,12 @@ impl<'a, 'p> Func<'a, 'p> {
             Some(t)
         };
         self.ins("call void @cl_foreign_leave(ptr %ctx)");
+        for (target, fresh, id) in &written {
+            self.construct_elements(target, fresh, *id);
+        }
+        if let (Some(o), Some(id)) = (&result, ret_ty.class_id()) {
+            self.construct_from_c(o, id);
+        }
         match (result, scalar) {
             (Some(o), _) => self.convert(o, Repr::Ref, want),
             (None, Some(t)) => self.convert(Val::Imm(shim.ret, t), shim.ret, want),

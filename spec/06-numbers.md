@@ -221,7 +221,7 @@ Arrays are invariant. `String[]` is not a subtype of `Object[]`. A store is type
 
 There are three ways to create an array:
 
-- `new T[n]` creates `n` elements, each the default of `T`. `n` is an `Int`, and a negative `n` raises `ArithmeticException`. The default is `null` when `T` is `@Nullable`, `zero()` when `T` is a numeric class, the scalar 0 when `T` is `Char`, `false` when `T` is `Boolean`, and the value built from those defaults when `T` is a value class whose fields all have one. Every other `new T[n]` is rejected, because `T` has no default. When `T` is a type parameter, `new T[n]` is rejected and `new @Nullable T[n]` is accepted.
+- `new T[n]` creates `n` elements, each the default of `T`. `n` is an `Int`, and a negative `n` raises `ArithmeticException`. The default is `null` when `T` is `@Nullable`, `zero()` when `T` is a numeric class, the scalar 0 when `T` is `Char`, `false` when `T` is `Boolean`, and the value built from those defaults when `T` is a value class whose fields all have one. That value is constructed once each time `new T[n]` creates an array, as [section 9.6](09-execution.md#96-constructing-a-value) says, and an exception that its constructor raises comes out of `new T[n]`. Every other `new T[n]` is rejected, because `T` has no default. When `T` is a type parameter, `new T[n]` is rejected and `new @Nullable T[n]` is accepted.
 - `new T[] { e1, e2 }` evaluates the elements from left to right. It is legal for every `T`.
 - `Array.build(n, element)` creates `n` elements by calling `element` with each index from zero upward. It is declared `public static <T> T[] build(Int length, Function1<Int, T> element)` and is legal for every `T`.
 

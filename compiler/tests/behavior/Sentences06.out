@@ -76,6 +76,7 @@ indexing: 7 7 8 8
 a for statement over an array: 1 7 8 
 a negative length: raises 0
 the defaults: null 0 0.0 0 0 0 false Pair(0, false) 3
+a default's constructor: made | made | 0 raises raises
 listed elements: first second third 123
 build: 0 1 2 3 | 0 1 4 9 4
 boolean operators: false true true false | false true true false

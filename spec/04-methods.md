@@ -245,6 +245,8 @@ A result written `void` is the C result `void`.
 
 A parameter, but not a result, may also be `T[]` where `T` is a machine type. The C function receives a pointer to the first element, with the elements laid out consecutively as C lays out `T`. It may read and write the array's elements through that pointer until the call returns, and not afterwards. Its writes are in the array when the call returns. The length is not passed. A program that needs it passes `a.length()` as another argument. For an empty array the pointer must not be used.
 
+A value of a value class that C returns, and each element of an array of a value class that C was passed, is constructed after the call from the fields in its struct, as [section 9.6](09-execution.md#96-constructing-a-value) says. An exception that its constructor raises comes out of the call. The arrays are constructed in the order of their parameters, each in index order, and the result after them. An element takes its place in its array once it is constructed, so when one raises, it and every element after it in that order keep the values they had before the call.
+
 Every other type is rejected on a foreign method. That includes `String`, `Rational`, a reference class, an interface, a type parameter, and a `@Nullable` type. A lambda cannot be passed, so a C function cannot call back into Cleat.
 
 `Pointer` is a final value class that holds an address. `equals` compares addresses, and `Pointer.zero()` is the null address. Cleat does not read or write through a `Pointer`. A program passes it back to foreign methods. Memory that C code allocates is not collected.

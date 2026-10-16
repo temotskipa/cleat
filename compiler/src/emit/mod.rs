@@ -704,9 +704,10 @@ impl<'p> Emitter<'p> {
                         before,
                         "{s} *t{i} = malloc(sizeof({s}) * (n{i} > 0 ? n{i} : 1)); for (int64_t k = 0; k < n{i}; k++) cleat_in_{id}(&t{i}[k], a{i}[k]); "
                     );
+                    // The caller constructs each fresh value and puts it in the array.
                     let _ = write!(
                         after,
-                        "for (int64_t k = 0; k < n{i}; k++) {{ cleat_out_{id}(&t{i}[k], b{i}[k]); a{i}[k] = b{i}[k]; }} free(t{i}); "
+                        "for (int64_t k = 0; k < n{i}; k++) cleat_out_{id}(&t{i}[k], b{i}[k]); free(t{i}); "
                     );
                     args.push(format!("t{i}"));
                     kinds.push(ShimParam::StructArray);
@@ -735,7 +736,11 @@ impl<'p> Emitter<'p> {
         } else {
             c_scalar(ret).to_string()
         };
-        let call = format!("{name}({})", args.join(", "));
+        // The shim names the C function under a name of its own, bound to the symbol by an
+        // assembler label, so no header's declaration of the symbol and no other foreign
+        // method with the same symbol conflicts with this one's types.
+        let target = format!("cleat_c_{}_{}", m.class, m.index);
+        let call = format!("{target}({})", args.join(", "));
         let void_params = |v: &Vec<String>| {
             if v.is_empty() {
                 "void".to_string()
@@ -746,7 +751,7 @@ impl<'p> Emitter<'p> {
         if first {
             let _ = writeln!(
                 self.shim,
-                "extern {c_ret} {name}({});",
+                "extern {c_ret} {target}({}) __asm__(CLEAT_SYMBOL(\"{name}\"));",
                 void_params(&c_params)
             );
             let (shim_ret, body) = if ret_struct {
@@ -1330,7 +1335,14 @@ impl<'p> Emitter<'p> {
         let shim = if self.shim.is_empty() {
             String::new()
         } else {
-            format!("#include <stdint.h>\n#include <stdlib.h>\n{}", self.shim)
+            // A C symbol is the name with the platform's prefix, `_` on some targets.
+            format!(
+                "#include <stdint.h>\n#include <stdlib.h>\n\
+                 #define CLEAT_TEXT(x) #x\n\
+                 #define CLEAT_PREFIX(x) CLEAT_TEXT(x)\n\
+                 #define CLEAT_SYMBOL(name) CLEAT_PREFIX(__USER_LABEL_PREFIX__) name\n{}",
+                self.shim
+            )
         };
         Ok((out, shim))
     }

@@ -1537,6 +1537,30 @@ pub const SENTENCES: &[Rule] = &[
         "host",
         "foreign_structs",
     ),
+    ran(
+        "04",
+        "A value of a value class that C returns, and each element of an array of a value class that C was passed, is constructed after the call from the fields in its struct",
+        RUN,
+        "a value C returns: 3r1 d3",
+    ),
+    ran(
+        "04",
+        "An exception that its constructor raises comes out of the call",
+        RUN,
+        "a value C returns: 3r1 d3 d-3 a negative remainder",
+    ),
+    held(
+        "04",
+        "The arrays are constructed in the order of their parameters, each in index order, and the result after them",
+        "host",
+        "values_from_c_are_constructed_array_by_array_and_then_the_result",
+    ),
+    ran(
+        "04",
+        "An element takes its place in its array once it is constructed",
+        RUN,
+        "an array C writes: d0 a negative remainder d1 d2 100",
+    ),
     rule(
         "04",
         "That includes `String`, `Rational`, a reference class, an interface, a type parameter, and a `@Nullable` type",
