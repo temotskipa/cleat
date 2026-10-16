@@ -1,0 +1,3 @@
+//@ rule: generics.signatures.class-implements-given
+//@ accepted
+interface Src<T> { T get(); } open class Base implements Src<String> { @Override public String get() { return "s"; } } class D extends Base implements Src<String> { }

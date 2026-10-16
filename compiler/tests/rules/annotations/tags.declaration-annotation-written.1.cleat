@@ -1,0 +1,3 @@
+//@ rule: annotations.tags.declaration-annotation-written
+//@ rejected: `A` does not carry the tag `@Frozen` that the type parameter requires
+@Target(Site.TYPE) annotation Frozen; class A { } class S<@Frozen T> { } class U { void f(S<A> a) { } }

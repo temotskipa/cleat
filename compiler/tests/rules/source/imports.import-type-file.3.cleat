@@ -1,0 +1,4 @@
+//@ rule: source.imports.import-type-file
+//@ rejected: there is no type named `a.Missing`
+//@ file: b/B.cleat
+package b; import a.Missing; class B { }

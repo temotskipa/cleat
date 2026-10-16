@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.after-switch-statement
+//@ accepted
+class A { Int f(Int k) { Int n; switch (k) { case 1 -> { n = 1; } default -> { n = 2; } } return n; } Int g(Boolean b) { Int n; switch (b) { case true -> { n = 1; } case false -> { n = 2; } } return n; } }

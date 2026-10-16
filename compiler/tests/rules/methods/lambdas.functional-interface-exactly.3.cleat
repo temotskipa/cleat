@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.functional-interface-exactly
+//@ accepted
+interface One { Int a(); Int twice() { return a() * 2; } } class A { One f() { return () -> 1; } }

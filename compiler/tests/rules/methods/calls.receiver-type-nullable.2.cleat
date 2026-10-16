@@ -1,0 +1,3 @@
+//@ rule: methods.calls.receiver-type-nullable
+//@ accepted
+class A { String f(@Nullable String s) { return s.toString(); } Int g(@Nullable String s) { return s == null ? 0 : s.length(); } }

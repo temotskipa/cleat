@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.lambda-use-local
+//@ rejected: is used where it may not have been assigned
+class A { void f() { Int n; Function0<Int> g = () -> n; } }

@@ -1,0 +1,3 @@
+//@ rule: execution.exceptions.exception-instance-throwable
+//@ rejected: `throw` raises a `Throwable`, and this is a `Object`
+class A { void f() { throw new Object(); } }

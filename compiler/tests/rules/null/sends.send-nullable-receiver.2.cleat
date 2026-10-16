@@ -1,0 +1,3 @@
+//@ rule: null.sends.send-nullable-receiver
+//@ accepted
+class A { Int f(@Nullable String s) { if (s != null) { return s.length(); } return s.toString().length() + s.hashCode(); } }

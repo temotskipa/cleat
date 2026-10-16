@@ -1,0 +1,3 @@
+//@ rule: omissions.later.properties-separate-audiences
+//@ rejected: a declaration has one audience
+class A { public private Int x = 1; }

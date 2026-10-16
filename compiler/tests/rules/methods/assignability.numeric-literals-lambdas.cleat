@@ -1,0 +1,3 @@
+//@ rule: methods.assignability.numeric-literals-lambdas
+//@ accepted
+class A { static <P> List<P> empty() { return new List<P>(); } void f() { Float64 x = 1; Function0<Int> g = () -> 1; List<String> e = empty(); } }

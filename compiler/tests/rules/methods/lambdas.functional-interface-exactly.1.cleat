@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.functional-interface-exactly
+//@ rejected: a lambda stands where a functional interface is expected
+interface Two { Int a(); Int b(); } class A { Two f() { return () -> 1; } }

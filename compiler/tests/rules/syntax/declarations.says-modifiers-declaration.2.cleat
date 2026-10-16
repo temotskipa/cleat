@@ -1,0 +1,3 @@
+//@ rule: syntax.declarations.says-modifiers-declaration
+//@ rejected: a declaration has one audience
+public public class A { }

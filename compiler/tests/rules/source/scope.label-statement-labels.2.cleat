@@ -1,0 +1,3 @@
+//@ rule: source.scope.label-statement-labels
+//@ accepted
+class A { void f() { a: while (true) { while (true) { break a; } } } }

@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.open-final-abstract
+//@ accepted
+abstract class A { abstract void f(); final void g() { } static void h() { } }

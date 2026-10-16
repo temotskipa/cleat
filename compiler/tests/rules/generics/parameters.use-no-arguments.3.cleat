@@ -1,0 +1,3 @@
+//@ rule: generics.parameters.use-no-arguments
+//@ rejected: expected a name, found `>`
+class A { void f() { List<Int> xs = new List<>(); } }

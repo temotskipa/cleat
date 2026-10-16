@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.integer-division-written
+//@ accepted
+class A { Int f(Int a, Int b) { return a.floorDiv(b) + a.truncatingDiv(b); } }

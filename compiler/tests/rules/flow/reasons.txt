@@ -1,0 +1,9 @@
+# The rules of chapter 12 that no program shows, each with the reason.
+
+flow.intro.defines-four-things: It says what the chapter covers.
+flow.constants.rule: It introduces the list after it, whose lines have their own cases.
+flow.reachability.statement-complete-normally: It defines the two cases the rules after it use.
+flow.assignment.paths: It points to section 12.2, whose sentences have their own cases.
+flow.narrowing.says-narrowed-type: It says what the section covers.
+flow.narrowing.test-gives-fact: It introduces the table after it, whose rows have their own cases.
+flow.narrowing.conditions-combine-facts: It introduces the list after it, whose items have their own cases.

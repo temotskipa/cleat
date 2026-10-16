@@ -1,0 +1,3 @@
+//@ rule: annotations.tags.requirement-names-annotation
+//@ accepted
+@Target(Site.TYPE) annotation Kind(String name = "k"); @Kind("special") class A { } @Kind class B { } class S<@Kind T> { } class U { void f(S<A> a, S<B> b) { } }

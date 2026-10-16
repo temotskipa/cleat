@@ -1,0 +1,3 @@
+//@ rule: execution.objects.constructors-not-inherited
+//@ rejected: constructor `B` takes 0 arguments, and 1 is written
+open class A { public A(Int n) { } } class B extends A { public B() { super(1); } } class C { B f() { return new B(1); } }

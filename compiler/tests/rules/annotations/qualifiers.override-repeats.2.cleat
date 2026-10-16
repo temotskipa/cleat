@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.override-repeats
+//@ accepted
+@Refines annotation P; open class A { public open Int f(@P Int n) { return n; } } class B extends A { @Override public Int f(@P Int n) { return n; } }

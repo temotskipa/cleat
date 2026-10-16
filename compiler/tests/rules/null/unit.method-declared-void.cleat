@@ -1,0 +1,3 @@
+//@ rule: null.unit.method-declared-void
+//@ accepted
+open class A { public open void f() { } public open Unit g() { } } class B extends A { @Override public Unit f() { } @Override public void g() { } }

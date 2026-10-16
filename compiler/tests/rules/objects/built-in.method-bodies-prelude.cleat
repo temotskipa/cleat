@@ -1,0 +1,3 @@
+//@ rule: objects.built-in.method-bodies-prelude
+//@ rejected: `@Intrinsic` is rejected outside the package `cleat`
+class A { @Intrinsic Int f(); }

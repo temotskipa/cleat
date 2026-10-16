@@ -1,0 +1,3 @@
+//@ rule: flow.narrowing.facts-true-hold
+//@ rejected: `length` is sent to
+class A { Int f(@Nullable String s) { return s != null ? 0 : s.length(); } }

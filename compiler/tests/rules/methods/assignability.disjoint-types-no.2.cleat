@@ -1,0 +1,3 @@
+//@ rule: methods.assignability.disjoint-types-no
+//@ accepted
+class A { Boolean f(String s, Object o) { return s == o; } }

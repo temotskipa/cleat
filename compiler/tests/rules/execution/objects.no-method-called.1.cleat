@@ -1,0 +1,3 @@
+//@ rule: execution.objects.no-method-called
+//@ rejected: no method is called on `this` before `super(...)` is called
+class A { Int n; public A() { this.n = g(); super(); } Int g() { return 1; } }

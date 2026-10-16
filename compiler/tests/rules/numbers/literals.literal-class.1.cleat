@@ -1,0 +1,4 @@
+//@ rule: numbers.literals.literal-class
+//@ rule: numbers.literals.literal-class-2
+//@ rejected: this constant expression would raise `ArithmeticException`
+class A { void f() { Int8 x = 100 + 100; } }

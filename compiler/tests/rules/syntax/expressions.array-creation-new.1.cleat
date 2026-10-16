@@ -1,0 +1,3 @@
+//@ rule: syntax.expressions.array-creation-new
+//@ rejected: has no default value
+class A { void f() { var a = new Int[2][]; } }

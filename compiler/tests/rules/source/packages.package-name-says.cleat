@@ -1,0 +1,6 @@
+//@ rule: source.packages.package-name-says
+//@ accepted
+//@ file: a/b/Y.cleat
+package a.b; public class Y { }
+//@ file: C.cleat
+import a.b.Y; class C { void f(Y y, a.b.Y z) { } }

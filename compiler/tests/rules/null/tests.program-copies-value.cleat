@@ -1,0 +1,3 @@
+//@ rule: null.tests.program-copies-value
+//@ accepted
+class A { @Nullable String s = null; @Nullable String[] items = new @Nullable String[1]; Int f() { var held = s; var first = items[0]; if (held != null && first != null) { return held.length() + first.length(); } return 0; } }

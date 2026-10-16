@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.wildcard-type-supertypes
+//@ rejected: `List<? extends Shape>` is not assignable to `Iterable<Circle>`
+open class Shape { } class Circle extends Shape { } class A { Iterable<Circle> h(List<? extends Shape> xs) { return xs; } }

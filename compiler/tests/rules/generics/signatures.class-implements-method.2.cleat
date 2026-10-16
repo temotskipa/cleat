@@ -1,0 +1,3 @@
+//@ rule: generics.signatures.class-implements-method
+//@ rejected: the result `Object` is not `String` or a subtype of it
+interface Src<T> { T get(); } class S implements Src<String> { @Override public Object get() { return "s"; } }

@@ -1,0 +1,3 @@
+//@ rule: annotations.modifiers.qualifier-modifies-type
+//@ rejected: `Int` is not assignable to `@Positive Int`
+@Refines annotation Positive; class A { static Int need(@Positive Int n) { return n; } static Int f(Int n) { return need(n); } }

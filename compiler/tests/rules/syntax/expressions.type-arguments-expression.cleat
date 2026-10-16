@@ -1,0 +1,3 @@
+//@ rule: syntax.expressions.type-arguments-expression
+//@ accepted
+class A { Class f() { return List<Int>.class; } Function1<List<Int>, Int> g() { return List<Int>::size; } Class h() { return Map<String, List<Int>>.class; } }

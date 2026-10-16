@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.literal-expression-numeric
+//@ accepted
+class A { void f() { Float64 x = (1 + 2) * 0.5; Int8 y = 100 + 27; Float32 z = -(1.5); } }

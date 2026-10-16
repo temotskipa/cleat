@@ -1,0 +1,3 @@
+//@ rule: objects.absent.rejected-program-writes
+//@ rejected: expected `;`, found `{`
+class A { Object f() { return new Object() { }; } }

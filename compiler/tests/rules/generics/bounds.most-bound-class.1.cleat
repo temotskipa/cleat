@@ -1,0 +1,3 @@
+//@ rule: generics.bounds.most-bound-class
+//@ rejected: at most one bound is a class; the others are interfaces
+open class C1 { } open class C2 { } class A { static <T extends C1 & C2> void f(T x) { } }

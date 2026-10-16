@@ -1,0 +1,3 @@
+//@ rule: annotations.reading.not-describe-type
+//@ rejected: `Field` has no method named `getType`
+class A { void f(Field x) { var t = x.getType(); } }

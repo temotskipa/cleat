@@ -1,0 +1,3 @@
+//@ rule: methods.foreign.cleat-not-read
+//@ rejected: `Pointer` has no method named `read`
+class A { Int f(Pointer p) { return p.read(); } }

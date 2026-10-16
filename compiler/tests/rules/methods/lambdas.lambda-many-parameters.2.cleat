@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.lambda-many-parameters
+//@ rejected: the lambda has 2 parameters, and `invoke` of the interface has 1
+class A { void f() { Function1<Int, Int> a = (x, y) -> x; } }

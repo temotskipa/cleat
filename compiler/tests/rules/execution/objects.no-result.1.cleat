@@ -1,0 +1,3 @@
+//@ rule: execution.objects.no-result
+//@ rejected: `return` with a value is rejected in a constructor
+class A { public A() { return 1; } }

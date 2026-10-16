@@ -1,0 +1,3 @@
+//@ rule: generics.inference.fix-type
+//@ accepted
+class A { static <T> void g(List<T> a, List<T> b) { } static void h(List<Int> a, List<Int> b) { g(a, b); } }

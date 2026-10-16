@@ -1,0 +1,3 @@
+//@ rule: methods.assignability.expected-type-passes
+//@ accepted
+class A { Function1<Int, Int> f(Boolean c, Int n) { Function1<Int, Int> a = (c ? (x) -> x + 1 : (x) -> x - 1); return switch (n) { case 1 -> (x) -> x; default -> (x) -> x * 2; }; } }

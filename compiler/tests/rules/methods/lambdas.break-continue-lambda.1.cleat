@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.break-continue-lambda
+//@ rejected: `break` is not inside a loop or a switch statement
+class A { void f() { while (true) { Function0<Unit> g = () -> { break; }; } } }

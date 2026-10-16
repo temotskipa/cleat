@@ -1,0 +1,3 @@
+//@ rule: annotations.narrowing.narrows-class-marks
+//@ rejected: a `@Narrows` method returns `Boolean`
+@Refines annotation Positive; class Counts { @Narrows(Positive.class) public static Int isPositive(Int n) { return n; } }

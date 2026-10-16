@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.list-extends-shape-type
+//@ rejected: `List<Object>` is not assignable to `List<? extends Shape>`
+open class Shape { } class A { void f(List<Object> a) { List<? extends Shape> x = a; } }

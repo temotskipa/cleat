@@ -1,0 +1,3 @@
+//@ rule: source.units.prelude-package-cleat
+//@ accepted
+class A { cleat.List<Int> xs = new cleat.List<Int>(); cleat.Int n = 1; }

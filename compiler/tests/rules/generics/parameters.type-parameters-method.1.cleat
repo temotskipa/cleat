@@ -1,0 +1,3 @@
+//@ rule: generics.parameters.type-parameters-method
+//@ rejected: there is no type named `T` here
+class A { static <T> T id(T x) { return x; } void g(T other) { } }

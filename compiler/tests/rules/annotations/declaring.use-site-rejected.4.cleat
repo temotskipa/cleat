@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.use-site-rejected
+//@ accepted
+@Target({Site.METHOD, Site.TYPE}) annotation M; annotation Any; @M @Any class C { @M @Any void f(@Any Int x) { } @Any Int y = 1; @Any public C() { } }

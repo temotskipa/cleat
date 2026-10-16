@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.nullable-gives-expected
+//@ rejected: the literal is outside the range of `UInt8`
+class A { void f() { @Nullable UInt8 z = 256; } }

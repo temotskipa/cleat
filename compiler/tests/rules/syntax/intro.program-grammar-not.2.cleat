@@ -1,0 +1,3 @@
+//@ rule: syntax.intro.program-grammar-not
+//@ rejected: expected an expression, found `;`
+class A { Int f() { return (1 + ; } }

@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.call-static-receiver
+//@ rejected: method `who` takes 1 argument, and 0 are written
+class Target { public static String who() { return "s"; } public String who(Int n) { return "i"; } } class A { String f(Target t) { return t.who(); } }

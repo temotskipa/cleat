@@ -1,0 +1,3 @@
+//@ rule: execution.values.not-assign-field
+//@ rejected: `a` is not assignable here
+value class V { public Int a; public V { a = 1; } }

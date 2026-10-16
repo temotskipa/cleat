@@ -1,0 +1,3 @@
+//@ rule: numbers.classes.array-length-index
+//@ accepted
+class A { Int f(Int[] xs, String s, Int8 b) { Int a = xs.length(); Int c = s.indexOf('x'); Int d = s.hashCode(); return xs[a - 1] + b.shiftLeft(a) + c + d; } }

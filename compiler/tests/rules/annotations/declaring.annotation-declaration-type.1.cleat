@@ -1,0 +1,4 @@
+//@ rule: annotations.declaring.annotation-declaration-type
+//@ rejected: the public type `Mark` must be in a file named `Mark.cleat`
+//@ file: a/Wrong.cleat
+package a; public annotation Mark;

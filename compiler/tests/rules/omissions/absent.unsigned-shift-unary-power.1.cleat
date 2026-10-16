@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.unsigned-shift-unary-power
+//@ rejected: `>>>` is not an operator
+class A { Int f(Int a) { return a >>> 1; } }

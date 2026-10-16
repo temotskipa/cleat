@@ -1,0 +1,6 @@
+//@ rule: source.units.compilation-unit-optional
+//@ accepted
+//@ file: a/A.cleat
+package a; import b.B; class A { void f(B x) { } }
+//@ file: b/B.cleat
+package b; public class B { }

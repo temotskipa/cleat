@@ -1,0 +1,3 @@
+//@ rule: numbers.text.not-numeric-rejected
+//@ accepted
+class A { Char f() { return Char.from('a'.code() + 1); } }

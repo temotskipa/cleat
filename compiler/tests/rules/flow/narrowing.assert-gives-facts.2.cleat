@@ -1,0 +1,3 @@
+//@ rule: flow.narrowing.assert-gives-facts
+//@ accepted
+class A { Int f(@Nullable String s, Object o) { assert s != null; assert o instanceof String : "a string"; return s.length() + o.length(); } }

@@ -1,0 +1,3 @@
+//@ rule: numbers.integer.shift-count-int
+//@ accepted
+class A { Int8 f(Int8 a, Int n) { return a.shiftLeft(n); } UInt64 g(UInt64 a, Int n) { return a.shiftRight(n); } }

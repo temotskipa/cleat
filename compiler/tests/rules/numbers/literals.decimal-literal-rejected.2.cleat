@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.decimal-literal-rejected
+//@ rejected: a decimal literal is not a value of `UInt8`
+class A { UInt8 n = 0.5; }

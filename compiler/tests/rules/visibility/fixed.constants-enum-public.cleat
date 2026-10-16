@@ -1,0 +1,6 @@
+//@ rule: visibility.fixed.constants-enum-public
+//@ accepted
+//@ file: a/E.cleat
+package a; public enum E { X, Y }
+//@ file: b/B.cleat
+package b; class B { a.E f() { return a.E.X; } }

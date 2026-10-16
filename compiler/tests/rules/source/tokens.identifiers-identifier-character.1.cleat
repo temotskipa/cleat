@@ -1,0 +1,3 @@
+//@ rule: source.tokens.identifiers-identifier-character
+//@ rejected: a numeric literal has no suffix and is not followed by a letter
+class A { Int 9a = 1; }

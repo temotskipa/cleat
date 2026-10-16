@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.parameter-types-result
+//@ rejected: expected a name, found `)`
+class A { Int f(x) { return 1; } }

@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.without-declaration-receiver
+//@ accepted
+class A { public Int f() { return 1; } static Int g(A a) { return a.f(); } }

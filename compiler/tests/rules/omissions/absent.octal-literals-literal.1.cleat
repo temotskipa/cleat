@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.octal-literals-literal
+//@ rejected: a decimal numeral has no leading zero
+class A { Int f() { return 017; } }

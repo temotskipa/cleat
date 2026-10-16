@@ -1,0 +1,3 @@
+//@ rule: null.nullable.type-nullable-contains
+//@ accepted
+class A { void f(String s) { @Nullable String a = s; @Nullable String b = null; @Nullable String c = "x"; } }

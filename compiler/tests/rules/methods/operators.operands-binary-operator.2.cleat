@@ -1,0 +1,3 @@
+//@ rule: methods.operators.operands-binary-operator
+//@ accepted
+class A { Int f(Int32 i, Int n) { return i + n; } Rational g(Int n, Rational r) { return n * r; } Int h(Int a, Int8 count) { return a << count; } }

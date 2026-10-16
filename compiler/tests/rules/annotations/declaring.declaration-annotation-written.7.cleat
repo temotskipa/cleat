@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.declaration-annotation-written
+//@ accepted
+annotation M; class A { @M public final Int x = 1; @M public static void f(@M final Int p) { } @M public A() { } } @M open class B { }

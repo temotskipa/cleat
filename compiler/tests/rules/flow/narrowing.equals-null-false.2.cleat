@@ -1,0 +1,3 @@
+//@ rule: flow.narrowing.equals-null-false
+//@ accepted
+class A { Int f(@Nullable String s) { if (s == null) { return 0; } else { return s.length(); } } }

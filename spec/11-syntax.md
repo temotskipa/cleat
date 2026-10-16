@@ -1,12 +1,16 @@
 # 11. Syntax
 
-This chapter is the grammar. A program that the grammar does not derive is rejected. The other chapters add restrictions to what the grammar derives, and those restrictions stand.
+This chapter is the grammar. <!-- r[syntax.intro.grammar] -->
+A program that the grammar does not derive is rejected. <!-- r[syntax.intro.program-grammar-not] -->
+The other chapters add restrictions to what the grammar derives, and those restrictions stand. <!-- r[syntax.intro.add-restrictions-grammar] -->
 
-The notation uses `=` for a definition, `|` for an alternative, `[ ]` for an optional part, `{ }` for a part repeated zero or more times, `( )` for grouping, and quotes for the characters of a token. Words outside quotes name other rules.
+The notation uses `=` for a definition, `|` for an alternative, `[ ]` for an optional part, `{ }` for a part repeated zero or more times, `( )` for grouping, and quotes for the characters of a token. <!-- r[syntax.intro.notation-uses-definition] -->
+Words outside quotes name other rules. <!-- r[syntax.intro.words-outside-quotes] -->
 
 ## 11.1 Tokens
 
-[Chapter 1](01-source.md) describes the tokens in prose. This is their grammar.
+[Chapter 1](01-source.md) describes the tokens in prose. <!-- r[syntax.tokens.describes-tokens-prose] -->
+This is their grammar. <!-- r[syntax.tokens.grammar] -->
 
 ```
 input           = {whitespace | comment | token}
@@ -45,9 +49,12 @@ assign-op       = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^="
                 | "<<=" | ">>="
 ```
 
-A `letter` is a character in Unicode category L, and a `number` one in category N. A `plain-character` is any scalar other than the closing quote, a backslash and a line break. A block comment ends at the first `*/`. An identifier is not a keyword, a reserved word, or one of the three word literals.
+A `letter` is a character in Unicode category L, and a `number` one in category N. <!-- r[syntax.tokens.letter-character-unicode] -->
+A `plain-character` is any scalar other than the closing quote, a backslash and a line break. <!-- r[syntax.tokens.plain-character-scalar] -->
+A block comment ends at the first `*/`. <!-- r[syntax.tokens.block-comment-ends] -->
+An identifier is not a keyword, a reserved word, or one of the three word literals. <!-- r[syntax.tokens.identifier-not-keyword] -->
 
-The longest token is read, except that `>` is read alone where it closes a type argument list.
+The longest token is read, except that `>` is read alone where it closes a type argument list. <!-- r[syntax.tokens.longest-token-read] -->
 
 ## 11.2 Types and annotations
 
@@ -71,7 +78,9 @@ annotation-value = expr | annotation
                 | "{" [annotation-value {"," annotation-value}] "}"
 ```
 
-An annotation before the named type qualifies it. An annotation before a pair of brackets qualifies that array. With several pairs, the first pair is the outermost array: `Int[] @Nullable []` is an array whose elements are arrays of `Int` or `null`.
+An annotation before the named type qualifies it. <!-- r[syntax.types.annotation-before-named] -->
+An annotation before a pair of brackets qualifies that array. <!-- r[syntax.types.annotation-before-pair] -->
+With several pairs, the first pair is the outermost array: `Int[] @Nullable []` is an array whose elements are arrays of `Int` or `null`. <!-- r[syntax.types.several-pairs-first] -->
 
 ## 11.3 Compilation units
 
@@ -121,9 +130,15 @@ annotation-decl = modifiers "annotation" identifier
 element         = type identifier ["=" annotation-value]
 ```
 
-Each chapter says which modifiers a declaration accepts, and a modifier is written at most once. A method ends in `;` in place of a block when it is abstract, `foreign` or `@Intrinsic`, or when it is an interface method with no body. A constructor ends in `;` only when it is `@Intrinsic`. A constructor's identifier is the name of its class.
+Each chapter says which modifiers a declaration accepts, and a modifier is written at most once. <!-- r[syntax.declarations.says-modifiers-declaration] -->
+A method ends in `;` in place of a block when it is abstract, `foreign` or `@Intrinsic`, or when it is an interface method with no body. <!-- r[syntax.declarations.method-ends-place] -->
+A constructor ends in `;` only when it is `@Intrinsic`. <!-- r[syntax.declarations.constructor-ends-only] -->
+A constructor's identifier is the name of its class. <!-- r[syntax.declarations.constructor-identifier-name] -->
 
-An annotation at the end of `modifiers` could also be read as the first annotation of the `type` that follows. For a qualifier the two readings mean the same, as [chapter 8](08-annotations.md#82-declaring-and-writing-an-annotation) says. A declaration annotation belongs to the declaration. Chapter 8 places it before the first modifier, so an annotation that follows a modifier is a qualifier.
+An annotation at the end of `modifiers` could also be read as the first annotation of the `type` that follows. <!-- r[syntax.declarations.annotation-end-modifiers] -->
+For a qualifier the two readings mean the same, as [chapter 8](08-annotations.md#82-declaring-and-writing-an-annotation) says. <!-- r[syntax.declarations.qualifier-readings-mean] -->
+A declaration annotation belongs to the declaration. <!-- r[syntax.declarations.declaration-annotation-belongs] -->
+Chapter 8 places it before the first modifier, so an annotation that follows a modifier is a qualifier. <!-- r[syntax.declarations.places-before-first] -->
 
 ## 11.5 Statements
 
@@ -160,11 +175,15 @@ arm-head        = "case" expr-list
                 | "default"
 ```
 
-An `else` belongs to the nearest `if` that has none. A statement that can be read as a local declaration is one. An arm that can be read as `case type identifier` is a type arm.
+An `else` belongs to the nearest `if` that has none. <!-- r[syntax.statements.else-belongs-nearest] -->
+A statement that can be read as a local declaration is one. <!-- r[syntax.statements.statement-read-local] -->
+An arm that can be read as `case type identifier` is a type arm. <!-- r[syntax.statements.arm-read-case] -->
 
 ## 11.6 Expressions
 
-The rules run from the loosest binding to the tightest. Assignment, `?:` and `??` group to the right. The other binary operators group to the left.
+The rules run from the loosest binding to the tightest. <!-- r[syntax.expressions.rules-run-loosest] -->
+Assignment, `?:` and `??` group to the right. <!-- r[syntax.expressions.assignment-conditional-coalesce] -->
+The other binary operators group to the left. <!-- r[syntax.expressions.binary-operators-group] -->
 
 ```
 expr            = assignment
@@ -211,14 +230,21 @@ switch-expr     = "switch" "(" expr ")" "{" {arm-head "->" arm-value} "}"
 arm-value       = expr ";" | "throw" expr ";"
 ```
 
-The grammar derives more than is legal, and these rules settle what it leaves open.
+The grammar derives more than is legal, and these rules settle what it leaves open. <!-- r[syntax.expressions.grammar-derives-more] -->
 
-- **Casts.** `(` type `)` begins a cast only when the token after `)` is not `-`, `++` or `--`. `(n) - 1` is a subtraction, and a negated operand is cast as `(Int) (-n)`.
-- **Lambdas.** A `(` begins a lambda when the token after its matching `)` is `->`. The head of a switch arm is the exception: the `->` after its constants ends the head, so `case (1) -> x` is an arm whose constant is `(1)`.
-- **Type arguments in an expression.** A `<` after a name begins type arguments when the tokens up to the matching `>` are type arguments and the next token is `::`, or `.` followed by `class`. Everywhere else it is the comparison operator. The type after `new` and after `instanceof`, and the type arguments of a call, which follow its `.`, are never mistaken for one.
-- **Names.** `a.b.c` is derived as an identifier and two selectors. [Chapter 1](01-source.md#18-scope) says which parts name a package, a type, a field or a variable.
-- **Assignment.** The left side of an assignment, and the operand of `++` and `--`, is a variable, a field or an indexed element.
-- **Statements.** An `expr` that stands as a statement is one that [chapter 4](04-methods.md#49-statements) allows there.
-- **Negative literals.** A `-` directly before a numeric literal is part of the literal for the rules of [chapter 6](06-numbers.md#63-numeric-literals).
-- **Array creation.** `new T[n]` creates an array with `n` elements, and brackets after `[n]` belong to the element type. `new T[] { a, b }` lists the elements, and the type before the braces is an array type.
-- **Method references.** `x::name` is derived by the `selector` rule or by the `type "::"` rule. It is a reference through a value when `x` names one, and through a type otherwise.
+- **Casts.** `(` type `)` begins a cast only when the token after `)` is not `-`, `++` or `--`. <!-- r[syntax.expressions.casts-type-begins] -->
+  `(n) - 1` is a subtraction, and a negated operand is cast as `(Int) (-n)`. <!-- r[syntax.expressions.subtraction-negated-operand] -->
+- **Lambdas.** A `(` begins a lambda when the token after its matching `)` is `->`. <!-- r[syntax.expressions.lambdas-begins-lambda] -->
+  The head of a switch arm is the exception: the `->` after its constants ends the head, so `case (1) -> x` is an arm whose constant is `(1)`. <!-- r[syntax.expressions.head-switch-arm] -->
+- **Type arguments in an expression.** A `<` after a name begins type arguments when the tokens up to the matching `>` are type arguments and the next token is `::`, or `.` followed by `class`. <!-- r[syntax.expressions.type-arguments-expression] -->
+  Everywhere else it is the comparison operator. <!-- r[syntax.expressions.everywhere-else-comparison] -->
+  The type after `new` and after `instanceof`, and the type arguments of a call, which follow its `.`, are never mistaken for one. <!-- r[syntax.expressions.type-after-new] -->
+- **Names.** `a.b.c` is derived as an identifier and two selectors. <!-- r[syntax.expressions.names-derived-identifier] -->
+  [Chapter 1](01-source.md#18-scope) says which parts name a package, a type, a field or a variable. <!-- r[syntax.expressions.says-parts-name] -->
+- **Assignment.** The left side of an assignment, and the operand of `++` and `--`, is a variable, a field or an indexed element. <!-- r[syntax.expressions.assignment-left-side] -->
+- **Statements.** An `expr` that stands as a statement is one that [chapter 4](04-methods.md#49-statements) allows there. <!-- r[syntax.expressions.statements-expr-stands] -->
+- **Negative literals.** A `-` directly before a numeric literal is part of the literal for the rules of [chapter 6](06-numbers.md#63-numeric-literals). <!-- r[syntax.expressions.negative-literals-directly] -->
+- **Array creation.** `new T[n]` creates an array with `n` elements, and brackets after `[n]` belong to the element type. <!-- r[syntax.expressions.array-creation-new] -->
+  `new T[] { a, b }` lists the elements, and the type before the braces is an array type. <!-- r[syntax.expressions.new-lists-elements] -->
+- **Method references.** `x::name` is derived by the `selector` rule or by the `type "::"` rule. <!-- r[syntax.expressions.method-references-reference] -->
+  It is a reference through a value when `x` names one, and through a type otherwise. <!-- r[syntax.expressions.reference-through-value] -->

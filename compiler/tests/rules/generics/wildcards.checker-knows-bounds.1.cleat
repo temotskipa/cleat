@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.checker-knows-bounds
+//@ rejected: `Shape` is not assignable to `Circle`
+open class Shape { } class Circle extends Shape { } class A { Circle f(List<? extends Shape> xs) { return xs[0]; } }

@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.use-no-arguments
+//@ accepted
+annotation M; @M class A { }

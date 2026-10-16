@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.list-items-rejected
+//@ accepted
+class A { static <T> void swap(List<T> items) { T held = items[0]; items[0] = items[1]; items[1] = held; } void f(List<?> items) { swap(items); } }

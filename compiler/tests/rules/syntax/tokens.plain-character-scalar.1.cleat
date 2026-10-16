@@ -1,0 +1,3 @@
+//@ rule: syntax.tokens.plain-character-scalar
+//@ rejected: this string literal is never closed
+class A { String s = "a\"; }

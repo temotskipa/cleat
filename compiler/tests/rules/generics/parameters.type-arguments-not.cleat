@@ -1,0 +1,3 @@
+//@ rule: generics.parameters.type-arguments-not
+//@ accepted
+class A { Boolean f(Object o) { return o instanceof List<Int>; } List<String> g(Object o) { return (List<String>) o; } }

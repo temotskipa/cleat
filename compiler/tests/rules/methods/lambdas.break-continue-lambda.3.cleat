@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.break-continue-lambda
+//@ accepted
+class A { void f() { Function0<Unit> g = () -> { while (true) { break; } }; } }

@@ -1,0 +1,3 @@
+//@ rule: source.tokens.reserved-word-rejected
+//@ accepted
+class A { Int longer = 1; }

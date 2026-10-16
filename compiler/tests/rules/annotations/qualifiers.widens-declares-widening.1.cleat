@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.widens-declares-widening
+//@ rejected: `@Raw String` is not assignable to `String`
+@Widens annotation Raw; class A { String g(@Raw String s) { return s; } }

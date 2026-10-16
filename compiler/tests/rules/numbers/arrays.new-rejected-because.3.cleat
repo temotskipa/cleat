@@ -1,0 +1,3 @@
+//@ rule: numbers.arrays.new-rejected-because
+//@ rejected: has no default value
+value class V { public String s; } class A { V[] f() { return new V[2]; } }

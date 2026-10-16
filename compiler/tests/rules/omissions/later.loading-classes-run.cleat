@@ -1,0 +1,3 @@
+//@ rule: omissions.later.loading-classes-run
+//@ rejected: `Class` has no static method named `forName`
+class A { void f() { var c = Class.forName("A"); } }

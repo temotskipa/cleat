@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.primitive-types-boxing
+//@ accepted
+class A { Object f(Int n, Boolean b) { Object o = n; o = b; return o; } }

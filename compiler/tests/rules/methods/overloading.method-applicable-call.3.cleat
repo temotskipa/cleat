@@ -1,0 +1,3 @@
+//@ rule: methods.overloading.method-applicable-call
+//@ accepted
+class A { static Int f(Int a, String b) { return 1; } Int g() { return f(1, "b"); } }

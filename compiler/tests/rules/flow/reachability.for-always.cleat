@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.for-always
+//@ accepted
+class A { void g() { } void f(List<Int> xs) { for (Int x : xs) { return; } g(); } }

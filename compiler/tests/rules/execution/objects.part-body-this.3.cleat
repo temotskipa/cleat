@@ -1,0 +1,3 @@
+//@ rule: execution.objects.part-body-this
+//@ accepted
+class A { Int n; Int m; public A() { this.n = 1; m = n + 1; super(); Object o = this; } }

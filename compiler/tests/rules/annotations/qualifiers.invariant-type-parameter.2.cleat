@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.invariant-type-parameter
+//@ accepted
+@Refines annotation P; class A { List<@P Int> f(List<@P Int> xs) { return xs; } Iterable<Int> g(List<@P Int> xs) { return xs; } }

@@ -1,0 +1,3 @@
+//@ rule: numbers.classes.value-numeric-class
+//@ rejected: `Int32` and `Int` are disjoint
+class A { Boolean f(Int32 x) { return x instanceof Int; } }

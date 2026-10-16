@@ -1,0 +1,3 @@
+//@ rule: generics.inference.once-determined-argument
+//@ accepted
+class A { static <T> void g(T a, List<T> b) { } static void h(Int n, Int32 small, List<Int> b) { g(n, b); g(small, b); } }

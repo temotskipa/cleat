@@ -1,0 +1,3 @@
+//@ rule: null.nullable.nullable-applied-type
+//@ accepted
+class Box<T> { public @Nullable T get() { return null; } public T same(@Nullable T x, T y) { return y; } } class A { @Nullable String f(Box<@Nullable String> b, @Nullable String s) { @Nullable String got = b.get(); return b.same(s, got); } }

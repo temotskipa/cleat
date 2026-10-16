@@ -1,0 +1,3 @@
+//@ rule: methods.operators.no-unary-unsigned-shift
+//@ rejected: `>>>` is not an operator
+class A { Int f(Int a) { return a >>> 1; } }

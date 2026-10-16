@@ -1,0 +1,3 @@
+//@ rule: execution.values.compact-form-no
+//@ rejected: a value class has one constructor, whose parameters are its fields
+value class V { public Int a; public V(Int a) { } }

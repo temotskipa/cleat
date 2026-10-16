@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.in-parameter-ordered
+//@ rejected: `Snk<String>` is not assignable to `Snk<@Nullable Object>`
+interface Snk<in T> { void put(T x); } class A { void f(Snk<@Nullable Object> s) { } void g(Snk<String> b) { f(b); } }

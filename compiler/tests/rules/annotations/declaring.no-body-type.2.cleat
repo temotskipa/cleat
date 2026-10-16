@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.no-body-type
+//@ accepted
+annotation N; annotation M(Int n);

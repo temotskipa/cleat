@@ -1,0 +1,3 @@
+//@ rule: execution.try.type-clause-throwable
+//@ rejected: a `catch` clause names `Throwable` or a subclass of it, and this is `String`
+class A { void f() { try { } catch (String e) { } } }

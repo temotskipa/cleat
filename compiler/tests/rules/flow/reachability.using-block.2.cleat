@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.using-block
+//@ accepted
+class R { public void close() { } } class A { void g() { } void f() { using (R r = new R()) { } g(); } }

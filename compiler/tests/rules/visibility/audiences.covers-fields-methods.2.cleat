@@ -1,0 +1,3 @@
+//@ rule: visibility.audiences.covers-fields-methods
+//@ rejected: the method `g` of `A` is outside its audience here
+class A { Int g() { return 1; } } class B { Int f(A a) { return a.g(); } }

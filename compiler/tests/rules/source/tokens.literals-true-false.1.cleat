@@ -1,0 +1,3 @@
+//@ rule: source.tokens.literals-true-false
+//@ rejected: `null` is a keyword and cannot be a name
+class A { Int null = 1; }

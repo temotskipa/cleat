@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.result-type-void
+//@ accepted
+class A { void f() { } Unit g() { } Int h() { Function0<Unit> k = () -> f(); return 1; } }

@@ -1,0 +1,3 @@
+//@ rule: numbers.arrays.array-type-written
+//@ accepted
+class A { void f(Int[][] grid, String[] names, List<Int>[] lists, Int[][][] cube) { Int[] row = grid[0]; Int cell = cube[0][0][0]; } }

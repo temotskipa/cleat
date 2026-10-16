@@ -1,0 +1,3 @@
+//@ rule: execution.try.try-statement-block
+//@ accepted
+class A { void f() { try { } finally { } try { } catch (Throwable e) { } try { } catch (IllegalStateException e) { } catch (ArithmeticException e) { } catch (Throwable e) { } finally { } } }

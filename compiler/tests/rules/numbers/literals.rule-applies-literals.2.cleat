@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.rule-applies-literals
+//@ accepted
+class A { void f() { var x = 0.1; Rational y = x; Float64 z = 0.1; } }

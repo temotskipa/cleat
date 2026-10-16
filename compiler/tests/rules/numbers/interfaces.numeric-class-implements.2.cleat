@@ -1,0 +1,3 @@
+//@ rule: numbers.interfaces.numeric-class-implements
+//@ accepted
+class A { static <T extends Numeric<T> & Ordered<T>> void need(T x) { } void f(Int8 a, Int16 b, Int32 c, Int d, UInt8 e, UInt16 g, UInt32 h, UInt64 i, Float32 j, Float64 k, Rational l) { need(a); need(b); need(c); need(d); need(e); need(g); need(h); need(i); need(j); need(k); need(l); } }

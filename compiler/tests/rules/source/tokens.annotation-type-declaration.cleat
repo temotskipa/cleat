@@ -1,0 +1,3 @@
+//@ rule: source.tokens.annotation-type-declaration
+//@ accepted
+annotation M; class A { Int annotation = 1; }

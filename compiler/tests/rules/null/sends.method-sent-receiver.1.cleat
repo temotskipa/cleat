@@ -1,0 +1,3 @@
+//@ rule: null.sends.method-sent-receiver
+//@ rejected: `size` is sent to a `@Nullable P`
+class P { public Int size() { return 1; } } class A { Int f(@Nullable P p) { return p.size(); } }

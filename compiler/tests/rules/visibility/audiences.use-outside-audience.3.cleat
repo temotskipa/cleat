@@ -1,0 +1,3 @@
+//@ rule: visibility.audiences.use-outside-audience
+//@ accepted
+class A { public Int shown = 1; public void open() { } } class B { Int f(A a) { a.open(); return a.shown; } }

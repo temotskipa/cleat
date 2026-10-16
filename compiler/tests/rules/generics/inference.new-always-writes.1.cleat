@@ -1,0 +1,3 @@
+//@ rule: generics.inference.new-always-writes
+//@ rejected: `Box` is generic and is written with its type arguments; there are no raw types
+class Box<T> { T v; public Box(T v) { this.v = v; } } class A { Object f() { return new Box(1); } }

@@ -1,0 +1,3 @@
+//@ rule: numbers.integer.integer-class-no
+//@ rejected: `/` is the method `div`, and `Int` has no method `div`
+class A { Int f(Int a, Int b) { return a / b; } }

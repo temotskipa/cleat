@@ -1,0 +1,3 @@
+//@ rule: methods.expressions.generic-class-written
+//@ rejected: `List` is generic and is written with its type arguments
+class A { Object f() { return new List(); } }

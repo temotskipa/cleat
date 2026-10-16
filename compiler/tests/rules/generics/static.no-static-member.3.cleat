@@ -1,0 +1,3 @@
+//@ rule: generics.static.no-static-member
+//@ accepted
+class A { static <T extends Numeric<T>> T zero() { return T.zero(); } }

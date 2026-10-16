@@ -1,0 +1,3 @@
+//@ rule: generics.bounds.bound-written-without
+//@ accepted
+class Box<T extends Object> { } class A { void f(Box<String> b, Box<Int> c) { } }

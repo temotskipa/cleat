@@ -1,0 +1,3 @@
+//@ rule: methods.overriding.declaring-method-name
+//@ rejected: `f` is final in `A` and cannot be overridden
+open class A { public Int f() { return 1; } } class B extends A { public Int f() { return 2; } }

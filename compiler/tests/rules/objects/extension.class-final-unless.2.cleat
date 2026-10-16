@@ -1,0 +1,3 @@
+//@ rule: objects.extension.class-final-unless
+//@ accepted
+open class A { } class B extends A { } abstract class C { } class D extends C { }

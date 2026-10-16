@@ -1,0 +1,3 @@
+//@ rule: generics.signatures.generic-method-overridden
+//@ rejected: `f` carries `@Override` and overrides nothing
+open class A { public open <T> void f(T x) { } } class B extends A { @Override public <T extends Throwable> void f(T x) { } }

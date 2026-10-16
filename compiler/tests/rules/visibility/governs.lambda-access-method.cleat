@@ -1,0 +1,3 @@
+//@ rule: visibility.governs.lambda-access-method
+//@ accepted
+class A { private Int x = 1; private Int g() { return 2; } Function0<Int> f() { return () -> x + g(); } }

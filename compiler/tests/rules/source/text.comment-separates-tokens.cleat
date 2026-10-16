@@ -1,0 +1,3 @@
+//@ rule: source.text.comment-separates-tokens
+//@ accepted
+class/* c */A { Int/**/x = 1; }

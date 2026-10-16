@@ -1,0 +1,3 @@
+//@ rule: numbers.arrays.length-returns-int
+//@ accepted
+class A { Int f(Int[] xs) { Int n = xs.length(); return n; } }

@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.qualifier-written-types
+//@ accepted
+@Refines annotation Q;

@@ -1,0 +1,3 @@
+//@ rule: annotations.narrowing.field-array-element
+//@ accepted
+@Refines annotation Positive; class Counts { @Narrows(Positive.class) public static Boolean isPositive(Int n) { return n > 0; } } class A { Int n = 1; static Int need(@Positive Int n) { return n; } Int f() { var held = n; if (Counts.isPositive(held)) { return need(held); } return 0; } }

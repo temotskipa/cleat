@@ -1,0 +1,3 @@
+//@ rule: annotations.declaration.failures-rejected
+//@ rejected: `f` carries `@Override` and overrides nothing
+class A { @Override public Int f() { return 1; } }

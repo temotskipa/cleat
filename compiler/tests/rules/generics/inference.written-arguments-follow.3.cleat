@@ -1,0 +1,3 @@
+//@ rule: generics.inference.written-arguments-follow
+//@ accepted
+class A { String[] f(Int n) { return Array.<String>build(n, (i) -> "x"); } }

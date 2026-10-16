@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.wildcard-stands-only
+//@ accepted
+class Box<T extends Throwable> { T item; public Box(T item) { this.item = item; } public T get() { return item; } } class A { Throwable f(Box<?> b) { return b.get(); } }

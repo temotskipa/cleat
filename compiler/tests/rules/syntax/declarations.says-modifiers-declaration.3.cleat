@@ -1,0 +1,3 @@
+//@ rule: syntax.declarations.says-modifiers-declaration
+//@ rejected: `final` is written twice
+class A { final final Int x = 1; }

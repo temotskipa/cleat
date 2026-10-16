@@ -1,0 +1,3 @@
+//@ rule: methods.foreign.parameter-not-result
+//@ rejected: the result of a `foreign` method is a machine type or `void`, and `UInt8[]` is neither
+class A { foreign static UInt8[] make(Int32 n); }

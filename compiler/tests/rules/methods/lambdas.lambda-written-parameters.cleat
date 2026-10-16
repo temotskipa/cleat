@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.lambda-written-parameters
+//@ accepted
+class A { void f() { Function1<Int, Int> a = (x) -> x + 1; Function1<Int, Int> b = (x) -> { return x + 1; }; Function1<Int, Int> c = (Int x) -> x; } }

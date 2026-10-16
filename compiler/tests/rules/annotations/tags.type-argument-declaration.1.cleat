@@ -1,0 +1,3 @@
+//@ rule: annotations.tags.type-argument-declaration
+//@ rejected: `U` does not carry the tag `@Frozen` that the type parameter requires
+@Target(Site.TYPE) annotation Frozen; class Snapshot<@Frozen T> { } class Pair<U> { void g(Snapshot<U> s) { } }

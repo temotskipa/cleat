@@ -1,5 +1,5 @@
-// Chapter 2 at run time. tests/spec_rules/described_02.rs names a line of this
-// program's output for each sentence it shows.
+// Chapter 2 at run time. A line `//@ rule:` names the rule that the next statement
+// shows.
 package t;
 
 class Thing {
@@ -111,25 +111,46 @@ public class Sentences02 {
     public static void main() {
         Int n = 5;
         @Nullable Object none = null;
+        //@ rule: objects.population.value-instance-exactly
+        //@ rule: objects.population.number-character-truth
         Console.println("classes: " + n.getClass().getName() + " " + 'c'.getClass().getName() + " " + true.getClass().getName() + " " + "s".getClass().getName() + " " + new Int[1].getClass().getName() + " " + none.toString());
 
         var a = new Thing();
         var b = new Thing();
+        //@ rule: objects.classes.instances-identity-evaluation
+        //@ rule: objects.root.instances-reference-classes
         Console.println("identity: " + (a == b) + " " + a.identical(b) + " " + a.identical(a));
+        //@ rule: objects.classes.default-equals-reference
+        //@ rule: objects.root.defaults-default-equals
         Console.println("reference equals: " + a.equals(a) + " " + a.equals(b) + " " + (a.hashCode() == a.hashCode()));
 
         var p = new Point(1, 2);
         var q = new Point(1, 2);
+        //@ rule: objects.classes.default-equals-true
+        //@ rule: objects.classes.default-hashcode-agrees
         Console.println("value equals: " + p.equals(q) + " " + p.equals(new Point(1, 3)) + " " + p.equals(new Pair(1, 2)) + " " + (p.hashCode() == q.hashCode()));
+        //@ rule: objects.population.difference-whether-instances
+        //@ rule: objects.classes.evaluations-new-equal
+        //@ rule: objects.root.instances-value-class
         Console.println("value identity: " + p.identical(q) + " " + (p == q));
+        //@ rule: objects.root.default-tostring-value
+        //@ rule: objects.root.value-class-point
         Console.println("toString: " + p);
 
         @Nullable Object alsoNone = null;
         Float64 nan = f(0.0) / f(0.0);
+        //@ rule: objects.root.identical-asks-whether
+        //@ rule: objects.root.identical-defined-pair
+        //@ rule: objects.root.null-identical-nothing
+        //@ rule: objects.root.float-classes-exception
         Console.println("identical: " + none.identical(alsoNone) + " " + none.identical(a) + " " + a.identical(none) + " " + nan.identical(nan) + " " + f(0.0).identical(-f(0.0)) + " " + n.identical("5"));
 
+        //@ rule: objects.root.getclass-returns-class
+        //@ rule: objects.statics.class-reference-instance
         Console.println("getClass: " + (a.getClass() == Thing.class) + " " + (a.getClass() == b.getClass()) + " " + (a.getClass() == p.getClass()));
 
+        //@ rule: objects.interfaces.class-implements-interface
+        //@ rule: objects.interfaces.method-declared-class
         Console.println("interface body: " + new Plain().greet() + ", " + new Loud().greet());
 
         var c1 = new Counter();
@@ -137,26 +158,44 @@ public class Sentences02 {
         c1.bump();
         c1.bump();
         c2.bump();
+        //@ rule: objects.statics.static-field-slot
+        //@ rule: objects.fields.field-slot-instance
         Console.println("slots: " + c1.own + " " + c2.own + " " + Counter.total);
         var b1 = new Box<Int>();
         var b2 = new Box<String>();
+        //@ rule: objects.statics.generic-class-copy
         Console.println("generic static: " + Box.made);
 
+        //@ rule: objects.statics.class-interface-enum
         Console.println("class objects: " + Greeter.class.getName() + " " + Planet.class.getName() + " " + Mark.class.getName() + " " + Thing.class.getName());
+        //@ rule: objects.statics.generic-type-distinct
+        //@ rule: objects.statics.getname-returns-qualified
         Console.println("generic class objects: " + (List<Int>.class == List<String>.class) + " " + (List<Int>.class == new List<Int>().getClass()) + " " + List<String>.class.getName());
 
+        //@ rule: objects.enums.constant-pass-arguments
+        //@ rule: objects.enums.static-valueof-string
+        //@ rule: objects.enums.name-constant-identifier
+        //@ rule: objects.enums.ordinal-constant-position
         Console.println("enum: " + Planet.VENUS.name() + " " + Planet.VENUS.ordinal() + " " + Planet.values().length() + " " + Planet.values()[0].name() + " " + Planet.valueOf("MERCURY").number);
         try {
             var x = Planet.valueOf("PLUTO");
             Console.println("valueOf: " + x.name());
         } catch (IllegalArgumentException e) {
+            //@ rule: objects.enums.static-valueof-string
             Console.println("valueOf raises");
         }
+        //@ rule: objects.enums.equals-enum-identity
         Console.println("enum equals: " + (Planet.VENUS == Planet.VENUS) + " " + Planet.VENUS.equals(Planet.MERCURY) + " " + Planet.valueOf("VENUS").identical(Planet.VENUS));
+        //@ rule: objects.enums.constant-public-static
+        //@ rule: execution.initialization.enum-creates-constants
+        //@ rule: objects.enums.static-values-new
         Console.println("enum statics: " + Planet.seen + " " + (Planet.values() == Planet.values()));
+        //@ rule: objects.enums.enum-exists-method
         Console.println("enum as Enum: " + label(Planet.VENUS) + " " + Planet.VENUS.greet());
 
         Shape s = new Circle();
+        //@ rule: objects.lookup.compile-time-types
+        //@ rule: objects.lookup.chosen-member-open
         Console.println("dispatch: " + s.describe() + ", " + Pick.of("text") + ", " + Pick.of((Object) "text"));
     }
 }

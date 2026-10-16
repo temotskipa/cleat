@@ -1,0 +1,6 @@
+//@ rule: source.packages.treats-package-separately
+//@ rejected: `a.b.P` is not visible here
+//@ file: a/b/P.cleat
+package a.b; package class P { }
+//@ file: a/Q.cleat
+package a; class Q { void f(a.b.P p) { } }

@@ -1,0 +1,4 @@
+//@ rule: source.units.public-types-scope
+//@ accepted
+//@ file: a/A.cleat
+package a; class A { List<Int> xs = new List<Int>(); Map<String, Int> m = new Map<String, Int>(); }

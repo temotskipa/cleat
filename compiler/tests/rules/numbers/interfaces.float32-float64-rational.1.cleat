@@ -1,0 +1,3 @@
+//@ rule: numbers.interfaces.float32-float64-rational
+//@ rejected: cannot be inferred from this call
+class A { static <T extends Divisible<T>> void need(T x) { } void f(Int d) { need(d); } }

@@ -1,5 +1,5 @@
-// Chapter 8 at run time. tests/spec_rules/described_08.rs names a line of this
-// program's output for each sentence it shows.
+// Chapter 8 at run time. A line `//@ rule:` names the rule that the next statement
+// shows.
 package t;
 
 @Refines
@@ -167,13 +167,20 @@ public class Sentences08 {
         // ---- 8.1, 8.2 ----
         Entity entity = (Entity) c.<Entity>getAnnotation();
         Object asObject = entity;
+        //@ rule: annotations.modifiers.program-read-run
+        //@ rule: annotations.reading.program-reads-declaration
         Console.println("read at run time: " + entity.table);
+        //@ rule: annotations.declaring.value-annotation-declaration
         Console.println("the value: " + (asObject instanceof Annotation) + " " + entity.equals(c.<Entity>getAnnotation()) + " " + (entity == c.<Entity>getAnnotation()) + " " + entity);
         var columns = c.<Column>getAnnotatedFields();
         Column first = (Column) columns[0].<Column>getAnnotation();
         Column second = (Column) columns[1].<Column>getAnnotation();
+        //@ rule: annotations.declaring.element-declare-default
+        //@ rule: annotations.declaring.elements-fields-public
         Console.println("arguments: " + first.name + "/" + first.width + " " + second.name + "/" + second.width);
         Config config = (Config) Settings.class.<Config>getAnnotation();
+        //@ rule: annotations.declaring.argument-constant-expression
+        //@ rule: annotations.declaring.array-element-list
         Console.println("kinds of argument: " + config.mode + " " + config.type.getName() + " " + config.inner.value + " " + config.tags.length() + " " + config.tags[0] + " " + config.sizes.length());
 
         // ---- 8.3 ----
@@ -188,6 +195,7 @@ public class Sentences08 {
         } catch (ClassCastException e) {
             cast = cast + "refused";
         }
+        //@ rule: annotations.qualifiers.qualifiers-type-argument
         Console.println("a qualified type argument: " + (qualified instanceof List<@Positive Int>) + " " + (qualified instanceof List<Int>) + " " + (plain instanceof List<@Positive Int>) + ", a cast is " + cast);
 
         // ---- 8.6 ----
@@ -201,51 +209,78 @@ public class Sentences08 {
         } catch (ClassCastException e) {
             nullable = nullable + "refuses null";
         }
+        //@ rule: annotations.qualifiers.gives-exception
         Console.println("a cast to a nullable type: " + nullable);
 
         // ---- 8.7 ----
+        //@ rule: annotations.tags.use-written-declaration
+        //@ rule: annotations.reading.class-object-includes
         Console.println("an inherited tag: " + table(Student.class) + " " + table(Pupil.class) + " " + (Student.class.<Plain>getAnnotation() == null) + " " + (c.<Plain>getAnnotation() == null));
 
         // ---- 8.8 ----
         Meters height = 3;
         var taller = height + 2;
+        //@ rule: annotations.declaration.implicit-marks-static
+        //@ rule: annotations.declaration.declares-implicit-conversion
         Console.println("implicit: " + height + " " + taller);
 
         // ---- 8.10 ----
         Target target = (Target) Entity.class.<Target>getAnnotation();
         Deprecated old = (Deprecated) Old.class.<Deprecated>getAnnotation();
+        //@ rule: annotations.prelude.declarations-ordinary-prelude
         Console.println("the prelude's annotations: " + target.sites.length() + " " + target.sites[0] + " " + (Entity.class.<Inherited>getAnnotation() != null) + " " + old.message);
 
         // ---- 8.9 ----
+        //@ rule: annotations.reading.getannotation-returns-use
         Console.println("none: " + (c.<Marker>getAnnotation() == null));
+        //@ rule: annotations.reading.instantiation-generic-type
         Console.println("generic: " + table(Box<Int>.class) + " " + table(Box<String>.class) + " " + (Box<Int>.class.<Entity>getAnnotation() == Box<String>.class.<Entity>getAnnotation()));
+        //@ rule: annotations.reading.starts-class-object
+        //@ rule: annotations.reading.getannotatedfields-returns-mirror
         Console.println("fields: " + names(columns));
+        //@ rule: annotations.reading.static-fields-enum
         Console.println("enum constants: " + names(Level.class.<Column>getAnnotatedFields()));
+        //@ rule: annotations.reading.finding-annotations-type
+        //@ rule: annotations.reading.getannotatedmethods-returns-mirror
         Console.println("methods: " + names(c.<Column>getAnnotatedMethods()) + "| " + names(c.<Marker>getAnnotatedMethods()));
+        //@ rule: annotations.reading.getsuperclass-returns-class
+        //@ rule: annotations.reading.returns-null-object
         Console.println("superclass: " + ((Class) Student.class.getSuperclass()).getName() + " " + (Object.class.getSuperclass() == null) + " " + (Shape.class.getSuperclass() == null));
         var interfaces = c.getInterfaces();
+        //@ rule: annotations.reading.getinterfaces-returns-class
         Console.println("interfaces: " + interfaces.length() + " " + interfaces[0].getName() + " " + interfaces[1].getName());
+        //@ rule: annotations.reading.reader-wants-annotated
         Console.println("declared here: " + Student.class.<Column>getAnnotatedFields().length() + ", and in the superclass: " + ((Class) Student.class.getSuperclass()).<Column>getAnnotatedFields().length());
         Method greet = c.<Column>getAnnotatedMethods()[0];
         var parameters = greet.getParameters();
         Named named = (Named) parameters[0].<Named>getAnnotation();
+        //@ rule: annotations.reading.getparameters-returns-mirror
         Console.println("parameters: " + parameters.length() + " " + parameters[0].getName() + " " + parameters[1].getName() + " " + named.value + " " + (parameters[1].<Named>getAnnotation() == null));
+        //@ rule: annotations.reading.qualifier-belongs-type
         Console.println("a qualifier: " + c.<Nullable>getAnnotatedFields().length() + " " + (c.<Positive>getAnnotation() == null));
         Config again = (Config) Settings.class.<Config>getAnnotation();
         var fresh = !config.tags.identical(again.tags);
         config.tags[0] = "changed";
         Config later = (Config) Settings.class.<Config>getAnnotation();
+        //@ rule: annotations.reading.call-returns-new
+        //@ rule: annotations.reading.program-modifies-array
         Console.println("a new value: " + fresh + " " + config.tags[0] + " " + later.tags[0]);
 
         Field age = columns[1];
         var before = age.get(p);
         age.set(p, 37);
+        //@ rule: annotations.reading.using-mirror-get
+        //@ rule: annotations.reading.limits-mirrors-read
         Console.println("get and set: " + before + " " + p.age + " " + age.get(p));
+        //@ rule: annotations.reading.invoke-calls-method
         Console.println("invoke: " + greet.invoke(p, "Bo", 2) + " | " + greet.invoke(new Student("Cy"), "Bo", 2));
         var marked = c.<Marker>getAnnotatedMethods();
         @Nullable Object unit = marked[0].invoke(p);
+        //@ rule: annotations.reading.void-method-unit
         Console.println("a void method: " + (unit instanceof Unit) + " " + (unit == new Unit()));
+        //@ rule: annotations.reading.target-instance-not
         Console.println("a static member: " + marked[1].invoke(null, 21) + " " + marked[1].invoke(p, 21) + " " + columns[2].get(null) + " " + columns[2].get(p));
+        //@ rule: annotations.reading.exception-method-raises
         try {
             marked[2].invoke(p);
             Console.println("an exception: returned");
@@ -269,6 +304,7 @@ public class Sentences08 {
         } catch (IllegalAccessException e) {
             access = access + "a final field";
         }
+        //@ rule: annotations.reading.member-not-public
         Console.println("illegal access: " + access);
 
         var casts = "";
@@ -287,6 +323,7 @@ public class Sentences08 {
         } catch (ClassCastException e) {
             casts = casts + "an argument";
         }
+        //@ rule: annotations.reading.target-not-instance
         Console.println("class cast: " + casts);
 
         var counts = "";
@@ -300,6 +337,7 @@ public class Sentences08 {
         } catch (IllegalArgumentException e) {
             counts = counts + "a generic method";
         }
+        //@ rule: annotations.reading.number-arguments-not
         Console.println("illegal argument: " + counts);
 
         var test = "a subclass is accepted, ";
@@ -313,6 +351,8 @@ public class Sentences08 {
         } catch (ClassCastException e) {
             test = test + "an Int32 is refused for an Int";
         }
+        //@ rule: annotations.reading.type-test-cast
+        //@ rule: annotations.reading.no-implicit-conversion
         Console.println("the test of a cast: " + test);
     }
 }

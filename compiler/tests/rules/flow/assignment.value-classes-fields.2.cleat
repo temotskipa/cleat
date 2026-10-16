@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.value-classes-fields
+//@ accepted
+value class V { public Int a; public Int b; } class A { Int f() { return new V(1, 2).a + new V(1, 2).b; } }

@@ -1,0 +1,3 @@
+//@ rule: null.unit.return-operand-rejected
+//@ rejected: `return` with an operand is rejected in a method whose result is `Unit`
+class A { void f() { return 1; } }

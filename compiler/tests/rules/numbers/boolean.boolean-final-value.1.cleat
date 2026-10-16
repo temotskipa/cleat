@@ -1,0 +1,3 @@
+//@ rule: numbers.boolean.boolean-final-value
+//@ rejected: `Boolean` is not a class that can be extended
+class A extends Boolean { }

@@ -1,0 +1,3 @@
+//@ rule: execution.objects.initializer-under-restriction
+//@ rejected: no method is called on `this` before `super(...)` is called, and `helper` is an instance method
+class A { Int x = helper(); Int helper() { return 1; } }

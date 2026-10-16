@@ -1,0 +1,3 @@
+//@ rule: methods.expressions.not-change-class
+//@ accepted
+class A { Int f(Float64 x) { return Int.from(x.round()); } }

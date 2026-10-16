@@ -1,0 +1,6 @@
+//@ rule: source.scope.qualified-names-resolved
+//@ accepted
+//@ file: p/Q.cleat
+package p; public class Q { public static Q one = new Q(); public Int n = 1; }
+//@ file: A.cleat
+class A { Int f() { return p.Q.one.n; } }

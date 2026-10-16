@@ -1,0 +1,3 @@
+//@ rule: null.nullable.nullable-type-use
+//@ rejected: `@Nullable` is a qualifier: it is written before a type
+@Nullable class A { }

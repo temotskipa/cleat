@@ -1,0 +1,3 @@
+//@ rule: generics.bounds.tag-written-before
+//@ accepted
+@Target(Site.TYPE) annotation Frozen; @Frozen class Bill { } class Snapshot<@Frozen T> { } class A { void f(Snapshot<Bill> s) { } }

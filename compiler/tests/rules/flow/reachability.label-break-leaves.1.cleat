@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.label-break-leaves
+//@ rejected: this statement is unreachable
+class A { void g() { } void f() { a: { return; } g(); } }

@@ -1,0 +1,6 @@
+//@ rule: source.text.line-break-not
+//@ accepted
+class A { Int f() {
+ return 1
+ + 2
+ ; } }

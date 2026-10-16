@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.type-variables-parameters
+//@ rejected: a wildcard is not written among the arguments of a class literal
+class A { Class f() { return List<?>.class; } }

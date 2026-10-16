@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.final-method-without
+//@ rejected: `final` on an interface method without a body is rejected
+interface I { final void f(); }

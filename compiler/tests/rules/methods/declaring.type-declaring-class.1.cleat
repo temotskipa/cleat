@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.type-declaring-class
+//@ rejected: the receiver parameter has the type of the declaring class
+class A { public Boolean absent(@Nullable String this) { return true; } }

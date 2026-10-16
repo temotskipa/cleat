@@ -1,0 +1,3 @@
+//@ rule: methods.operators.static-types-operands
+//@ accepted
+class C { Boolean f(@Nullable String s, @Nullable Int n) { return s == n; } }

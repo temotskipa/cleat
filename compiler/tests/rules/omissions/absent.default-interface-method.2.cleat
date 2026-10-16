@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.default-interface-method
+//@ accepted
+interface I { Int f() { return 1; } }

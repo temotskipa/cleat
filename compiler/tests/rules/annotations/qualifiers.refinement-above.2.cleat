@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.refinement-above
+//@ accepted
+@Refines annotation R; @Refines(R.class) annotation Q; class A { static Int need(@R Int n) { return n; } Int f(@Q Int a, @R Int b) { return need(a) + need(b); } }

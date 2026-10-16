@@ -1,0 +1,3 @@
+//@ rule: numbers.interfaces.integer-classes-not
+//@ rejected: `UInt8` is not assignable to `Divisible<UInt8>`
+class A { Divisible<UInt8> f(UInt8 n) { return n; } }

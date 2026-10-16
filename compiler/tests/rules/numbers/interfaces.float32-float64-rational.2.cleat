@@ -1,0 +1,3 @@
+//@ rule: numbers.interfaces.float32-float64-rational
+//@ accepted
+class A { static <T extends Divisible<T>> void need(T x) { } void f(Float32 j, Float64 k, Rational l) { need(j); need(k); need(l); } }

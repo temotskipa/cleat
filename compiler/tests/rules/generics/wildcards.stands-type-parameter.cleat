@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.stands-type-parameter
+//@ accepted
+class A { static Int size(List<?> xs) { return xs.size(); } static Int f(List<String> a, List<@Nullable Int> b) { return size(a) + size(b); } }

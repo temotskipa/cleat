@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.unreachable-statement-rejected
+//@ accepted
+class A { static final Boolean DEBUG = false; void f() { if (DEBUG) { f(); } while (true) { if (DEBUG) { break; } } f(); } }

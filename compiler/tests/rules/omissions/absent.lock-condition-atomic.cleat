@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.lock-condition-atomic
+//@ accepted
+class A { final Lock lock = new Lock(); AtomicInt n = new AtomicInt(0); Atomic<String> s = new Atomic<String>("a"); Condition c() { return lock.newCondition(); } }

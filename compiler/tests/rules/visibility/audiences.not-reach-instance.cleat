@@ -1,0 +1,3 @@
+//@ rule: visibility.audiences.not-reach-instance
+//@ rejected: the field `x` of `A` is outside its audience here
+open class A { protected Int x = 1; } class S extends A { Int f(T other) { return other.x; } } class T extends A { }

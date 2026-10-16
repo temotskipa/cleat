@@ -1,0 +1,3 @@
+//@ rule: objects.enums.constant-no-class
+//@ rejected: an enum constant has no class body
+enum E { A { } }

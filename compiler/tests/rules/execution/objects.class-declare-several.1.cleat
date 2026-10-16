@@ -1,0 +1,3 @@
+//@ rule: execution.objects.class-declare-several
+//@ rejected: no constructor `A` accepts the arguments (Boolean)
+class A { Int x; public A() { this.x = 0; } public A(Int x) { this.x = x; } static void f() { var a = new A(true); } }

@@ -1,0 +1,3 @@
+//@ rule: annotations.reading.program-reaches-member
+//@ rejected: `Class` has no method named `getFields`
+class A { void f(Class c) { var m = c.getFields(); } }

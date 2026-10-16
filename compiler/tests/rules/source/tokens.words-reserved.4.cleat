@@ -1,0 +1,3 @@
+//@ rule: source.tokens.words-reserved
+//@ rejected: `double` is a reserved word
+class A { Int double = 1; }

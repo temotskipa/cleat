@@ -1,0 +1,6 @@
+//@ rule: source.scope.name-variable-type
+//@ accepted
+//@ file: p/Q.cleat
+package p; public class Q { }
+//@ file: A.cleat
+class p { public static Int n = 1; } class A { Int f() { return p.n; } }

@@ -1,0 +1,6 @@
+//@ rule: objects.extension.named-class-able
+//@ rejected: `B` is permitted and does not extend or implement this type
+//@ file: A.cleat
+sealed class A permits B { }
+//@ file: B.cleat
+public class B { }

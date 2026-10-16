@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.in-parameter-super
+//@ rejected: `? extends` is rejected for a parameter declared `in`
+class A { void f(Comparator<? extends Int> x) { } }

@@ -1,0 +1,3 @@
+//@ rule: syntax.expressions.method-references-reference
+//@ accepted
+class A { Function0<Int> f(String s) { return s::length; } Function1<String, Int> g() { return String::length; } Function0<Int> h() { return this::hashCode; } }

@@ -1,0 +1,3 @@
+//@ rule: generics.bounds.no-bound-methods
+//@ rejected: `getClass` is sent to a `T`, which may be `null`
+class A { static <T> Class f(T x) { return x.getClass(); } }

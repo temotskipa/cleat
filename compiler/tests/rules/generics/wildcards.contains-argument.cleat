@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.contains-argument
+//@ accepted
+open class Shape { } class Circle extends Shape { } class A { List<?> f(List<String> x) { return x; } List<?> g(List<? extends Shape> x) { return x; } List<?> h(List<? super Circle> x) { return x; } List<?> i(List<?> x) { return x; } }

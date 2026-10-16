@@ -1,0 +1,3 @@
+//@ rule: objects.population.compiler-not-rewrite
+//@ rejected: `+` is the method `plus`, and `P` has no method `plus`
+class P { } class Q { public Q plus(P p) { return this; } } class A { void f(P p, Q q) { var x = p + q; } }

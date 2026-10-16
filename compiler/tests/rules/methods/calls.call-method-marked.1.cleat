@@ -1,0 +1,3 @@
+//@ rule: methods.calls.call-method-marked
+//@ rejected: the result of this call must be used
+class Text { public Text append(String s) { return this; } } class A { void f(Text t) { t.append("a"); } }

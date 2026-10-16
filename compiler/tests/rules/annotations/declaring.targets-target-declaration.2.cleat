@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.targets-target-declaration
+//@ accepted
+@Target(Site.METHOD) annotation Route; class A { @Route void f() { } }

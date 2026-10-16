@@ -1,0 +1,3 @@
+//@ rule: annotations.declaration.override-marks-method
+//@ accepted
+open class B { public open void f() { } } interface I { void g(); } class D extends B implements I { @Override public void f() { } @Override public void g() { } }

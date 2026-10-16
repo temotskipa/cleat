@@ -1,0 +1,6 @@
+//@ rule: source.imports.import-type-file
+//@ rejected: `a.Inner` is outside its audience here, so it is not imported
+//@ file: a/Inner.cleat
+package a; package class Inner { }
+//@ file: b/B.cleat
+package b; import a.Inner; class B { }

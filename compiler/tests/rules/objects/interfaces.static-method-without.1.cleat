@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.static-method-without
+//@ rejected: `C` does not declare the static method `zero` that `Z` requires
+interface Z { static Int zero(); } class C implements Z { }

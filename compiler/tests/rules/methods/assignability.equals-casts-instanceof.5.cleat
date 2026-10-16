@@ -1,0 +1,3 @@
+//@ rule: methods.assignability.equals-casts-instanceof
+//@ accepted
+open class P { } class Q extends P { } interface I { } class C { Boolean f(P a, Q b, I i) { return a == i && a == b && a instanceof Q; } P g(Q b) { return (P) b; } <T> Boolean h(T t, Q q, I i, Iterable<Int> j) { return t == q && t == i && i == j; } }

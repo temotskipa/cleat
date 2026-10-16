@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.explicit-conversion-lose
+//@ rejected: `Int` is not assignable to `Int32`
+class A { Int32 f(Int n) { return n; } }

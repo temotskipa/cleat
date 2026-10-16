@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.rounding-decimal-literal
+//@ accepted
+class A { Float64 f() { return 0.1; } }

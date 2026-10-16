@@ -1,0 +1,3 @@
+//@ rule: syntax.declarations.constructor-ends-only
+//@ accepted
+class A { public A() { } }

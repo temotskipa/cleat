@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.targets-target-declaration
+//@ accepted
+@Target({Site.TYPE, Site.FIELD}) annotation Both; @Both class A { @Both Int x = 1; }

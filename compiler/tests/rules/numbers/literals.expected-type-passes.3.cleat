@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.expected-type-passes
+//@ accepted
+class A { Float64 f(Boolean c, Int n) { Float64 a = (0.5); Float64 b = c ? 0.5 : 1; Float64 d = switch (n) { case 1 -> 0.5; default -> 2; }; return a + b + d; } }

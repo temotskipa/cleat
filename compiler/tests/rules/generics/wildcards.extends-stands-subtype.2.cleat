@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.extends-stands-subtype
+//@ accepted
+open class Shape { } class Circle extends Shape { } class A { static Shape first(List<? extends Shape> xs) { return xs[0]; } static Shape f(List<Circle> c) { return first(c); } }

@@ -1,0 +1,3 @@
+//@ rule: null.type-arguments.type-parameter-declared
+//@ rejected: `Iterator<@Nullable String>` is not assignable to `Iterator<String>`
+class A { Iterator<String> f(Iterator<@Nullable String> it) { return it; } }

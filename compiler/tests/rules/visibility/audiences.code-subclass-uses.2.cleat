@@ -1,0 +1,3 @@
+//@ rule: visibility.audiences.code-subclass-uses
+//@ accepted
+open class A { protected Int x = 1; protected open Int g() { return 1; } } open class S extends A { Int f(S other, T sub) { return other.x + this.x + x + sub.x + super.g(); } } class T extends S { }

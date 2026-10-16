@@ -1,0 +1,3 @@
+//@ rule: flow.narrowing.assert-gives-facts
+//@ rejected: `length` is sent to
+class A { Int f(@Nullable String s) { assert s == null; return s.length(); } }

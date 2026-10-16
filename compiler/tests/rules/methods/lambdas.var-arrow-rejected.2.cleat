@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.var-arrow-rejected
+//@ accepted
+class A { void f() { Function0<Int> g = () -> 1; } }

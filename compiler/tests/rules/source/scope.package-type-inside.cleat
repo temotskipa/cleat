@@ -1,0 +1,8 @@
+//@ rule: source.scope.package-type-inside
+//@ accepted
+//@ file: p/Q.cleat
+package p; public class Q { }
+//@ file: p/r/S.cleat
+package p.r; public class S { }
+//@ file: A.cleat
+class A { void f(p.Q q, p.r.S s) { } }

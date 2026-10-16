@@ -11,10 +11,23 @@ fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("..")
 }
 
+/// A document's text, without the labels of the specification's rules
+/// (`tests/spec_rules.rs`).
 fn read(path: &Path) -> String {
-    std::fs::read_to_string(path)
+    let text = std::fs::read_to_string(path)
         .unwrap_or_else(|e| panic!("{}: {e}", path.display()))
-        .replace("\r\n", "\n")
+        .replace("\r\n", "\n");
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text.as_str();
+    while let Some(start) = rest.find(" <!-- r[") {
+        let Some(end) = rest[start..].find("] -->") else {
+            break;
+        };
+        out.push_str(&rest[..start]);
+        rest = &rest[start + end + "] -->".len()..];
+    }
+    out.push_str(rest);
+    out
 }
 
 /// The text of the chapter whose file name begins with these two digits.
@@ -135,6 +148,7 @@ fn word_list(text: &str, after: &str) -> BTreeSet<String> {
         .collect()
 }
 
+//@ rule: source.tokens.keywords-words
 #[test]
 fn the_keywords_of_section_1_3_are_the_lexers() {
     let text = chapter("01");
@@ -169,6 +183,7 @@ fn a_contextual_word_is_an_identifier_elsewhere() {
 
 // ---- chapter 2 ----
 
+//@ rule: objects.enums.name-ordinal-declared
 #[test]
 fn every_enum_has_the_methods_of_section_2_9() {
     let rows = table(&chapter("02"), "| Method | Result |", 0);
@@ -186,6 +201,8 @@ fn every_enum_has_the_methods_of_section_2_9() {
 
 // ---- chapter 4 ----
 
+//@ rule: objects.population.operator-method-left
+//@ rule: methods.operators.table
 #[test]
 fn each_operator_of_section_4_6_is_its_method() {
     let rows = table(&chapter("04"), "| Spelling | Call |", 0);
@@ -241,6 +258,8 @@ fn each_operator_of_section_4_6_is_its_method() {
     }
 }
 
+//@ rule: methods.foreign.parameter-type-result
+//@ rule: methods.foreign.table
 #[test]
 fn the_machine_types_of_section_4_11_are_accepted_on_a_foreign_method() {
     let rows = table(&chapter("04"), "| Cleat type | C type |", 0);
@@ -274,6 +293,9 @@ fn the_machine_types_of_section_4_11_are_accepted_on_a_foreign_method() {
 
 // ---- chapter 6 ----
 
+//@ rule: methods.assignability.numeric-classes-declare
+//@ rule: numbers.conversion.implicit-conversion-numeric
+//@ rule: numbers.conversion.table
 #[test]
 fn the_implicit_conversions_are_exactly_the_table_of_section_6_7() {
     let rows = table(&chapter("06"), "| From | Converts implicitly to |", 0);
@@ -297,6 +319,9 @@ fn the_implicit_conversions_are_exactly_the_table_of_section_6_7() {
     }
 }
 
+//@ rule: numbers.classes.prelude-declares-numeric
+//@ rule: numbers.conversion.numeric-class-declares
+//@ rule: numbers.text.string-methods-language
 #[test]
 fn the_numeric_classes_declare_the_methods_chapter_6_lists() {
     let text = chapter("06");
@@ -382,6 +407,8 @@ fn the_numeric_classes_declare_the_methods_chapter_6_lists() {
 
 // ---- chapter 8 ----
 
+//@ rule: annotations.declaring.sites-constants-prelude
+//@ rule: annotations.declaring.table
 #[test]
 fn the_sites_of_section_8_2_are_the_constants_of_site() {
     let rows = table(&chapter("08"), "| Site | Declaration |", 0);
@@ -392,6 +419,9 @@ fn the_sites_of_section_8_2_are_the_constants_of_site() {
     assert_eq!(listed, declared);
 }
 
+//@ rule: objects.built-in.marked-intrinsic
+//@ rule: annotations.modifiers.lists-ones-prelude
+//@ rule: annotations.prelude.table
 #[test]
 fn the_prelude_declares_the_annotations_of_section_8_10() {
     let rows = table(&chapter("08"), "| Annotation | Written on | Rule |", 0);
@@ -407,6 +437,8 @@ fn the_prelude_declares_the_annotations_of_section_8_10() {
 
 // ---- chapter 9 ----
 
+//@ rule: execution.exceptions.prelude-declares-subclasses
+//@ rule: execution.exceptions.table
 #[test]
 fn the_prelude_declares_the_exceptions_of_section_9_2() {
     let rows = table(&chapter("09"), "| Class | Raised when |", 0);
@@ -555,6 +587,8 @@ fn every_reference_between_the_documents_resolves() {
     assert!(checked > 100, "only {checked} references were found");
 }
 
+//@ rule: source.status.gives-grammar
+//@ rule: syntax.intro.grammar
 #[test]
 fn every_program_the_grammar_must_derive_is_parsed() {
     // Chapter 11 says a program the grammar does not derive is rejected. Each form the

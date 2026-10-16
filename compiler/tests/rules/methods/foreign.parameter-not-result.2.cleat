@@ -1,0 +1,3 @@
+//@ rule: methods.foreign.parameter-not-result
+//@ accepted
+class A { foreign static void f(Int32[] xs, Int count); foreign static UInt64 strlen(UInt8[] text); }

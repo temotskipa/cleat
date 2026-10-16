@@ -1,6 +1,6 @@
-// Chapter 13 at run time. tests/spec_rules/described_13.rs names a line of this
-// program's output for each sentence it shows. Every wait here is for something that
-// is certain to happen, so the output does not depend on how threads are scheduled.
+// Chapter 13 at run time. A line `//@ rule:` names the rule that the next statement
+// shows. Every wait here is for something that is certain to happen, so the output
+// does not depend on how threads are scheduled.
 package t;
 
 // Opened once, and then every thread that waits at it goes on.
@@ -117,14 +117,20 @@ public class Sentences13 {
             box.set(7);
         });
         worker.join();
+        //@ rule: concurrency.threads.program-starts-thread
+        //@ rule: concurrency.threads.thread-current-returns
+        //@ rule: concurrency.threads.thread-runs-body
+        //@ rule: concurrency.threads.threads-share-object
         Console.println("thread: " + box.get() + " " + (seen.get() == worker) + " " + (seen.get() == mainThread) + " " + worker.isAlive() + " " + (worker.uncaught() == null));
 
+        //@ rule: concurrency.threads.negative-argument-raises
         try {
             Thread.sleep(-1);
             Console.println("sleep: returned");
         } catch (IllegalArgumentException e) {
             Console.println("sleep: a negative time raises");
         }
+        //@ rule: concurrency.threads.joining-running-thread
         try {
             Thread.current().join();
             Console.println("join: returned");
@@ -136,9 +142,13 @@ public class Sentences13 {
         var held = Thread.start(() -> {
             gate.pass();
         });
+        //@ rule: concurrency.threads.thread-start-creates
+        //@ rule: concurrency.threads.uncaught-returns-null
+        //@ rule: concurrency.threads.isalive-true-start
         Console.println("alive: " + held.isAlive() + " " + (held.uncaught() == null));
         gate.release();
         held.join();
+        //@ rule: concurrency.threads.join-waits-until
         Console.println("after join: " + held.isAlive());
 
         var failed = Thread.start(() -> {
@@ -148,6 +158,7 @@ public class Sentences13 {
         });
         failed.join();
         @Nullable Throwable why = failed.uncaught();
+        //@ rule: concurrency.threads.exception-leaves-body
         Console.println("uncaught: " + (why == null ? "none" : why.message()) + ", and main goes on");
 
         // ---- 13.2 ----
@@ -168,7 +179,12 @@ public class Sentences13 {
         for (Thread w : workers) {
             w.join();
         }
+        //@ rule: concurrency.memory.thread-releases-lock
+        //@ rule: concurrency.locks.lock-held-most
+        //@ rule: concurrency.locks.lock-waits-until
         Console.println("lock: " + counted.n);
+        //@ rule: concurrency.memory.operation-atomic-cell
+        //@ rule: concurrency.atomics.method-step-no
         Console.println("atomic steps: " + cell.get());
 
         var before = new Counter();
@@ -178,6 +194,9 @@ public class Sentences13 {
             after.n = before.n + 1;
         });
         reader.join();
+        //@ rule: concurrency.memory.read-ordered-after
+        //@ rule: concurrency.memory.thread-start-scope
+        //@ rule: concurrency.memory.last-action-thread
         Console.println("start and join: " + after.n);
 
         var got = new AtomicInt(0);
@@ -185,6 +204,7 @@ public class Sentences13 {
             got.set(Late.value);
         });
         first.join();
+        //@ rule: concurrency.memory.end-class-initialization
         Console.println("class: " + got.get() + " " + Late.value);
 
         // ---- 13.3 ----
@@ -193,6 +213,7 @@ public class Sentences13 {
         again.lock();
         again.unlock();
         again.unlock();
+        //@ rule: concurrency.locks.thread-holds-call
         try {
             again.unlock();
             Console.println("reentrant: a third unlock returned");
@@ -216,6 +237,8 @@ public class Sentences13 {
             again.unlock();
         });
         taker.join();
+        //@ rule: concurrency.locks.exclusive-calls-lock
+        //@ rule: concurrency.locks.returns-body-result
         Console.println("exclusive: " + answer + " " + free.get());
 
         var condition = again.newCondition();
@@ -235,6 +258,8 @@ public class Sentences13 {
         } catch (IllegalStateException e) {
             raised += 1;
         }
+        //@ rule: concurrency.locks.waiting-condition-belongs
+        //@ rule: concurrency.locks.three-methods-raises
         Console.println("condition without its lock: " + raised);
 
         var slot = new Slot();
@@ -245,6 +270,8 @@ public class Sentences13 {
         until(slot.waiting);
         slot.put("ping");
         receiver.join();
+        //@ rule: concurrency.locks.await-releases-lock
+        //@ rule: concurrency.locks.signal-lets-waiting
         Console.println("signal: " + length.get());
 
         var crowd = new Gate();
@@ -262,12 +289,19 @@ public class Sentences13 {
         for (Thread w : waiters) {
             w.join();
         }
+        //@ rule: concurrency.locks.signalall-lets-waiting
         Console.println("signalAll: " + through.get());
 
         // ---- 13.4 ----
         var a = new AtomicInt(5);
+        //@ rule: concurrency.atomics.atomic-cell-holds
+        //@ rule: concurrency.atomics.compareandset-stores-update
+        //@ rule: concurrency.atomics.atomicint-compares-equals
+        //@ rule: concurrency.atomics.addandget-adds-delta
+        //@ rule: concurrency.atomics.incrementandget-addandget
         Console.println("atomic int: " + a.get() + " " + a.compareAndSet(5, 6) + " " + a.compareAndSet(5, 7) + " " + a.get() + " " + a.addAndGet(10) + " " + a.incrementAndGet());
         var top = new AtomicInt(9223372036854775807);
+        //@ rule: concurrency.atomics.sum-not-int
         try {
             top.addAndGet(1);
             Console.println("overflow: returned");
@@ -278,6 +312,7 @@ public class Sentences13 {
         var two = new Same();
         var references = new Atomic<Same>(one);
         var values = new Atomic<Pt>(new Pt(1));
+        //@ rule: concurrency.atomics.atomic-compares-identical
         Console.println("atomic cell: " + references.compareAndSet(two, two) + " " + references.compareAndSet(one, two) + " " + references.get().identical(two) + " " + values.compareAndSet(new Pt(1), new Pt(2)) + " " + values.get().x);
 
         // ---- 13.5 ----
@@ -299,6 +334,11 @@ public class Sentences13 {
                 done += 1;
             }
         }
+        //@ rule: concurrency.threads.program-needs-threads
+        //@ rule: concurrency.scopes.scope-starts-tasks
+        //@ rule: concurrency.scopes.no-task-outlives
+        //@ rule: concurrency.scopes.scope-call-creates
+        //@ rule: concurrency.scopes.otherwise-call-returns
         Console.println("scope: " + sum + " " + done);
 
         var door = new Gate();
@@ -313,6 +353,9 @@ public class Sentences13 {
             door.release();
             return (early ? "after" : "before") + " the task ended, result " + task.result() + ", done " + task.isDone();
         });
+        //@ rule: concurrency.scopes.fork-starts-task
+        //@ rule: concurrency.scopes.returns-once-thread
+        //@ rule: concurrency.scopes.result-waits-until
         Console.println("fork: returned " + order + ", on the main thread " + (where.get() == mainThread));
 
         try {
@@ -325,11 +368,15 @@ public class Sentences13 {
                 try {
                     task.result();
                 } catch (IllegalStateException e) {
+                    //@ rule: concurrency.scopes.body-raised-exception
+                    //@ rule: concurrency.scopes.isdone-true-once
                     Console.println("result: raises " + e.message() + ", done " + task.isDone());
                 }
                 for (var i = 0; i < 5000 && !scope.isCancelled(); i++) {
                     Thread.sleep(1);
                 }
+                //@ rule: concurrency.scopes.task-fails-cancels
+                //@ rule: concurrency.cancellation.scope-cancelled-task
                 Console.println("a failed task cancels its scope: " + scope.isCancelled());
             });
             Console.println("call: returned");
@@ -355,10 +402,15 @@ public class Sentences13 {
                 }
             });
         } catch (IllegalArgumentException e) {
+            //@ rule: concurrency.scopes.before-returns-cancels
+            //@ rule: concurrency.scopes.failure-task-fails
+            //@ rule: concurrency.scopes.exceptions-failed-tasks
+            //@ rule: concurrency.scopes.body-call-raised
             Console.println("body: raises " + e.message() + ", its task was cancelled " + noticed.get() + ", suppressed " + e.suppressed().length());
         }
 
         var ready = new AtomicInt(0);
+        //@ rule: concurrency.scopes.task-failed-exception
         try {
             Scope.call((scope) -> {
                 scope.fork(() -> {
@@ -391,6 +443,10 @@ public class Sentences13 {
             spin.set(1);
             return "" + marked + " " + scope.isCancelled() + ", and the task " + task.result();
         });
+        //@ rule: concurrency.cancellation.cancellation-request
+        //@ rule: concurrency.cancellation.cancelled-task-goes
+        //@ rule: concurrency.cancellation.cancel-marks-scope
+        //@ rule: concurrency.cancellation.scope-cancelled-stays
         Console.println("cancel: " + outcome);
 
         var finished = Thread.start(() -> {
@@ -398,6 +454,10 @@ public class Sentences13 {
         finished.join();
         var quiet = new Lock();
         var never = quiet.newCondition();
+        //@ rule: execution.exceptions.table
+        //@ rule: concurrency.cancellation.task-cancelled-scope
+        //@ rule: concurrency.cancellation.call-thread-checkcancelled
+        //@ rule: concurrency.cancellation.call-thread-sleep
         Console.println("points: " + point(() -> Thread.checkCancelled()) + " " + point(() -> Thread.sleep(1)) + " " + point(() -> finished.join()) + " " + point(() -> {
             var x = tasks[0].result();
         }) + " " + point(() -> {
@@ -408,6 +468,7 @@ public class Sentences13 {
                 quiet.unlock();
             }
         }));
+        //@ rule: concurrency.cancellation.lock-not-point
         Console.println("lock is not a point: " + point(() -> {
             quiet.lock();
             quiet.unlock();

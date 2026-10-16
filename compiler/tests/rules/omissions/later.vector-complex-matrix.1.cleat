@@ -1,0 +1,3 @@
+//@ rule: omissions.later.vector-complex-matrix
+//@ rejected: there is no type named `Vector` here
+class A { void f(Vector v) { } }

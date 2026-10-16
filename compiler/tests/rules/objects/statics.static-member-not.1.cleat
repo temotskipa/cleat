@@ -1,0 +1,3 @@
+//@ rule: objects.statics.static-member-not
+//@ rejected: there is no type named `T` here
+class A<T> { static void f(T x) { } }

@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.bit-character-char
+//@ accepted
+class A { Char c = '\u{1F600}'; Int n = '\u{1F600}'.code(); }

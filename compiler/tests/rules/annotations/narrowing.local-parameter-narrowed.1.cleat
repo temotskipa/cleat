@@ -1,0 +1,3 @@
+//@ rule: annotations.narrowing.local-parameter-narrowed
+//@ rejected: `Int` is not assignable to `@Positive Int`
+@Refines annotation Positive; class Counts { @Narrows(Positive.class) public static Boolean isPositive(Int n) { return n > 0; } } class A { static Int need(@Positive Int n) { return n; } static Int f(Int n, Int m) { if (Counts.isPositive(n)) { n = m; return need(n); } return 0; } }

@@ -1,0 +1,3 @@
+//@ rule: annotations.receivers.priced-refinement-program
+//@ rejected: `unitPrice` is sent to a `Order`
+@Refines annotation Priced; class Order { public Int unitPrice(@Priced Order this) { return 1; } } class C { Int f(Order o) { return o.unitPrice(); } }

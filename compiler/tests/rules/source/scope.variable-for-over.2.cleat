@@ -1,0 +1,3 @@
+//@ rule: source.scope.variable-for-over
+//@ accepted
+class A { Int f(List<Int> xs) { var n = 0; for (Int x : xs) { n += x; } return n; } }

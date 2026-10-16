@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.literal-nearest-value
+//@ accepted
+class A { Float64 x = 1e300; Float32 y = 1e38; Rational r = 1e400; }

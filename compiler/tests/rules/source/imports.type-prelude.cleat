@@ -1,0 +1,3 @@
+//@ rule: source.imports.type-prelude
+//@ accepted
+class A { Int f(List<Int> x) { return x.size(); } }

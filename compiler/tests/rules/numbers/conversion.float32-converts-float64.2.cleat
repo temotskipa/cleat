@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.float32-converts-float64
+//@ accepted
+class A { Float64 f(Float32 x) { return x; } }

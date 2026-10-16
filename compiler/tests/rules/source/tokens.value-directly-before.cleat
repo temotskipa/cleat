@@ -1,0 +1,3 @@
+//@ rule: source.tokens.value-directly-before
+//@ accepted
+value class V { public Int a; } class A { Int value = 1; }

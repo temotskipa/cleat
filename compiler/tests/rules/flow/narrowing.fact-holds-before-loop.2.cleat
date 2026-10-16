@@ -1,0 +1,3 @@
+//@ rule: flow.narrowing.fact-holds-before-loop
+//@ accepted
+class A { Int f(@Nullable String s) { if (s == null) { return 0; } var n = 0; while (n < 3) { n = n + s.length() + 1; } return n; } }

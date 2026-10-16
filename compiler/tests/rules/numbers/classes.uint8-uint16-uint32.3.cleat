@@ -1,0 +1,3 @@
+//@ rule: numbers.classes.uint8-uint16-uint32
+//@ rejected: the literal is outside the range of `UInt64`
+class A { void f() { UInt64 a = 18446744073709551616; } }

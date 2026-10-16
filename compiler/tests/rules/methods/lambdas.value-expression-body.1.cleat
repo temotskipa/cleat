@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.value-expression-body
+//@ rejected: `String` is not assignable to `Int`
+class A { Function0<Int> f() { return () -> "s"; } }

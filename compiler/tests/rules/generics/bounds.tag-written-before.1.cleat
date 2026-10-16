@@ -1,0 +1,3 @@
+//@ rule: generics.bounds.tag-written-before
+//@ rejected: `String` does not carry the tag `@Frozen` that the type parameter requires
+@Target(Site.TYPE) annotation Frozen; class Snapshot<@Frozen T> { } class A { void f(Snapshot<String> s) { } }

@@ -1,0 +1,3 @@
+//@ rule: execution.try.clause-never-run
+//@ accepted
+class A { void f() { try { } catch (ArithmeticException e) { } catch (Throwable e) { } } }

@@ -1,0 +1,3 @@
+//@ rule: omissions.later.inline-reserved
+//@ rejected: `inline` is a reserved word
+class A { Int inline = 1; }

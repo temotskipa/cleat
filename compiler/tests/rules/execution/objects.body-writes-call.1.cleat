@@ -1,0 +1,3 @@
+//@ rule: execution.objects.body-writes-call
+//@ rejected: constructor `B` takes 1 argument, and 0 are written
+open class B { public B(Int x) { } } class D extends B { public D() { } }

@@ -1,0 +1,3 @@
+//@ rule: methods.operators.no-unary-unsigned-shift
+//@ rejected: expected an expression, found `*`
+class A { Int f(Int a) { return a ** 2; } }

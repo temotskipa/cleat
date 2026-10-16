@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.open-final-abstract
+//@ rejected: `open final` is rejected
+class A { open final void f() { } }

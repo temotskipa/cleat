@@ -1,0 +1,3 @@
+//@ rule: execution.startup.process-exit-declared
+//@ rejected: method `exit` takes 1 argument, and 0 are written
+class A { void f() { Process.exit(); } }

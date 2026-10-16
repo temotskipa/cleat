@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.array-type-qualifies
+//@ accepted
+@Refines annotation Positive; class A { static Int need(@Positive Int n) { return n; } Int f(@Positive Int[] xs) { return need(xs[0]) + xs.length(); } }

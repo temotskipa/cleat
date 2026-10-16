@@ -1,0 +1,3 @@
+//@ rule: generics.signatures.void-accept-list
+//@ accepted
+class A { void accept(List<String> items) { } void accept(List<Int> items) { } }

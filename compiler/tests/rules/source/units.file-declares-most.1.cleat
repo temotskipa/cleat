@@ -1,0 +1,4 @@
+//@ rule: source.units.file-declares-most
+//@ rejected: a file declares at most one public type
+//@ file: A.cleat
+public class A { } public class B { }

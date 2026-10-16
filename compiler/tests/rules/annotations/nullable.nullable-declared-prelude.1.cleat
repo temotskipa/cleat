@@ -1,0 +1,3 @@
+//@ rule: annotations.nullable.nullable-declared-prelude
+//@ rejected: `@Nullable String` is not assignable to `String`
+class A { String g(@Nullable String s) { return s; } }

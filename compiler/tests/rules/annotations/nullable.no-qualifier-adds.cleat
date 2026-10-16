@@ -1,0 +1,3 @@
+//@ rule: annotations.nullable.no-qualifier-adds
+//@ rejected: `null` is not a value of `@Raw String`
+@Widens annotation Raw; class A { @Raw String s = null; }

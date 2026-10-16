@@ -1,0 +1,3 @@
+//@ rule: objects.population.no-primitive-types
+//@ accepted
+class A { Int x = 1; Int f() { return x.hashCode(); } }

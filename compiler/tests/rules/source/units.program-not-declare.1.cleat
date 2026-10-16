@@ -1,0 +1,4 @@
+//@ rule: source.units.program-not-declare
+//@ rejected: a program does not declare the package `cleat`, or a package whose name begins with `cleat.`
+//@ file: cleat/Extra.cleat
+package cleat; public class Extra { }

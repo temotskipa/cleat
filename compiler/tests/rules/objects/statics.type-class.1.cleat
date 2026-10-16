@@ -1,0 +1,3 @@
+//@ rule: objects.statics.type-class
+//@ rejected: `Class` is not assignable to `String`
+class C { } class A { String f() { return C.class; } }

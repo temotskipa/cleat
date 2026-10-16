@@ -1,0 +1,3 @@
+//@ rule: concurrency.threads.body-lambda-captures
+//@ accepted
+class A { void f(Int k) { var n = k + 1; Thread.start(() -> { var m = n + k; }); } }

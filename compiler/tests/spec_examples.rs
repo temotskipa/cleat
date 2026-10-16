@@ -746,9 +746,11 @@ macro_rules! examples {
 
 examples![
     (source_text_block, "01", 0),
+    //@ rule: objects.root.declares
     (objects_root_methods, "02", 0),
     (objects_static_requirement, "02", 1),
     (objects_class_object, "02", 2),
+    //@ rule: objects.enums.enum-declared-keyword
     (objects_enums, "02", 3),
     (visibility_audiences, "03", 0),
     (visibility_only, "03", 1),
@@ -780,6 +782,7 @@ examples![
     (annotations_narrows, "08", 2),
     (annotations_qualified_parameter, "08", 3),
     (annotations_narrowing, "08", 4),
+    //@ rule: null.nullable.qualifier-declared-prelude
     (annotations_nullable, "08", 5),
     (annotations_tag, "08", 6),
     (annotations_required_tag, "08", 7),

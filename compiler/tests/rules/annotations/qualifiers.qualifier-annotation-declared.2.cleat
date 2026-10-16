@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.qualifier-annotation-declared
+//@ accepted
+@Refines annotation Q; @Widens annotation W; class A { Int f(@Q Int n, @W Int m) { return n; } }

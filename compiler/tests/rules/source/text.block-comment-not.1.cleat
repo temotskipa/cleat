@@ -1,0 +1,3 @@
+//@ rule: source.text.block-comment-not
+//@ rejected: this comment is never closed
+class A { } /* never closed

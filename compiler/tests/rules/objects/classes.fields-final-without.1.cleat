@@ -1,0 +1,3 @@
+//@ rule: objects.classes.fields-final-without
+//@ rejected: the field `a` is not assigned here: a field of a value class is final
+value class V { public Int a; public void set() { a = 2; } }

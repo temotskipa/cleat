@@ -1,0 +1,4 @@
+//@ rule: execution.startup.never-null-no
+//@ accepted
+//@ file: M.cleat
+public class M { public static void main(String[] args) { var n = 0; for (String a : args) { n += a.length(); } } }

@@ -1,0 +1,3 @@
+//@ rule: syntax.expressions.type-after-new
+//@ accepted
+class A { Boolean f(Object o, Int a, Int b) { var xs = new List<Int>(); var ys = Array.<Int>build(2, (i) -> i); return o instanceof List<Int> && a < b; } }

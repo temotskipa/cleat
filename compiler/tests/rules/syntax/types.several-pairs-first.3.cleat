@@ -1,0 +1,3 @@
+//@ rule: syntax.types.several-pairs-first
+//@ rejected: `set` is sent to a `Int @Nullable []`, which may be `null`
+class A { void f(Int[] @Nullable [] a) { a[0][0] = 1; } }

@@ -1,0 +1,3 @@
+//@ rule: execution.values.audience-private-not
+//@ accepted
+value class V { public Int a; public V { } } value class W { public Int a; } class A { V f() { var w = new W(1); return new V(1); } }

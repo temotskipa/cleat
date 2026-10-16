@@ -1,0 +1,3 @@
+//@ rule: methods.calls.statement-discard-result
+//@ accepted
+class A { static Int g() { return 1; } static void f() { var used = g(); } }

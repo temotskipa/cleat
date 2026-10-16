@@ -1,0 +1,3 @@
+//@ rule: execution.try.clause-never-run
+//@ rejected: this `catch` clause can never run: an earlier clause names its type or a supertype of it
+class A { void f() { try { } catch (Throwable e) { } catch (ArithmeticException e) { } } }

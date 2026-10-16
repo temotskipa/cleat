@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.widening
+//@ accepted
+@Widens annotation Raw; class A { @Raw Object f(@Raw String s) { return s; } }

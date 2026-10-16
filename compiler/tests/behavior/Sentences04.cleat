@@ -1,5 +1,5 @@
-// Chapter 4 at run time. tests/spec_rules/described_04.rs names a line of this
-// program's output for each sentence it shows.
+// Chapter 4 at run time. A line `//@ rule:` names the rule that the next statement
+// shows.
 package t;
 
 class Trace {
@@ -511,47 +511,67 @@ public class Sentences04 {
 
         // ---- 4.1, 4.2, 4.3 ----
         var target = new Target();
+        //@ rule: methods.declaring.static-method-instance
         Console.println("a shared name: " + Target.who() + " " + target.who(1));
+        //@ rule: methods.overriding.inside-instance-method
+        //@ rule: methods.calls.chosen-method-open
         Console.println("overriding: " + shape.name() + " " + shape.copy().name() + " " + circle.above() + " " + shape.viaThis());
+        //@ rule: methods.calls.receiver-this-instance
         Console.println("no receiver written: " + circle.inherited());
         var sum = Target.made("receiver").take(Trace.note("first"), Trace.note("second") + 1);
+        //@ rule: methods.calls.call-evaluates-receiver
         Console.println("a call: " + Trace.take() + sum);
+        //@ rule: methods.calls.chooses-method-compile
+        //@ rule: methods.overloading.applicable-method-more-specific-chosen
         Console.println("static types: " + Over.shape(object) + " " + Over.shape(shape) + " " + Over.shape(circle));
 
         // ---- 4.4 ----
         Int8 small = 5;
+        //@ rule: methods.overloading.methods-class-share
         Console.println("overloads: " + Over.pick() + " " + Over.pick(1) + " " + Over.pick("s") + " " + Over.pick(1, 2));
+        //@ rule: methods.overloading.call-chooses-among
         Console.println("inherited overloads: " + new SubOver().m("s") + " " + new SubOver().m(5));
+        //@ rule: methods.overloading.method-fixed-number
         Console.println("fixed and varargs: " + Over.rest(1) + " " + Over.rest(1, 2) + " " + Over.rest());
+        //@ rule: methods.overloading.none-considers-methods
+        //@ rule: methods.overloading.second-round-class
         Console.println("the second round: " + Over.wide(small) + " " + Over.closer(small));
 
         // ---- 4.5 ----
         Meters height = 3;
         @Nullable Meters maybe = 4;
         var noted = Trace.take();
+        //@ rule: methods.assignability.implicit-conversion-value
+        //@ rule: methods.assignability.static-method-marked
         Console.println("an implicit conversion: " + noted + height + " " + maybe);
 
         // ---- 4.6 ----
         var a = new Op();
         var b = new Op();
         a[0] = "e";
+        //@ rule: methods.operators.class-declare-methods
         Console.println("every operator: " + (a + b) + " " + (a - b) + " " + (a * b) + " " + (a / b) + " " + (a % b) + " " + -a + " " + (a < b) + " " + (a <= b) + " " + (a > b) + " " + (a >= b) + " " + (a & b) + " " + (a | b) + " " + (a ^ b) + " " + ~a + " " + (a << 1) + " " + (a >> 1) + " " + !a + " " + a[0] + " " + Trace.take());
         var loud = new Loud();
         var other = new Loud();
         var same = loud == other;
         var values = new LoudValue(1) == new LoudValue(2);
+        //@ rule: methods.operators.equality-equals-reference
         Console.println("equality: " + Trace.take() + same + " " + values);
         var differs = loud != other;
+        //@ rule: methods.operators.not-equals-equals
         Console.println("inequality: " + Trace.take() + differs);
         @Nullable Loud absent = null;
         var isNull = absent == null;
         @Nullable Loud here = loud;
         var notNull = here != null;
+        //@ rule: methods.operators.operand-literal-null
         Console.println("a null test: [" + Trace.take() + "] " + isNull + " " + notNull);
+        //@ rule: methods.operators.reference-identity-identical
         Console.println("identity: " + loud.identical(other) + " " + loud.identical(loud));
         var cells = new Int[] { 1, 2, 3 };
         cells[index()] += 5;
         Target.made("holder").count += 2;
+        //@ rule: methods.operators.compound-assignment-except
         Console.println("compound assignment: " + Trace.take() + cells[1]);
         var n = 12;
         var steps = "";
@@ -573,6 +593,7 @@ public class Sentences04 {
         steps = steps + n + " ";
         Rational ratio = 3;
         ratio /= 2;
+        //@ rule: methods.operators.holds
         Console.println("compound operators: " + steps + ratio);
         var i = 5;
         var post = i++;
@@ -580,12 +601,15 @@ public class Sentences04 {
         var postDown = i--;
         var preDown = --i;
         cells[index()]++;
+        //@ rule: methods.operators.increment-location-evaluated
+        //@ rule: methods.operators.prefix-form-yields
         Console.println("increment: " + post + " " + pre + " " + postDown + " " + preDown + " " + i + " | " + Trace.take() + cells[1]);
         Float64 f = 1.5;
         f++;
         Rational half = 0.5;
         half--;
         small++;
+        //@ rule: methods.operators.literal-takes-class
         Console.println("the literal's class: " + f + " " + half + " " + small);
         Int8 top = 127;
         var raised = "returns";
@@ -594,25 +618,36 @@ public class Sentences04 {
         } catch (ArithmeticException e) {
             raised = "raises";
         }
+        //@ rule: methods.operators.method-raises-location
         Console.println("an increment that raises: " + raised + " " + top);
 
         // ---- 4.7 ----
         var and1 = Trace.is("a", false) && Trace.is("b", true);
         var and2 = Trace.is("a", true) && Trace.is("b", false);
         var and3 = Trace.is("a", true) && Trace.is("b", true);
+        //@ rule: methods.expressions.and-evaluates
+        //@ rule: methods.expressions.false-result-not
+        //@ rule: methods.expressions.otherwise-result-value
+        //@ rule: methods.expressions.otherwise-result-value-2
         Console.println("and: " + Trace.take() + "| " + and1 + " " + and2 + " " + and3);
         var or1 = Trace.is("a", true) || Trace.is("b", false);
         var or2 = Trace.is("a", false) || Trace.is("b", true);
         var or3 = Trace.is("a", false) || Trace.is("b", false);
+        //@ rule: methods.expressions.or-evaluates
+        //@ rule: methods.expressions.true-result-not
         Console.println("or: " + Trace.take() + "| " + or1 + " " + or2 + " " + or3);
         var both1 = Trace.is("a", false) & Trace.is("b", true);
         var both2 = Trace.is("a", true) | Trace.is("b", false);
+        //@ rule: methods.expressions.boolean-methods-and
         Console.println("both operands: " + Trace.take() + "| " + both1 + " " + both2);
         var chosen1 = Trace.is("c", true) ? Trace.note("a") : Trace.note("b") + 1;
         var chosen2 = Trace.is("c", false) ? Trace.note("a") : Trace.note("b") + 1;
+        //@ rule: methods.expressions.conditional-type-boolean
+        //@ rule: methods.expressions.exactly-evaluated-value
         Console.println("conditional: " + Trace.take() + "| " + chosen1 + " " + chosen2);
         @Nullable String missing = null;
         @Nullable String present = "left";
+        //@ rule: methods.expressions.coalesce-value-unless
         Console.println("??: " + (missing ?? "right") + " " + (present ?? "right"));
         Object text = "text";
         var cast = (String) text;
@@ -629,9 +664,16 @@ public class Sentences04 {
         } catch (ClassCastException e) {
             generic = "refused";
         }
+        //@ rule: methods.expressions.casts-evaluates-tests
+        //@ rule: methods.expressions.failed-cast-raises
+        //@ rule: methods.expressions.test-succeeds-class
+        //@ rule: methods.expressions.successful-cast-yields
         Console.println("casts: " + cast.identical(text) + " " + cast.length() + " " + failed + " " + ((Shape) object).name() + " " + generic);
         @Nullable Object nothing = null;
+        //@ rule: methods.expressions.instanceof-true-value
         Console.println("instanceof: " + (text instanceof String) + " " + (text instanceof Shape) + " " + (nothing instanceof String) + " " + (object instanceof Shape) + " " + (ints instanceof List<Int>) + " " + (ints instanceof List<String>));
+        //@ rule: methods.expressions.new-args-creates
+        //@ rule: methods.expressions.constructor-chosen-chooses
         Console.println("constructors: " + new Made().how + " " + new Made(1).how + " " + new Made("s").how);
         var x = 0;
         var stored = (x = 5);
@@ -641,6 +683,10 @@ public class Sentences04 {
         listOf.add(kept);
         Target.made("receiver").count = Trace.note("value");
         Grid.made()[index()] = Trace.note("element");
+        //@ rule: methods.expressions.assignment-evaluates-stores
+        //@ rule: methods.expressions.evaluates-stores-field
+        //@ rule: methods.expressions.evaluates-order-calls
+        //@ rule: methods.expressions.assignment-expression-value
         Console.println("assignment: " + x + " " + stored + " " + kept + " " + listOf.getClass().getName() + " | " + Trace.take());
 
         // ---- 4.8 ----
@@ -650,6 +696,7 @@ public class Sentences04 {
             return p + q;
         };
         Function0<String> word = () -> "word";
+        //@ rule: methods.lambdas.stands-expected-type
         Console.println("a lambda: " + twice.invoke(3) + " " + add.invoke(2, 3) + " " + word.invoke() + " " + (asObject instanceof Function1<Int, Int>));
         Function1<Int, String> early = (k) -> {
             if (k > 0) {
@@ -658,23 +705,31 @@ public class Sentences04 {
             return "other";
         };
         var afterReturn = early.invoke(1) + " " + early.invoke(-1);
+        //@ rule: methods.lambdas.return-inside-lambda
         Console.println("return in a lambda: " + afterReturn + ", and the method goes on");
         var counter = new Counter();
         var bump = counter.bump();
+        //@ rule: methods.lambdas.inside-lambda-this
+        //@ rule: methods.lambdas.lambda-read-assign
         Console.println("this in a lambda: " + bump.invoke() + " " + bump.invoke() + " " + counter.count);
         var held = new List<Function0<Int>>();
         for (var k = 0; k < 3; k++) {
             var now = k * 10;
             held.add(() -> now);
         }
+        //@ rule: methods.lambdas.lambda-holds-values
         Console.println("captured values: " + held[0].invoke() + " " + held[1].invoke() + " " + held[2].invoke());
+        //@ rule: methods.lambdas.instance-belongs-final
+        //@ rule: methods.lambdas.fields-captured-values
         Console.println("the instance: " + Counter.adder(1).equals(Counter.adder(1)) + " " + Counter.adder(1).equals(Counter.adder(2)) + " " + (Counter.adder(1).hashCode() == Counter.adder(1).hashCode()));
         var seen = new List<Int>();
         Function1<Int, Unit> keep = (k) -> seen.add(k);
         Function0<Unit> count = () -> counter.count++;
         keep.invoke(4);
         count.invoke();
+        //@ rule: methods.lambdas.result-type-unit
         Console.println("a Unit result: " + seen.size() + " " + counter.count);
+        //@ rule: methods.lambdas.overload-resolution-lambda
         Console.println("lambdas in overloads: " + Over.call(() -> 1) + " " + Over.call((Int k) -> k) + " " + Over.call((String s) -> s.length()));
         Function1<Int, String> ofStatic = Sentences04::sign;
         Function1<String, Int> ofInstance = String::length;
@@ -685,6 +740,12 @@ public class Sentences04 {
         Function1<Int, Box> ofNew = Box::new;
         Function1<Int, String> byInt = Over::pick;
         Function1<String, String> byString = Over::pick;
+        //@ rule: methods.lambdas.method-references-reference
+        //@ rule: methods.lambdas.type-reference-name-static
+        //@ rule: methods.lambdas.type-reference-name-instance
+        //@ rule: methods.lambdas.expr-reference-name
+        //@ rule: methods.lambdas.type-reference-new
+        //@ rule: methods.lambdas.parameter-types-interface
         Console.println("method references: " + ofStatic.invoke(5) + " | " + ofInstance.invoke("abc") + " " + withArgument.invoke("hello", "he") + " | " + evaluated + twiceRead + " | " + ofNew.invoke(7).value + " | " + byInt.invoke(1) + " " + byString.invoke("s"));
 
         // ---- 4.9 ----
@@ -692,6 +753,7 @@ public class Sentences04 {
         declared = 2;
         final Int fixed = 3;
         var inferred = declared + fixed;
+        //@ rule: methods.statements.local-declarations-name
         Console.println("locals: " + declared + " " + fixed + " " + inferred);
         var branches = "";
         if (zero == 0) {
@@ -707,6 +769,8 @@ public class Sentences04 {
         if (zero != 0) {
             branches = branches + "never ";
         }
+        //@ rule: methods.statements.if-while-else
+        //@ rule: methods.statements.without-else-nothing
         Console.println("if: " + branches);
         var w = 0;
         var turns = "";
@@ -714,10 +778,14 @@ public class Sentences04 {
             turns = turns + w + " ";
             w++;
         }
+        //@ rule: methods.statements.while-evaluates-before
         Console.println("while: " + Trace.take() + "| " + turns);
         for (var k = Trace.note("init"); Trace.is("c", k < 3); k += Trace.note("update")) {
             Trace.note("s");
         }
+        //@ rule: methods.statements.for-init-update
+        //@ rule: methods.statements.before-iteration-evaluates
+        //@ rule: methods.statements.runs-update
         Console.println("for: " + Trace.take());
         var endless = 0;
         for (;; endless++) {
@@ -734,18 +802,26 @@ public class Sentences04 {
                 break;
             }
         }
+        //@ rule: methods.statements.missing-true
+        //@ rule: methods.statements.update-runs-after
         Console.println("for without a condition: " + endless + ", and after continue: " + Trace.take() + updates);
         var walked = "";
         for (Int step : new Walk()) {
             Trace.note("body");
             walked = walked + step;
         }
+        //@ rule: methods.statements.evaluates-calls-iterator
+        //@ rule: methods.statements.while-hasnext-true
         Console.println("for over a collection: " + Trace.take() + "| " + walked);
         var total = 0;
         for (var item : new Int[] { 1, 2, 3 }) {
             total += item;
         }
+        //@ rule: methods.statements.var-written
         Console.println("for with var: " + total);
+        //@ rule: methods.statements.switch-selector-arms
+        //@ rule: methods.statements.case-c1-c2
+        //@ rule: methods.statements.default-arrow-body
         Console.println("switch: " + word(0) + " " + word(1) + " " + word(2) + " " + word(9) + " | " + Trace.take());
         var selectors = "";
         switch ('b') {
@@ -770,7 +846,10 @@ public class Sentences04 {
         switch (zero + 7) {
             case 1 -> selectors = selectors + "one ";
         }
+        //@ rule: methods.statements.no-arm-continues
+        //@ rule: methods.statements.no-arm-matches
         Console.println("selectors: " + selectors + "and no arm matched");
+        //@ rule: methods.statements.case-name-arrow
         Console.println("type arms: " + what("text") + ", " + what(circle) + ", " + what(5));
         Console.println("switch expressions: " + light(Light.RED) + " " + light(Light.GREEN) + " " + eval(new Neg(new Num(4))) + " " + eval(new Num(3)));
         var loops = "";
@@ -789,6 +868,8 @@ public class Sentences04 {
             }
             odd = odd + k + " ";
         }
+        //@ rule: methods.statements.labels-break-continue
+        //@ rule: methods.statements.continue-starts-next
         Console.println("break and continue: " + loops + "| " + odd);
         var labelled = "";
         outer: for (var k = 0; k < 3; k++) {
@@ -809,8 +890,10 @@ public class Sentences04 {
             }
             labelled = labelled + "never ";
         }
+        //@ rule: methods.statements.labeled-statement-label
         Console.println("labels: " + labelled + "out");
         nothing();
+        //@ rule: methods.statements.return-returns-method
         Console.println("return: " + Trace.take() + sign(1) + " " + sign(-1));
         var thrown = "";
         try {
@@ -818,6 +901,7 @@ public class Sentences04 {
         } catch (IllegalStateException e) {
             thrown = e.message();
         }
+        //@ rule: methods.statements.throw-raises-value
         Console.println("throw: " + thrown);
         var asserted = "";
         try {
@@ -832,17 +916,29 @@ public class Sentences04 {
         } catch (AssertionException e) {
             asserted = asserted + "[" + e.message() + "]";
         }
+        //@ rule: methods.statements.assert-evaluates-type
+        //@ rule: methods.statements.assert-detail-evaluates
+        //@ rule: methods.statements.assertions-always-checked
         Console.println("assert: " + asserted);
 
         // ---- 4.10 ----
         var passed = new Int[] { 4, 5 };
         var listed = Over.all(Trace.note("one"), Trace.note("two") + 1, Trace.note("three") + 2);
+        //@ rule: methods.varargs.call-chooses-varargs
+        //@ rule: methods.varargs.otherwise-trailing-arguments
+        //@ rule: methods.varargs.no-trailing-arguments
         Console.println("varargs: " + Trace.take() + listed.length() + " " + listed[2] + " " + Over.all(passed).identical(passed) + " " + Over.all().length());
 
         // ---- 4.11 ----
         UInt8[] bytes = new UInt8[] { 104, 105, 0, 33 };
         UInt8[] buffer = new UInt8[4];
         Pointer where = memset(buffer, 7, 3);
+        //@ rule: methods.foreign.body-function
+        //@ rule: methods.foreign.function-receives-pointer
+        //@ rule: methods.foreign.length-not-passed
+        //@ rule: methods.foreign.writes-array-call
+        //@ rule: methods.foreign.equals-compares-addresses
+        //@ rule: methods.foreign.symbol-method-name
         Console.println("foreign: " + abs(-5) + " " + magnitude(-9000000000) + " " + strlen(bytes) + " " + buffer[0] + buffer[2] + buffer[3] + " " + (where == Pointer.zero()) + " " + (Pointer.zero() == Pointer.zero()));
         var whole = div(7, 2);
         var returned = "" + whole.quot + "r" + whole.rem + " " + Trace.take();
@@ -851,6 +947,8 @@ public class Sentences04 {
         } catch (IllegalArgumentException e) {
             returned = returned + Trace.take() + e.message();
         }
+        //@ rule: methods.foreign.value-class-returns
+        //@ rule: methods.foreign.exception-constructor-raises
         Console.println("a value C returns: " + returned);
         Division[] into = new Division[3];
         var written = Trace.take();
@@ -860,11 +958,15 @@ public class Sentences04 {
         } catch (IllegalArgumentException e) {
             written = written + e.message() + " " + Trace.take();
         }
+        //@ rule: methods.foreign.element-takes-place
+        //@ rule: execution.values.besides-new-things
         Console.println("an array C writes: " + written + into[0].quot + into[1].quot + into[2].quot);
         Halves[] pairs = new Halves[2];
         var built = Trace.take();
         RawHalves[] raw = new RawHalves[] { new RawHalves(new Raw(1, 0), new Raw(2, 0)), new RawHalves(new Raw(3, 0), new Raw(4, 0)) };
         Pointer moved = copyHalves(pairs, raw, 32);
+        //@ rule: execution.values.value-class-produced
+        //@ rule: execution.values.field-holds-value
         Console.println("inner values first: " + built + "| " + Trace.take() + pairs[1].second.quot);
     }
 }

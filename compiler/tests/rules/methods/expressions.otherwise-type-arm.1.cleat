@@ -1,0 +1,3 @@
+//@ rule: methods.expressions.otherwise-type-arm
+//@ rejected: the arms have the types `String` and `Int`, and neither is assignable to the other
+class A { void f(Boolean b, String s, Int n) { var x = b ? s : n; } }

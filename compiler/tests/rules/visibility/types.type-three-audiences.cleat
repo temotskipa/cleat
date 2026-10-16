@@ -1,0 +1,4 @@
+//@ rule: visibility.types.type-three-audiences
+//@ accepted
+//@ file: A.cleat
+public class A { } package class B { } class C { }

@@ -1,0 +1,3 @@
+//@ rule: methods.calls.call-method-used
+//@ rejected: the result of this call must be used
+class A { static Int g() { return 1; } static void f() { g(); } }

@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.omitted-element-takes
+//@ rejected: the element `size` of `@Team` has no default and must be supplied
+annotation Team(String name, Int size); @Team("a") class C { }

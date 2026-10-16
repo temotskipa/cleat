@@ -1,0 +1,3 @@
+//@ rule: syntax.tokens.identifier-not-keyword
+//@ accepted
+class A { Int klass = 1; Int truth = 2; }

@@ -1,0 +1,3 @@
+//@ rule: objects.extension.new-rejected
+//@ accepted
+abstract class A { } class B extends A { A f() { return new B(); } }

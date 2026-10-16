@@ -1,0 +1,3 @@
+//@ rule: syntax.expressions.statements-expr-stands
+//@ rejected: this expression is not a statement
+class A { void f(Int n) { n == 1; } }

@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.declaration-modifiers-annotations
+//@ accepted
+class A { @Nullable String @Nullable [] xs; void f(List<@Nullable String> a, @Nullable List<@Nullable String> b) { } }

@@ -1,0 +1,3 @@
+//@ rule: objects.built-in.operator-method-call
+//@ accepted
+class P { public P plus(P o) { return this; } public P minus(P o) { return this; } public P get(Int i) { return this; } } class A { P f(P a, P b) { return (a + b - a)[0]; } }

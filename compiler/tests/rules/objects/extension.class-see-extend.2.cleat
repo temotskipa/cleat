@@ -1,0 +1,3 @@
+//@ rule: objects.extension.class-see-extend
+//@ accepted
+abstract class A { } class B extends A { }

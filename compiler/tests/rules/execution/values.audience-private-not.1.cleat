@@ -1,0 +1,3 @@
+//@ rule: execution.values.audience-private-not
+//@ rejected: the constructor of `V` is outside its audience here
+value class V { public Int a; V { } } class A { V f() { return new V(1); } }

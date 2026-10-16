@@ -1,0 +1,3 @@
+//@ rule: objects.enums.enum-final-reference
+//@ rejected: `E` is not a class that can be extended
+enum E { A } class C extends E { }

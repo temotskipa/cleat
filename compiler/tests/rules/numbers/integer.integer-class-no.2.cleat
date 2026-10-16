@@ -1,0 +1,3 @@
+//@ rule: numbers.integer.integer-class-no
+//@ rejected: `/` is the method `div`, and `UInt8` has no method `div`
+class A { UInt8 f(UInt8 a, UInt8 b) { return a / b; } }

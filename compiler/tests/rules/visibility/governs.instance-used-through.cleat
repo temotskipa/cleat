@@ -1,0 +1,8 @@
+//@ rule: visibility.governs.instance-used-through
+//@ accepted
+//@ file: Shape.cleat
+public interface Shape { Int area(); }
+//@ file: Shapes.cleat
+class Square implements Shape { @Override public Int area() { return 4; } } public class Shapes { public static Shape make() { return new Square(); } }
+//@ file: B.cleat
+class B { Int f() { Shape s = Shapes.make(); Object o = s; return s.area() + o.hashCode(); } }

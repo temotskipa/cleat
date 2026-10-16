@@ -1,0 +1,4 @@
+//@ rule: visibility.types.declaration-rejected-audience
+//@ accepted
+//@ file: A.cleat
+public class A { Hidden h = new Hidden(); void f(Hidden other) { } } class Hidden { }

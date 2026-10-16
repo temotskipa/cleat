@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.literal-no-refinement
+//@ rejected: `B` is not assignable to `@P B`
+@Refines annotation P; class B { } class A { @P B f() { return new B(); } }

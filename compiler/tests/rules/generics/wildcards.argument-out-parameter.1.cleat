@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.argument-out-parameter
+//@ accepted
+open class Shape { } class Circle extends Shape { } class A { Shape a(List<? extends Shape> xs) { return xs.get(0); } Iterator<Shape> b(List<? extends Shape> xs) { return xs.iterator(); } }

@@ -1,0 +1,5 @@
+# The rules of chapter 5 that no program shows, each with the reason.
+
+null.nullable.facts-about-fixed: It introduces the two facts, which the sentences of this section and of section 5.4 state.
+null.nullable.how-implementation-represents: It says what no program can observe.
+null.tests.defines-paths: It points to section 12.4, whose sentences have their own cases.

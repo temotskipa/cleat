@@ -1,0 +1,3 @@
+//@ rule: annotations.nullable.nullable-declared-prelude
+//@ accepted
+class A { @Nullable String f(String s) { return s; } }

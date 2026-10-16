@@ -1,0 +1,3 @@
+//@ rule: methods.statements.selector-type-integer
+//@ accepted
+enum E { ONE, TWO } class A { Int f(Int8 a, UInt64 b, Char c, Boolean d, String e, E g) { var n = 0; switch (a) { case 1 -> n = 1; default -> n = 2; } switch (b) { case 1 -> n = 1; default -> n = 2; } switch (c) { case 'x' -> n = 1; default -> n = 2; } switch (d) { case true -> n = 1; case false -> n = 2; } switch (e) { case "s" -> n = 1; default -> n = 2; } switch (g) { case E.ONE -> n = 1; case E.TWO -> n = 2; } return n; } }

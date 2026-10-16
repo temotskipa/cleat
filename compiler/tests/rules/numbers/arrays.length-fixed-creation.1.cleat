@@ -1,0 +1,3 @@
+//@ rule: numbers.arrays.length-fixed-creation
+//@ rejected: `Int[]` has no method named `add`
+class A { void f(Int[] xs) { xs.add(1); } }

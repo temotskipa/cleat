@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.literal-class-denote
+//@ accepted
+class A { Int8 x = 127; Int8 y = -128; UInt8 z = 0xFF; UInt64 w = 18446744073709551615; }

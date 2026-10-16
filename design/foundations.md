@@ -457,6 +457,16 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 - The earlier checker, backend and tests covered the `Int32` subset of the old design and are removed. They remain in history.
 - The numeric classes and the small regular files of the prelude are written by `compiler/tools/gen_numbers.py` and `compiler/tools/prelude_core.py`.
 
+**Labels and cases.** Assumed. You asked for stable labels in the chapters and for the cases to leave the Rust tables; these are the choices made in doing it.
+
+- A rule is a sentence of a chapter's prose or a row of one of its tables. Each sentence stands on a line of its own and ends with its label in a comment, `<!-- r[visibility.audiences.use-outside-audience] -->`, so the chapters render as they did. The Reference's form, a line `r[...]` before the rule, needs its own renderer and would show as text here.
+- A sentence ends at a `.` and not, as the earlier count had it, at a `:` or a `;`. The 25 sentences the earlier count split there are one rule each, with the cases of both parts.
+- A table that one test holds whole has one label, on its header row, and its rows have none. Every other row has its own.
+- A label is the chapter's first word, a word for its section, and the first words of the sentence when it was labelled. It does not change when the sentence is reworded or moves within its chapter.
+- A case names its rules with a line `//@ rule: label`: a program in `compiler/tests/rules/<chapter>/` with `//@ rejected: words` or `//@ accepted`, a line above a statement of a run program, a line above a test, or a line of that chapter's `reasons.txt` for a rule no program shows. A reason that only pointed to a line of a run program or to a test is now a marker there.
+- The test asks that every rule has a case and that every case names a rule. It no longer asks a sentence with the words of a requirement for a checker's program or a reason in particular, so a line of a run program now counts as that sentence's case.
+- The case of section 1.2's whitespace has a carriage return on its own. The earlier table wrote it before a line feed, and the old reader dropped it with the line ending.
+
 **Changed in the specification while implementing it.**
 
 - Sections 3.1 and 3.3: the example fields have initializers, because a field with no default must be assigned.

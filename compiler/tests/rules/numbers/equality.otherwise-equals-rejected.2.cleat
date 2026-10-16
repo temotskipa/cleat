@@ -1,0 +1,3 @@
+//@ rule: numbers.equality.otherwise-equals-rejected
+//@ rejected: `==` between `Int` and `UInt64` is rejected
+class A { Boolean f(Int n, UInt64 u) { return n == u; } }

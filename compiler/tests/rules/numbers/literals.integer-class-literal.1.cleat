@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.integer-class-literal
+//@ rejected: the literal is outside the range of `UInt8`
+class A { UInt8 g(UInt8 x) { return x + 256; } }

@@ -1,0 +1,3 @@
+//@ rule: numbers.float.float-class-not
+//@ accepted
+class A { Int f(Int a, Int b) { return a % b; } }

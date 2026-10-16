@@ -1,0 +1,3 @@
+//@ rule: generics.parameters.type-parameters-class
+//@ accepted
+interface Src<T> { T get(); } open class Base<T> { } class Box<T> extends Base<T> implements Src<T> { T v; Box(T v) { this.v = v; } @Override public T get() { return v; } }

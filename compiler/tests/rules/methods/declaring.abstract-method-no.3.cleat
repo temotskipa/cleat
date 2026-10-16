@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.abstract-method-no
+//@ accepted
+abstract class A { abstract void f(); }

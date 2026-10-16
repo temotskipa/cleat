@@ -1,0 +1,3 @@
+//@ rule: null.tests.static-type-able
+//@ rejected: the left operand of `??` is a `String`, which cannot be `null`
+class A { String f(String s) { return s ?? "x"; } }

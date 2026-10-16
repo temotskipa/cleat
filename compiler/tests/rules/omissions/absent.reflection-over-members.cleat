@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.reflection-over-members
+//@ rejected: `Class` has no method named `getMethods`
+class A { void f(Class c) { var m = c.getMethods(); } }

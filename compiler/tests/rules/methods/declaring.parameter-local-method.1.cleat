@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.parameter-local-method
+//@ rejected: it is final and may already have a value
+class A { Int f(final Int n) { n = 1; return n; } }

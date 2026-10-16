@@ -1,0 +1,3 @@
+//@ rule: numbers.classes.no-class-named
+//@ rejected: there is no type named `Int64` here
+class A { void f() { Int64 x = 1; } }

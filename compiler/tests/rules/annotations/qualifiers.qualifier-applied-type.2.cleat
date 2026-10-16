@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.qualifier-applied-type
+//@ accepted
+@Refines annotation P; class Box<T> { public @P T get(@P T x) { return x; } } class A { static Int need(@P Int n) { return n; } Int f(Box<@P Int> b, @P Int n) { return need(b.get(n)); } }

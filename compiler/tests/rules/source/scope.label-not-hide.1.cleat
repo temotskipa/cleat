@@ -1,0 +1,3 @@
+//@ rule: source.scope.label-not-hide
+//@ rejected: the label `a` is already on an enclosing statement
+class A { void f() { a: while (true) { a: while (true) { break a; } } } }

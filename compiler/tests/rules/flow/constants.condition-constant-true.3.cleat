@@ -1,0 +1,3 @@
+//@ rule: flow.constants.condition-constant-true
+//@ accepted
+class A { void g() { } void f(Boolean on) { while (on) { } g(); } }

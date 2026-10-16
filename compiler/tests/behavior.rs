@@ -42,6 +42,7 @@ cases![
     text => "Text",
     threads => "Threads",
     foreign => "Foreign",
+    //@ rule: flow.assignment.static-field-read
     statics => "Statics",
     members => "Members",
     widths => "Widths",
@@ -62,6 +63,8 @@ cases![
 
 /// Section 3.4: a method that a subclass may not name is not overridden. The subclass
 /// declares a new method, and the superclass's own calls still reach its own.
+//@ rule: visibility.overriding.subclass-declares-method
+//@ rule: execution.program.program-set-compilation
 #[test]
 fn a_method_a_class_cannot_name_is_not_overridden() {
     let dir = scratch("behavior_not_overridden");
@@ -93,6 +96,8 @@ fn a_method_a_class_cannot_name_is_not_overridden() {
 /// Section 3.6: an annotated public member of a type that is not public can be used
 /// through its mirror by code that could not name the type, and a member that is not
 /// public cannot.
+//@ rule: visibility.governs.annotated-public-member
+//@ rule: visibility.governs.case-mirror-reaches
 #[test]
 fn a_mirror_reaches_a_public_member_of_a_type_the_code_cannot_name() {
     let dir = scratch("behavior_mirror_reach");
@@ -119,6 +124,7 @@ fn a_mirror_reaches_a_public_member_of_a_type_the_code_cannot_name() {
 
 /// Section 13.1: an exception that leaves a thread's body ends that thread and no
 /// other, and its `toString` is written to the host's error stream.
+//@ rule: concurrency.threads.tostring-written-host
 #[test]
 fn an_exception_that_leaves_a_thread_is_written_to_the_error_stream() {
     let text = "public class Loud {\n    public static void main() {\n        var t = Thread.start(() -> {\n            throw new IllegalStateException(\"the body failed\");\n        });\n        t.join();\n        Console.println(\"main goes on\");\n    }\n}\n";

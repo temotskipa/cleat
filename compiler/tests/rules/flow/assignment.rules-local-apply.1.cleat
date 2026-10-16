@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.rules-local-apply
+//@ rejected: is not assigned on every path to the `super(...)` call
+class A { Int n; public A(Boolean b) { if (b) { this.n = 1; } super(); } }

@@ -1,0 +1,3 @@
+//@ rule: omissions.later.callbacks-cleat
+//@ rejected: a parameter of a `foreign` method is a machine type or an array of one
+class A { foreign static void f(Function0<Int> g); }

@@ -1,0 +1,3 @@
+//@ rule: null.null-class.variable-type-object
+//@ rejected: `null` is not a value of `Object`
+class A { void f() { Object o = null; } }

@@ -1,0 +1,6 @@
+//@ rule: source.units.file-no-package
+//@ rejected: the unnamed package
+//@ file: U.cleat
+public class U { }
+//@ file: a/B.cleat
+package a; import U; class B { }

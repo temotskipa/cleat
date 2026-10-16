@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.declaration-annotation-no
+//@ accepted
+annotation M; @M class A { @M Int x = 1; @M A() { } @M void f(@M Int p) { } } @M interface I { } @M enum E { @M ONE } @M annotation N;

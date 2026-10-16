@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.static-fields-end
+//@ rejected: the static field `n` is not assigned by its initializer or by a static initializer block
+class A { static Int n; }

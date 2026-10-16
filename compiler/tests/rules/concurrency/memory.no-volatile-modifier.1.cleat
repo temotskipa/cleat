@@ -1,0 +1,3 @@
+//@ rule: concurrency.memory.no-volatile-modifier
+//@ rejected: there is no modifier `volatile`
+class A { volatile Int x = 1; }

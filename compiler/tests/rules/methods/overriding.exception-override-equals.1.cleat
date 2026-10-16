@@ -1,0 +1,3 @@
+//@ rule: methods.overriding.exception-override-equals
+//@ rejected: an override of `toString` declares an ordinary receiver, with no qualifier
+class A { @Override public String toString(@Nullable A this) { return "a"; } }

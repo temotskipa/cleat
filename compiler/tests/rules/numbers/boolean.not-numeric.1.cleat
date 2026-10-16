@@ -1,0 +1,3 @@
+//@ rule: numbers.boolean.not-numeric
+//@ rejected: `+` is the method `plus`, and `Boolean` has no method `plus`
+class A { Int f(Boolean b) { return b + 1; } }

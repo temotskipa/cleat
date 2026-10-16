@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.nullable-static-field
+//@ accepted
+class A { static @Nullable String s; static @Nullable Int n; }

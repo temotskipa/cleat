@@ -1,0 +1,3 @@
+//@ rule: syntax.declarations.places-before-first
+//@ rejected: a declaration annotation is written before the modifiers of the declaration it marks
+annotation M; class A { public @M Int f() { return 1; } }

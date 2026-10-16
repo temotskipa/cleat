@@ -1,0 +1,3 @@
+//@ rule: methods.overriding.result-type-method
+//@ rejected: the result `Object` is not `Shape` or a subtype of it
+open class Shape { public open Shape copy() { return new Shape(); } } class Circle extends Shape { @Override public Object copy() { return new Circle(); } }

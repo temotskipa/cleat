@@ -55,6 +55,7 @@ public class Nulls {
         if (o instanceof String) {
             Console.println(o.length());
         }
+        //@ rule: annotations.nullable.reason-cast-name
         try {
             String s = (String) maybe;
             Console.println(s);

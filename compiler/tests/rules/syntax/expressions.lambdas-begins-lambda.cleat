@@ -1,0 +1,3 @@
+//@ rule: syntax.expressions.lambdas-begins-lambda
+//@ accepted
+class A { Int g(Int a, Int b) { Function1<Int, Int> f = (x) -> (x) + 1; Function2<Int, Int, Int> h = (x, y) -> (x) * (y); return (a) + (b) + f.invoke(a) + h.invoke(a, b); } }

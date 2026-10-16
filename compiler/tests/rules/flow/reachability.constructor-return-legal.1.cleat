@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.constructor-return-legal
+//@ rejected: in a constructor, `return;` is legal only after the `super(...)` or `this(...)` call that the body writes
+class A { Int n; public A(Int n) { if (n > 0) { return; } this.n = n; super(); } }

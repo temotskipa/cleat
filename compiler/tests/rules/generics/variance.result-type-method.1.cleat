@@ -1,0 +1,3 @@
+//@ rule: generics.variance.result-type-method
+//@ rejected: `T` is declared `out` and is written where a value is consumed
+interface Bad<out T> { void put(T x); }

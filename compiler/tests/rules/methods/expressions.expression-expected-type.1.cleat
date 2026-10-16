@@ -1,0 +1,3 @@
+//@ rule: methods.expressions.expression-expected-type
+//@ rejected: the literal is outside the range of `UInt8`
+class A { UInt8 f(Boolean c) { return c ? 1 : 256; } }

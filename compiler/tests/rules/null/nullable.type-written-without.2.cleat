@@ -1,0 +1,3 @@
+//@ rule: null.nullable.type-written-without
+//@ rejected: `null` is not a value of `List<String>`
+class A { List<String> f() { return null; } }

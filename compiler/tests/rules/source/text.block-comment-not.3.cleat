@@ -1,0 +1,3 @@
+//@ rule: source.text.block-comment-not
+//@ accepted
+/* a /* b */ class A { }

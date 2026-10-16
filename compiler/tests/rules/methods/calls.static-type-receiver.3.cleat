@@ -1,0 +1,3 @@
+//@ rule: methods.calls.static-type-receiver
+//@ accepted
+@Refines annotation Priced; class Order { public Int unitPrice(@Priced Order this) { return 1; } public Int id() { return 2; } } class C { Int f(@Priced Order o) { return o.unitPrice() + o.id(); } }

@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.prelude-declares-general
+//@ accepted
+class A { void f() { Function0<Int> a = () -> 1; Function1<Int, Int> b = (x) -> x; Function2<Int, Int, Int> c = (x, y) -> x + y; } }

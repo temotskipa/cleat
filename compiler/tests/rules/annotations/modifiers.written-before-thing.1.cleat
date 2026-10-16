@@ -1,0 +1,3 @@
+//@ rule: annotations.modifiers.written-before-thing
+//@ rejected: expected `;`, found `@`
+annotation M; class A { public final Int x @M = 1; }

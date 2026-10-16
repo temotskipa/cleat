@@ -1,0 +1,22 @@
+# The rules of chapter 10 that no program shows, each with the reason.
+
+omissions.intro.through-language: It says how the document is arranged.
+omissions.intro.lists-leave-out: It says how the document is arranged.
+omissions.intro.implementation-not-give: It binds an implementation; the cases of section 2.11 show the omitted features rejected.
+omissions.absent.absent-design: It introduces the list after it, whose items have their own cases.
+omissions.later.added-later: It introduces the list after it, whose items have their own cases.
+omissions.later.nothing-version-depends: It is about features that are not in the language.
+omissions.implementation.implementation-chooses-following: It introduces the list after it.
+omissions.implementation.program-rely-cited: It limits what a program may assume, and no program can be shown to break it.
+omissions.implementation.how-instance-stored: It leaves this to the implementation, and names the chapter that says what a program may rely on.
+omissions.implementation.how-instantiations-generic: It leaves this to the implementation, and names the chapter that says what a program may rely on.
+omissions.implementation.how-storage-reclaimed: It leaves this to the implementation, and names the chapter that says what a program may rely on.
+omissions.implementation.characters-default-tostring: It leaves this to the implementation, and names the chapter that says what a program may rely on.
+omissions.implementation.value-default-hashcode: It leaves this to the implementation.
+omissions.implementation.agrees-equals-not: It binds what an implementation chooses.
+omissions.implementation.how-rational-stored: It leaves this to the implementation, and names the chapter that says what a program may rely on.
+omissions.implementation.recorded-about-exception: It leaves this to the implementation, and names the chapter that says what a program may rely on.
+omissions.implementation.how-threads-scheduled: It leaves this to the implementation, and names the chapter that says what a program may rely on.
+omissions.implementation.how-entry-class: It leaves this to the implementation, and names the chapter that says what a program may rely on.
+omissions.implementation.platform-calling-convention: It leaves this to the implementation, and names the chapter that says what a program may rely on.
+omissions.implementation.limit-depth-calls: It leaves this to the implementation.

@@ -1,0 +1,3 @@
+//@ rule: methods.assignability.equals-casts-instanceof
+//@ rejected: a cast from `P` to `Q` is rejected: the types are disjoint
+class P { } class Q { } class C { Q f(P a) { return (Q) a; } }

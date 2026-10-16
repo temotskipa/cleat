@@ -1,0 +1,6 @@
+//@ rule: annotations.narrowing.narrows-class-method
+//@ rejected: a `@Narrows` method is declared in the package that declares its qualifier
+//@ file: a/Positive.cleat
+package a; @Refines public annotation Positive;
+//@ file: b/Counts.cleat
+package b; import a.Positive; public class Counts { @Narrows(Positive.class) public static Boolean isPositive(Int n) { return n > 0; } }

@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.constructor-calls-this
+//@ accepted
+class A { Int n; public A() { this.n = 1; super(); } public A(Int k) { this(); n = k; } }

@@ -1,0 +1,3 @@
+//@ rule: generics.variance.out-parameter-subtype
+//@ accepted
+class A { Iterable<Object> f(Iterable<String> x) { return x; } }

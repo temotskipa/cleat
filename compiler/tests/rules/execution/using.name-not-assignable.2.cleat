@@ -1,0 +1,3 @@
+//@ rule: execution.using.name-not-assignable
+//@ accepted
+class R { public void close() { } } class A { void f() { using (R r = new R()) { var s = r; } } }

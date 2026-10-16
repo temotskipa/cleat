@@ -1,0 +1,6 @@
+//@ rule: visibility.audiences.protected-code-declaring
+//@ rejected: the field `x` of `A` is outside its audience here
+//@ file: a/A.cleat
+package a; public open class A { protected Int x = 1; }
+//@ file: a/B.cleat
+package a; class B { Int f(A v) { return v.x; } }

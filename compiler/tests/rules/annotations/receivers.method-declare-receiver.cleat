@@ -1,0 +1,3 @@
+//@ rule: annotations.receivers.method-declare-receiver
+//@ accepted
+@Refines annotation Priced; class Order { public Int unitPrice(@Priced Order this) { return 1; } }

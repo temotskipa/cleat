@@ -1,0 +1,3 @@
+//@ rule: syntax.declarations.method-ends-place
+//@ rejected: the method `f` needs a body
+class A { Int f(); }

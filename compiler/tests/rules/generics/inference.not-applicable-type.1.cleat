@@ -1,0 +1,3 @@
+//@ rule: generics.inference.not-applicable-type
+//@ rejected: the type arguments of `g` cannot be inferred from this call
+class A { static <T extends Throwable> void g(T x) { } static void f(String s) { g(s); } }

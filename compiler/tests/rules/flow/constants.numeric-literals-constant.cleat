@@ -1,0 +1,3 @@
+//@ rule: flow.constants.numeric-literals-constant
+//@ accepted
+class A { static final Int8 SMALL = 5; static final Int WIDE = SMALL + 1; static final Float64 HALF = 1 / 2.0; Int f(Int n) { return switch (n) { case WIDE -> 1; default -> 0; }; } }

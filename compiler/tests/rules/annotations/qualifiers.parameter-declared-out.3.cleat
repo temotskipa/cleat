@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.parameter-declared-out
+//@ accepted
+@Refines annotation P; interface Source<out T> { T get(); } interface Sink<in T> { void put(T x); } class A { Source<Int> f(Source<@P Int> s) { return s; } Sink<@P Int> g(Sink<Int> s) { return s; } List<? extends Int> h(List<@P Int> xs) { return xs; } }

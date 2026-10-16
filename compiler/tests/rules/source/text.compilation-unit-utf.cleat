@@ -1,0 +1,3 @@
+//@ rule: source.text.compilation-unit-utf
+//@ accepted
+class A { String s = "é漢😀"; }

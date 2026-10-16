@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.switch-statement-arm
+//@ rejected: this statement is unreachable
+class A { void g() { } Int f(Int n) { switch (n) { case 1 -> { return 1; } default -> { return 2; } } g(); return 3; } }

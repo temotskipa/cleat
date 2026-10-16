@@ -1,0 +1,3 @@
+//@ rule: objects.absent.rejected-program-writes
+//@ rejected: a type is not declared inside another type
+class A { class B { } }

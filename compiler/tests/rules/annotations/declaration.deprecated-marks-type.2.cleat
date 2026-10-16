@@ -1,0 +1,3 @@
+//@ rule: annotations.declaration.deprecated-marks-type
+//@ accepted
+@Deprecated class Old { @Deprecated Int x = 1; @Deprecated Old() { } @Deprecated("use g") void f() { } }

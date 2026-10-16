@@ -1,0 +1,3 @@
+//@ rule: execution.storage.no-finalizer-weak
+//@ rejected: `Object` has no method named `address`
+class A { void f(Object o) { var w = o.address(); } }

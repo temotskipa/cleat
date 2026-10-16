@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.int-positive-qualifies
+//@ accepted
+class A { Int f(Int @Nullable [] xs) { return xs == null ? 0 : xs.length(); } }

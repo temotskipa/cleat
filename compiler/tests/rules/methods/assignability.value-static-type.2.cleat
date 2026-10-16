@@ -1,0 +1,3 @@
+//@ rule: methods.assignability.value-static-type
+//@ accepted
+open class Shape { } class Circle extends Shape { } class Square extends Shape { } class A { Shape f(Circle c) { Shape s = c; Object o = s; return c; } }

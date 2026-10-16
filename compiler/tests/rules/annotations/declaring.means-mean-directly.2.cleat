@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.means-mean-directly
+//@ accepted
+class A { @Nullable public String find() { return null; } Int g() { var s = find(); return s == null ? 0 : s.length(); } }

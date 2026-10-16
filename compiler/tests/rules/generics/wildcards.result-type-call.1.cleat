@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.result-type-call
+//@ rejected: cannot be inferred from this call
+open class Shape { } class A { static <T> List<T> same(List<T> xs) { return xs; } List<Shape> g(List<? extends Shape> xs) { return same(xs); } }

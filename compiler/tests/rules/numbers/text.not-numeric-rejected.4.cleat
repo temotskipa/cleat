@@ -1,0 +1,3 @@
+//@ rule: numbers.text.not-numeric-rejected
+//@ rejected: `Char` has no method named `plus`
+class A { Char f(Char c) { return c.plus(c); } }

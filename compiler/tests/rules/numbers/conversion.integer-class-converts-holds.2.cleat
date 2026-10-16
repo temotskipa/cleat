@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.integer-class-converts-holds
+//@ rejected: `Int8` is not assignable to `UInt8`
+class A { UInt8 f(Int8 b) { return b; } }

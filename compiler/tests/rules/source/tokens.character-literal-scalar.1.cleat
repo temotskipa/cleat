@@ -1,0 +1,3 @@
+//@ rule: source.tokens.character-literal-scalar
+//@ rejected: a character literal holds exactly one scalar
+class A { Char a = 'ab'; }

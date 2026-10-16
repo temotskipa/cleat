@@ -1,0 +1,3 @@
+//@ rule: generics.bounds.inside-declaration-value
+//@ rejected: `T` has no method named `name`
+class A { static <T> String f(T x) { return x.name(); } }

@@ -1,0 +1,6 @@
+//@ rule: visibility.audiences.protected-code-declaring
+//@ accepted
+//@ file: a/A.cleat
+package a; public open class A { protected Int x = 1; Int own(A v) { return v.x; } }
+//@ file: b/B.cleat
+package b; class B extends a.A { Int f() { return x; } }

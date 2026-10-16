@@ -1,0 +1,4 @@
+//@ rule: execution.program.compiler-sees-unit
+//@ rejected: `b` is not a variable, a field or a type in scope
+//@ file: a/A.cleat
+package a; public class A { public static Int f() { return b.B.g(); } }

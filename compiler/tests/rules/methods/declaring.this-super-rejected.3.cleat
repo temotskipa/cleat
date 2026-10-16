@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.this-super-rejected
+//@ accepted
+class A { Int n = 1; Int f() { return this.n; } String g() { return super.toString(); } }

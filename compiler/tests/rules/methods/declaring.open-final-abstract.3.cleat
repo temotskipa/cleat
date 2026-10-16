@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.open-final-abstract
+//@ rejected: `abstract final` and `abstract static` are rejected
+abstract class A { abstract static void f(); }

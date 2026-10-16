@@ -1,0 +1,3 @@
+//@ rule: objects.classes.fields-final-without
+//@ accepted
+value class V { public Int a; public final Int b; }

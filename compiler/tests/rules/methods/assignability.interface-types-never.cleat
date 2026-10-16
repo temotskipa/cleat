@@ -1,0 +1,3 @@
+//@ rule: methods.assignability.interface-types-never
+//@ accepted
+interface I { } interface J { } class C { <T> Boolean f(I i, J j, T t, String s) { return i == j && t == s; } }

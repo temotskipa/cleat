@@ -1,0 +1,22 @@
+# The rules of chapter 8 that no program shows, each with the reason.
+
+annotations.modifiers.kinds: It introduces the two kinds after it, which have their own cases.
+annotations.modifiers.annotation-add-member: It says what annotations do not do; no program can ask for it.
+annotations.declaring.position-annotation-written: It introduces the two places after it, which have their own cases.
+annotations.receivers.three-consequences-follow: It introduces the three consequences after it, which have their own cases.
+annotations.narrowing.package-decides-means: It says who is answerable for a qualifier's meaning. The rule that enforces it is the sentence before it.
+annotations.narrowing.qualifier-describe-fact: It binds the author of a qualifier, and no checker decides it.
+annotations.narrowing.language-not-check: It says what is left unchecked.
+annotations.narrowing.author-narrows-method: It places an obligation on an author, and the sentence before it says the language does not check it.
+annotations.narrowing.fact-about-number: It explains the obligation of the sentence before it.
+annotations.nullable.nullable-differs-qualifier: It introduces the two ways after it, which have their own cases.
+annotations.nullable.follow-null-built: It gives the reason for the two differences, which have their own cases.
+annotations.tags.tag-claim-author: It says what a tag stands for. The compiler checks that a tag is written, and never what it claims.
+annotations.tags.gives-rule-instantiation: It points to chapter 7, whose sentences have their own cases.
+annotations.declaration.author-implicit-method: It is a promise by the author of the method.
+annotations.declaration.language-not-check: It says what is left unchecked.
+annotations.declaration.conversion-fail-lose: It is a promise by the method's author, and the paragraph says the language does not check it.
+annotations.reading.mirror-checks-compiler: It introduces the table after it, whose rows have their own cases.
+annotations.prelude.rules-compiler: It points to sections 8.2 to 8.8, whose sentences have their own cases.
+annotations.prelude.annotation-program-declares: It sums up sections 8.2, 8.7 and 8.9, whose sentences have their own cases.
+annotations.prelude.means-beyond-decided: It leaves a meaning to the program, and so states nothing a compiler or a run can show.

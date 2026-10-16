@@ -1,0 +1,3 @@
+//@ rule: objects.statics.generic-type-written
+//@ rejected: `List` is generic and is written with its type arguments
+class A { Class f() { return List.class; } }

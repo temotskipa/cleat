@@ -1,0 +1,6 @@
+//@ rule: source.units.compilation-unit-optional
+//@ rejected: expected a class, an interface, an enum or an annotation, found `a`
+//@ file: a/A.cleat
+import b.B; package a; class A { }
+//@ file: b/B.cleat
+package b; public class B { }

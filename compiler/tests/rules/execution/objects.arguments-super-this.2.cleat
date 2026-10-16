@@ -1,0 +1,3 @@
+//@ rule: execution.objects.arguments-super-this
+//@ rejected: no method is called on `this` before `super(...)` is called, and `helper` is an instance method
+class A { Int x; public A() { this(helper()); } public A(Int x) { this.x = x; } Int helper() { return 1; } }

@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.start-catch-finally
+//@ accepted
+class A { Int f() { Int n = 0; try { n = 1; } catch (Throwable e) { return n; } finally { var m = n; } return n; } }

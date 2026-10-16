@@ -1,0 +1,6 @@
+//@ rule: visibility.overriding.method-overridden-only
+//@ accepted
+//@ file: a/A.cleat
+package a; public open class A { package open Int f() { return 1; } }
+//@ file: b/B.cleat
+package b; import a.A; public class B extends A { public Int f() { return 2; } }

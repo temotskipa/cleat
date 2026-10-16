@@ -1,0 +1,3 @@
+//@ rule: methods.operators.operator-call-method
+//@ accepted
+class P { public P plus(P o) { return this; } public P negate() { return this; } } class A { P f(P a, P b) { return -a + b; } }

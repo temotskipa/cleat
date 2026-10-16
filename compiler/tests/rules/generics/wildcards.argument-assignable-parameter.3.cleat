@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.argument-assignable-parameter
+//@ rejected: `Object` is not assignable to
+class A { void f(List<? super String> xs, Object o) { xs.add(o); } }

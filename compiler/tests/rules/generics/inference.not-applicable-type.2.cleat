@@ -1,0 +1,3 @@
+//@ rule: generics.inference.not-applicable-type
+//@ accepted
+class A { static <T extends Throwable> void g(T x) { } static void f(IllegalStateException s) { g(s); } }

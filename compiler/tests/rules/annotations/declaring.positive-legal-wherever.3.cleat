@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.positive-legal-wherever
+//@ accepted
+@Refines annotation Positive; class B { @Positive Int f(@Positive Int n) { List<@Positive Int> xs = new List<@Positive Int>(); return n; } }

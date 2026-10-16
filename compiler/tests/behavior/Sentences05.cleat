@@ -1,5 +1,5 @@
-// Chapter 5 at run time. tests/spec_rules/described_05.rs names a line of this
-// program's output for each sentence it shows.
+// Chapter 5 at run time. A line `//@ rule:` names the rule that the next statement
+// shows.
 package t;
 
 class Holder {
@@ -35,20 +35,29 @@ public class Sentences05 {
         @Nullable String missing = null;
         Int n = 5;
 
+        //@ rule: null.nullable.nullable-field-no
         Console.println("nullable field: " + (new Holder().text == null));
+        //@ rule: null.sends.open-null-declares
+        //@ rule: null.sends.receiver-null-method
         Console.println("Null methods: " + none.toString() + " " + none.hashCode() + " " + none.equals(null) + " " + none.equals("x"));
+        //@ rule: null.sends.override-equals-returns
         Console.println("equals null: " + "s".equals(null) + " " + n.equals(null) + " " + new Point(1).equals(null) + " " + new Holder().equals(null));
 
+        //@ rule: null.tests.value-not-null
         Console.println("coalesce, left is not null:");
         var kept = some ?? loud("the right operand");
         Console.println("coalesce, left is null:");
         var taken = missing ?? loud("the right operand");
+        //@ rule: null.tests.coalesce-evaluates
+        //@ rule: null.tests.otherwise-result-value
         Console.println("coalesce: " + kept + " " + taken);
 
         @Nullable Boolean no = false;
+        //@ rule: null.tests.coalesce-binds-more
         Console.println("precedence: " + (missing ?? missing ?? "c") + " " + (no ?? true || true) + " " + ((true ? missing : some ?? "z") == null));
 
         Object text = "text";
+        //@ rule: null.casts.cast-class-test
         try {
             var s = (String) text;
             var i = (Int) text;
@@ -56,29 +65,39 @@ public class Sentences05 {
         } catch (ClassCastException e) {
             Console.println("casts: a String is not an Int");
         }
+        //@ rule: null.casts.raises-classcastexception-value
         try {
             var s = (String) none;
             Console.println("cast of null: " + s);
         } catch (ClassCastException e) {
             Console.println("cast of null: raises");
         }
+        //@ rule: null.casts.nullable-accepts-null
         Console.println("nullable cast: " + ((@Nullable String) none == null));
+        //@ rule: null.casts.null-instanceof-false
         Console.println("instanceof null: " + (none instanceof String) + " " + (none instanceof Object));
 
         Object plain = new List<String>();
         Object nullable = new List<@Nullable String>();
+        //@ rule: null.type-arguments.nullability-type-argument
+        //@ rule: null.type-arguments.list-string-nullable
         Console.println("type arguments: " + (plain instanceof List<String>) + " " + (plain instanceof List<@Nullable String>) + " " + (nullable instanceof List<@Nullable String>) + " " + (plain.getClass() == nullable.getClass()) + " " + nullable.getClass().getName());
 
+        //@ rule: null.type-arguments.inside-generic-code
+        //@ rule: null.type-arguments.argument-string-null
         try {
             var s = new Caster<String>().cast(null);
             Console.println("generic cast to String: " + s);
         } catch (ClassCastException e) {
             Console.println("generic cast to String: raises");
         }
+        //@ rule: null.type-arguments.argument-nullable-string
         Console.println("generic cast to @Nullable String: " + (new Caster<@Nullable String>().cast(null) == null));
 
         Unit a = nothing();
         Unit b = alsoNothing();
+        //@ rule: null.unit.unit-final-value
+        //@ rule: null.unit.returns-unit-instance
         Console.println("Unit: " + a.identical(b) + " " + a.getClass().getName());
     }
 }

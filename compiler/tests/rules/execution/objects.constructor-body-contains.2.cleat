@@ -1,0 +1,3 @@
+//@ rule: execution.objects.constructor-body-contains
+//@ rejected: `super(...)` is written as a statement of a constructor's body itself, not inside another statement
+open class B { public B(Int x) { } } class D extends B { public D(Boolean c) { if (c) { super(1); } } }

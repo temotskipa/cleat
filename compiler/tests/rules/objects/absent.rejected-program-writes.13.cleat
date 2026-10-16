@@ -1,0 +1,3 @@
+//@ rule: objects.absent.rejected-program-writes
+//@ rejected: `>>>` is not an operator
+class A { Int f(Int a) { return a >>> 1; } }

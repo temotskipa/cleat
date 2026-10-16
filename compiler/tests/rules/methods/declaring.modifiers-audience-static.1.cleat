@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.modifiers-audience-static
+//@ rejected: there is no modifier `synchronized`
+class A { synchronized Int f() { return 1; } }

@@ -1,0 +1,3 @@
+//@ rule: objects.classes.class-declared-value
+//@ accepted
+value class V { public Int a; } class A { V f() { return new V(1); } }

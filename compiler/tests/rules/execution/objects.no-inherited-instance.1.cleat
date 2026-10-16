@@ -1,0 +1,3 @@
+//@ rule: execution.objects.no-inherited-instance
+//@ rejected: the inherited field `inherited` is not used before `super(...)` is called
+open class B { public Int inherited = 1; } class D extends B { Int x; public D() { this.x = inherited; super(); } }

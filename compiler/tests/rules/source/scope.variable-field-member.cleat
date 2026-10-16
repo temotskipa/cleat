@@ -1,0 +1,3 @@
+//@ rule: source.scope.variable-field-member
+//@ accepted
+class P { public Int n = 1; } class A { P p = new P(); Int f(P q) { return q.n + p.n; } }

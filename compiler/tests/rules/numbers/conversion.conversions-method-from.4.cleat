@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.conversions-method-from
+//@ rejected: `Float32` is not assignable to `Rational`
+class A { void f(Float32 x) { Rational r = x; } }

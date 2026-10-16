@@ -1,0 +1,3 @@
+//@ rule: execution.try.type-clause-throwable
+//@ accepted
+class E extends IllegalStateException { } class A { void f() { try { } catch (E e) { } catch (Throwable e) { } } }

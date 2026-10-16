@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.assignment-rejected-unless
+//@ rejected: it is final and may already have a value
+class A { void f(Int k) { final Int n; while (k > 0) { n = 1; k--; } } }

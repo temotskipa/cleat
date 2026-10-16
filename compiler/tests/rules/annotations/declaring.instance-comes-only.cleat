@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.instance-comes-only
+//@ rejected: `new M` is rejected: an annotation value comes only from a use of the annotation
+annotation M(Int n); class A { M f() { return new M(1); } }

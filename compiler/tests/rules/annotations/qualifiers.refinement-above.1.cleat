@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.refinement-above
+//@ rejected: `Int` is not assignable to `@P Int`
+@Refines annotation P; class A { static Int need(@P Int n) { return n; } Int g(Int n) { return need(n); } }

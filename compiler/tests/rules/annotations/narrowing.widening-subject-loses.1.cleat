@@ -1,0 +1,3 @@
+//@ rule: annotations.narrowing.widening-subject-loses
+//@ rejected: `@Raw String` is not assignable to `String`
+@Widens annotation Raw; class Checks { @Narrows(Raw.class) public static Boolean isClean(@Raw String s) { return true; } } class A { String f(@Raw String s) { if (!Checks.isClean(s)) { return s; } return ""; } }

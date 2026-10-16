@@ -1,0 +1,3 @@
+//@ rule: null.casts.writing-nullable-type
+//@ accepted
+class A { Boolean f(@Nullable Object o) { return o instanceof String; } }

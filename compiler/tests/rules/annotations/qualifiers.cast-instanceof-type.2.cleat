@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.cast-instanceof-type
+//@ accepted
+@Refines annotation P; class C { Boolean f(Object o) { return o instanceof List<@P Int>; } }

@@ -1,0 +1,3 @@
+//@ rule: visibility.only.subclass-listed-type
+//@ rejected: the field `x` of `A` is outside its audience here
+class A { package only(B) Int x = 1; } open class B { } class C extends B { Int f(A a) { return a.x; } }

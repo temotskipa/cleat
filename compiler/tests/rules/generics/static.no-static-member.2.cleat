@@ -1,0 +1,3 @@
+//@ rule: generics.static.no-static-member
+//@ rejected: no bound of `T` requires a static method named `next`
+class K { public static Int next() { return 1; } } class A { static <T extends K> Int f() { return T.next(); } }

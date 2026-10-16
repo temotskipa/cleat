@@ -1,0 +1,3 @@
+//@ rule: syntax.statements.arm-read-case
+//@ accepted
+class A { Int f(Object o) { switch (o) { case String s -> { return s.length(); } case List<Int> xs -> { return xs.size(); } default -> { return 0; } } } }

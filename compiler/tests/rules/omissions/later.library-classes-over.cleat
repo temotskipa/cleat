@@ -1,0 +1,3 @@
+//@ rule: omissions.later.library-classes-over
+//@ accepted
+value class Complex<T extends Numeric<T>> { public T re; public T im; public Complex<T> plus(Complex<T> o) { return new Complex<T>(re + o.re, im + o.im); } } class A { Complex<Float64> f(Complex<Float64> a) { return a + a; } }

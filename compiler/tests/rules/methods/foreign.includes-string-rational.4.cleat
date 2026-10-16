@@ -1,0 +1,3 @@
+//@ rule: methods.foreign.includes-string-rational
+//@ rejected: a parameter of a `foreign` method is a machine type or an array of one
+interface I { } class A { foreign static Int32 f(I i); }

@@ -1,0 +1,13 @@
+# The rules of chapter 6 that no program shows, each with the reason.
+
+numbers.classes.first-rows-integer: It gives a name to eight classes, and the sentences that use the name have their own cases.
+numbers.classes.third-row-float: It gives a name to two classes, and the sentences that use the name have their own cases.
+numbers.interfaces.nothing-depends-class: It says what the chapter leaves out. The sentence before it has the case of a class the program declares.
+numbers.literals.literals-literal-expression: It introduces the three rules after it, which have their own cases.
+numbers.integer.integer-division-written: It introduces the table after it, whose rows have their own cases.
+numbers.rational.operation-result-stored: It says what a running program does when storage runs out.
+numbers.rational.how-value-stored: It says that a choice of the implementation cannot be seen, so no program shows it.
+numbers.text.prelude-declare-more: It says what the prelude may add, and no program shows that it does not.
+numbers.arrays.three-ways-create: It introduces the three ways after it, which have their own cases.
+numbers.arrays.how-array-stores: It says that a choice of the implementation cannot be seen, so no program shows it.
+numbers.boolean.forms-syntax-defined: It points to chapter 4, whose sentences have their own cases.

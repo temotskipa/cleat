@@ -1,0 +1,3 @@
+//@ rule: flow.narrowing.assignment-ends-fact
+//@ rejected: `Object` has no method named `length`
+class A { Int f(Object o, Object p) { if (o instanceof String) { o = p; return o.length(); } return 0; } }

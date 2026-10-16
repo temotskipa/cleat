@@ -1,0 +1,3 @@
+//@ rule: flow.constants.constant-string
+//@ accepted
+annotation M(String s); @M("v" + 2) class A { static final String V2 = "v" + 2; }

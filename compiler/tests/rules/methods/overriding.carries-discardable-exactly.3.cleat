@@ -1,0 +1,3 @@
+//@ rule: methods.overriding.carries-discardable-exactly
+//@ accepted
+open class S { @Discardable public open Int f() { return 1; } } class D extends S { @Override @Discardable public Int f() { return 2; } }

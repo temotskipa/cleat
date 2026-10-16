@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.integer-class-converts-rational
+//@ rejected: `Float64` is not assignable to `Rational`
+class A { Rational f(Float64 x) { return x; } }

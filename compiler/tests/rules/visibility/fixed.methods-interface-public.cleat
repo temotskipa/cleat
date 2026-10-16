@@ -1,0 +1,6 @@
+//@ rule: visibility.fixed.methods-interface-public
+//@ accepted
+//@ file: a/I.cleat
+package a; public interface I { Int f(); Int X = 1; }
+//@ file: b/B.cleat
+package b; class B { Int g(a.I i) { return i.f() + a.I.X; } }

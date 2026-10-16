@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.member-signature-read
+//@ accepted
+class A { Int n(List<?> xs) { return xs.size() + xs.get(0).hashCode(); } }

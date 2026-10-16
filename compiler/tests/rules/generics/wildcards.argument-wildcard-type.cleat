@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.argument-wildcard-type
+//@ accepted
+open class Shape { } class A { static <T> Int count(List<T> xs) { return xs.size(); } Int f(List<?> a, List<? extends Shape> b, List<? super Shape> c) { return count(a) + count(b) + count(c); } }

@@ -1,0 +1,3 @@
+//@ rule: methods.expressions.value-assignable-location
+//@ rejected: `String` is not assignable to `Int`
+class A { Int[] a = new Int[2]; void f(String s) { a[0] = s; } }

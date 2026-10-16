@@ -1,0 +1,3 @@
+//@ rule: objects.statics.no-reflection
+//@ rejected: `Class` has no method named `getDeclaredFields`
+class A { void f(Class c) { var m = c.getDeclaredFields(); } }

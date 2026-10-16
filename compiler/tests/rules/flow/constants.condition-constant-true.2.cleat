@@ -1,0 +1,3 @@
+//@ rule: flow.constants.condition-constant-true
+//@ rejected: a loop whose condition is the constant `false` is rejected
+class A { void f() { while (1 > 2) { } } }

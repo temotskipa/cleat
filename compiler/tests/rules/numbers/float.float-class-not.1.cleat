@@ -1,0 +1,3 @@
+//@ rule: numbers.float.float-class-not
+//@ rejected: `%` is the method `mod`, and `Float64` has no method `mod`
+class A { Float64 f(Float64 a, Float64 b) { return a % b; } }

@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.arm-switch-catch
+//@ accepted
+class A { void g() { } void f(Int n) { switch (n) { case 1 -> { g(); } default -> { g(); } } try { g(); } catch (ArithmeticException e) { g(); } catch (Throwable e) { g(); } finally { g(); } } }

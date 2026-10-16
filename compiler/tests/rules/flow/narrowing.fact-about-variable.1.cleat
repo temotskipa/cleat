@@ -1,0 +1,3 @@
+//@ rule: flow.narrowing.fact-about-variable
+//@ rejected: `length` is sent to a `@Nullable String`
+class A { Function0<Int> f(@Nullable String s) { return () -> s.length(); } }

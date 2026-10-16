@@ -1,0 +1,3 @@
+//@ rule: objects.classes.extends-no-class
+//@ accepted
+interface I { } value class V implements I { public Int a; }

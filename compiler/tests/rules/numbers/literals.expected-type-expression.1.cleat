@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.expected-type-expression
+//@ rejected: the literal is outside the range of `UInt8`
+class A { static void take(UInt8 b) { } void g() { take(256); } }

@@ -1,0 +1,3 @@
+//@ rule: source.tokens.separators-operators-reference
+//@ accepted
+annotation M; class A { @M Int[] a = new Int[] { 1, 2 }; Function1<Int, String> f = Int::toString; Function0<Int> g() { return () -> a[0]; } static Int sum(Int... xs) { return xs.length(); } Int h() { return sum(1, 2, 3); } }

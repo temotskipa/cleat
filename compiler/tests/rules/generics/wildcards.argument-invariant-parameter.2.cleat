@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.argument-invariant-parameter
+//@ accepted
+open class Shape { } class Box<T> { public List<T> all() { return new List<T>(); } } class A { List<? extends Shape> f(Box<? extends Shape> b) { return b.all(); } }

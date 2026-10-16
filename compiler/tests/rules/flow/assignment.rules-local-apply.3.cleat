@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.rules-local-apply
+//@ accepted
+class A { Int n; Int m; public A(Boolean b) { if (b) { this.n = 1; } else { this.n = 2; } this.m = n + 1; super(); } }

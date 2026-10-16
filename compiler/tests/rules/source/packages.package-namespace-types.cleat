@@ -1,0 +1,8 @@
+//@ rule: source.packages.package-namespace-types
+//@ accepted
+//@ file: a/X.cleat
+package a; public class X { }
+//@ file: a/b/Y.cleat
+package a.b; public class Y { }
+//@ file: C.cleat
+class C { void f(a.X x, a.b.Y y) { } }

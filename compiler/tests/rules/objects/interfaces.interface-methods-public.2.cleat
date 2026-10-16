@@ -1,0 +1,6 @@
+//@ rule: objects.interfaces.interface-methods-public
+//@ accepted
+//@ file: a/I.cleat
+package a; public interface I { Int f(); }
+//@ file: b/B.cleat
+package b; import a.I; class B { Int g(I i) { return i.f(); } }

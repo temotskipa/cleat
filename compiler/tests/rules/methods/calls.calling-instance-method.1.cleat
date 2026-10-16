@@ -1,0 +1,3 @@
+//@ rule: methods.calls.calling-instance-method
+//@ rejected: `g` is an instance method, and a static method has no receiver to call it on
+class A { void g() { } static void f() { g(); } }

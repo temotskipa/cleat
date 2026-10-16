@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.unreachable-statement-rejected
+//@ rejected: this statement is unreachable
+class A { void f() { while (true) { break; f(); } } }

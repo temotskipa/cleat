@@ -1,0 +1,3 @@
+//@ rule: objects.enums.program-not-write
+//@ accepted
+enum E { A } class A { String f(Enum e) { return e.name(); } }

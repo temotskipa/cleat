@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.finalizers-weak-references
+//@ rejected: `Object` has no method named `finalize`
+class A { void f(Object o) { o.finalize(); } }

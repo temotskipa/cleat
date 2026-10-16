@@ -1,0 +1,3 @@
+//@ rule: source.tokens.reserved-word-rejected
+//@ rejected: `long` is a reserved word
+class A { Int long = 1; }

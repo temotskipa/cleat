@@ -1,0 +1,3 @@
+//@ rule: execution.using.var-written
+//@ accepted
+class R { public void close() { } } class A { void f() { using (var r = new R()) { } using (R a = new R(), var b = new R()) { } } }

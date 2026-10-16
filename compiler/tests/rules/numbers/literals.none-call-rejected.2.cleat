@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.none-call-rejected
+//@ accepted
+class A { static void g(Int8 a) { } static void g(Int16 a) { } static void g(Int a) { } static void f() { g(1); } }

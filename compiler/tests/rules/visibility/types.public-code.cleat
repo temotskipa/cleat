@@ -1,0 +1,8 @@
+//@ rule: visibility.types.public-code
+//@ accepted
+//@ file: a/A.cleat
+package a; public class A { }
+//@ file: b/B.cleat
+package b; class B { void f(a.A v) { } }
+//@ file: C.cleat
+class C { void f(a.A v) { } }

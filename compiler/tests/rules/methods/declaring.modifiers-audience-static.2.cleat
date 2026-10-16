@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.modifiers-audience-static
+//@ accepted
+abstract class A { public static Int a() { return 1; } public final Int b() { return 1; } public open Int c() { return 1; } public abstract Int d(); foreign static Int32 abs(Int32 n); protected Int e() { return 1; } package Int g() { return 1; } private Int h() { return 1; } }

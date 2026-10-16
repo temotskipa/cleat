@@ -1,0 +1,3 @@
+//@ rule: flow.constants.call-from-nearest
+//@ accepted
+annotation W(Int8 n, Float64 x, Char c); @W(Int8.from(5), Float64.nearest(3), Char.from(65)) class A { Int8 small = Int8.from(27); }

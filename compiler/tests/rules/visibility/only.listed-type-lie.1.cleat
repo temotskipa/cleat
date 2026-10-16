@@ -1,0 +1,6 @@
+//@ rule: visibility.only.listed-type-lie
+//@ rejected: after `package`, `only` lists types of the same package
+//@ file: a/A.cleat
+package a; import b.B; public class A { package only(B) Int x = 1; }
+//@ file: b/B.cleat
+package b; public class B { }

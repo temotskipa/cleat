@@ -1,0 +1,3 @@
+//@ rule: execution.objects.constructor-audience-written
+//@ rejected: the constructor of `R` is outside its audience here
+class R { R() { } } class A { R f() { return new R(); } }

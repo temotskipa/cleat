@@ -1,0 +1,3 @@
+//@ rule: omissions.later.null-safe-member
+//@ rejected: expected an expression, found `.`
+class A { Int f(@Nullable String s) { return s?.length(); } }

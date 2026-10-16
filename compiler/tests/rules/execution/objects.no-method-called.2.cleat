@@ -1,0 +1,3 @@
+//@ rule: execution.objects.no-method-called
+//@ rejected: before `super(...)` is called, `this` is used only to assign a field of the class and to read one that is assigned
+class A { Int n; public A() { this.n = this.g(); super(); } Int g() { return 1; } }

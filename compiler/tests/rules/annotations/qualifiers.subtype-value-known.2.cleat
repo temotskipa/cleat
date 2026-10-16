@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.subtype-value-known
+//@ accepted
+@Refines annotation Q; @Refines(Q.class) annotation R; class A { Int f(@Q Int n) { return n; } @Q Int g(@R Int n) { return n; } }

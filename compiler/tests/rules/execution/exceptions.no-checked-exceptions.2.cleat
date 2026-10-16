@@ -1,0 +1,3 @@
+//@ rule: execution.exceptions.no-checked-exceptions
+//@ accepted
+class E extends Throwable { } class A { void f() { throw new E(); } void g() { f(); } }

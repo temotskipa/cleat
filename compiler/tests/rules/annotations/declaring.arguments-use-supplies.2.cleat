@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.arguments-use-supplies
+//@ rejected: expected a name, found `2`
+annotation Route(String path, Int priority = 0); @Route(path = "/x", 2) class A { }

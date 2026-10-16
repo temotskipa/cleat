@@ -1,0 +1,3 @@
+//@ rule: methods.overloading.resolution-first-considers
+//@ accepted
+class A { static Int g(Int32 a) { return 1; } static String g(Int a) { return ""; } static Int f(Int32 x) { return g(x); } static String h(Int x) { return g(x); } }

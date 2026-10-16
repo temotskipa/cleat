@@ -1,0 +1,3 @@
+//@ rule: source.tokens.decimal-literal-numeral
+//@ rejected: expected an expression, found `.`
+class A { Rational a = .5; }

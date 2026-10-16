@@ -1,0 +1,3 @@
+//@ rule: objects.extension.abstract-declares-reference
+//@ rejected: an abstract class has no instances of its own
+abstract class A { } class B { A f() { return new A(); } }

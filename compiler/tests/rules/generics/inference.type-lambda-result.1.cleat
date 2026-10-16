@@ -1,0 +1,3 @@
+//@ rule: generics.inference.type-lambda-result
+//@ rejected: `Int` is not assignable to `String`
+class A { static <X, Y> List<Y> map(List<X> items, Function1<X, Y> f) { return new List<Y>(); } List<String> g(List<String> names) { return map(names, (s) -> s.length()); } }

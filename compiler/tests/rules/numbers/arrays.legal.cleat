@@ -1,0 +1,3 @@
+//@ rule: numbers.arrays.legal
+//@ accepted
+class B { public B() { } } class A<T> { T[] f(T a, T b) { return new T[] { a, b }; } String[] g() { return new String[] { "a" }; } B[] h() { return new B[] { new B() }; } }

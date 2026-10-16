@@ -1,0 +1,3 @@
+//@ rule: generics.parameters.exception-class-name
+//@ accepted
+class Box<T> { public static Int count = 0; public static Int next() { return 1; } } class A { Int f() { return Box.count + Box.next(); } }

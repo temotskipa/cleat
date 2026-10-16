@@ -1,0 +1,3 @@
+//@ rule: numbers.classes.numeric-class-final
+//@ rejected: `Int` is not a class that can be extended
+class A extends Int { }

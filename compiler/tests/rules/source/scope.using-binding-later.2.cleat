@@ -1,0 +1,3 @@
+//@ rule: source.scope.using-binding-later
+//@ accepted
+class R { public R() { } public R(R other) { } public void close() { } } class A { void f() { using (R a = new R(), R b = new R(a)) { var c = a; var d = b; } } }

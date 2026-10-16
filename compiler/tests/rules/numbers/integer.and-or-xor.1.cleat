@@ -1,0 +1,3 @@
+//@ rule: numbers.integer.and-or-xor
+//@ rejected: `Float64` has no method named `and`
+class A { Float64 f(Float64 x) { return x.and(x); } }

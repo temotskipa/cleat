@@ -1,0 +1,3 @@
+//@ rule: objects.statics.type-class
+//@ accepted
+class C { } class A { String f() { Class c = C.class; return c.getName(); } }

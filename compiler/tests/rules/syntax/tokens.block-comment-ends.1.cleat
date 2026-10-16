@@ -1,0 +1,3 @@
+//@ rule: syntax.tokens.block-comment-ends
+//@ rejected: expected a class, an interface, an enum or an annotation, found `c`
+/* a /* b */ c */ class A { }

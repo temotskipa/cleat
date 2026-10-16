@@ -1,0 +1,3 @@
+//@ rule: objects.population.compiler-not-rewrite
+//@ accepted
+class P { } class Q { public Q plus(P p) { return this; } } class A { void f(P p, Q q) { var x = q + p; } }

@@ -1,0 +1,3 @@
+//@ rule: generics.inference.implicit-conversion-plays
+//@ rejected: cannot be inferred from this call
+class A { static <P> P two(P a, P b) { return a; } void f(Int8 small, Int big) { var x = two(small, big); } }

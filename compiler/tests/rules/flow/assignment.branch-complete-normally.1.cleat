@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.branch-complete-normally
+//@ rejected: is used where it may not have been assigned
+class A { Int f(Boolean b) { Int n; if (b) { n = 1; } else { } return n; } }

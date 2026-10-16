@@ -1,0 +1,3 @@
+//@ rule: methods.operators.operator-call-method
+//@ rejected: `-` is the method `negate`, and `P` has no method `negate`
+class P { } class A { P f(P a) { return -a; } }

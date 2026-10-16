@@ -1,0 +1,3 @@
+//@ rule: methods.foreign.method-declared-foreign
+//@ rejected: a `foreign` method is also declared `static`
+class A { foreign void f(); }

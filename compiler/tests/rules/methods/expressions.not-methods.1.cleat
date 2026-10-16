@@ -1,0 +1,3 @@
+//@ rule: methods.expressions.not-methods
+//@ rejected: `P` is not assignable to `Boolean`
+class P { public Boolean and(P o) { return true; } } class A { Boolean f(P a, P b) { return a && b; } }

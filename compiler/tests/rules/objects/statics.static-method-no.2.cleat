@@ -1,0 +1,3 @@
+//@ rule: objects.statics.static-method-no
+//@ accepted
+class A { static Int n = 1; static Int f() { return n; } }

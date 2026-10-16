@@ -1,0 +1,3 @@
+//@ rule: execution.values.compact-form-no
+//@ accepted
+value class V { public Int a; public V { } }

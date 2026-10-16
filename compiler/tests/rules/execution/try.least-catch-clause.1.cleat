@@ -1,0 +1,3 @@
+//@ rule: execution.try.least-catch-clause
+//@ rejected: a `try` has at least one `catch` clause or a `finally` block
+class A { void f() { try { } } }

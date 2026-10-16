@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.written-type
+//@ rejected: the parameter is written `String`, and the interface's method takes `Int`
+class A { Function1<Int, Int> f() { return (String x) -> 1; } }

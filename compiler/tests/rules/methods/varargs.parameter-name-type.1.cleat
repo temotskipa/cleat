@@ -1,0 +1,3 @@
+//@ rule: methods.varargs.parameter-name-type
+//@ rejected: a varargs parameter is the last parameter
+class A { static Int f(Int... rest, String label) { return 1; } }

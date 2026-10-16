@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.list-extends-shape-type
+//@ accepted
+open class Shape { } class Circle extends Shape { } class A { void f(List<Circle> a, List<Shape> b) { List<? extends Shape> x = a; List<? extends Shape> y = b; } }

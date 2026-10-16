@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.interface-not-sealed
+//@ accepted
+open interface J { } interface I { } class C implements I, J { } interface K extends I { }

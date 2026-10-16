@@ -1,0 +1,3 @@
+//@ rule: objects.extension.abstract-final-open
+//@ accepted
+final class A { } open class B { } abstract class C { }

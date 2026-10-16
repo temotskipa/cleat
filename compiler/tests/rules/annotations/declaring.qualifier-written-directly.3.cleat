@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.qualifier-written-directly
+//@ accepted
+@Refines annotation Positive; class A { static Int need(@Positive Int n) { return n; } Int f(@Positive Int n, List<@Positive Int> xs) { return need(n) + need(xs[0]); } }

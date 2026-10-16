@@ -1,0 +1,3 @@
+//@ rule: generics.parameters.use-no-arguments
+//@ rejected: `Map` is generic and is written with its type arguments
+class A { void f(Map m) { } }

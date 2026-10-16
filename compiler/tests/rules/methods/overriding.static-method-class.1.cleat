@@ -1,0 +1,3 @@
+//@ rule: methods.overriding.static-method-class
+//@ rejected: overrides or implements a method and must carry `@Override`
+interface Zeroed<T> { static T zero(); } value class M implements Zeroed<M> { public Int n; public static M zero() { return new M(0); } }

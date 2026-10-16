@@ -1,0 +1,3 @@
+//@ rule: null.sends.receiver-declared-first
+//@ accepted
+class C { public Boolean isBlank(@Nullable C this) { return this == null; } public Int size(C this, Int n) { return n; } }

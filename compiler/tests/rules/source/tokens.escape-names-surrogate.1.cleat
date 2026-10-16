@@ -1,0 +1,3 @@
+//@ rule: source.tokens.escape-names-surrogate
+//@ rejected: this escape names a surrogate
+class A { String s = "\uD800"; }

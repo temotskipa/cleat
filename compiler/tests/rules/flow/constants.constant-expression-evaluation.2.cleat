@@ -1,0 +1,3 @@
+//@ rule: flow.constants.constant-expression-evaluation
+//@ rejected: this constant expression would raise `ArithmeticException`
+class A { Char c = Char.from(55296); }

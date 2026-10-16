@@ -11,6 +11,11 @@ fn write(dir: &std::path::Path, name: &str, text: &str) -> PathBuf {
     path
 }
 
+//@ rule: methods.foreign.result-written-void
+//@ rule: methods.foreign.program-needs-passes
+//@ rule: methods.foreign.call-uses-platform
+//@ rule: methods.foreign.implementation-told-libraries
+//@ rule: execution.program.calls-follow-rules
 #[test]
 fn foreign_structs() {
     let dir = scratch("foreign_structs");
@@ -86,6 +91,7 @@ public class Structs {
 /// Section 4.11: after the call, each array of value classes is constructed in the order
 /// of the parameters, element by element, and the result after them. An element whose
 /// compact constructor raises, and every element after it, keeps its value.
+//@ rule: methods.foreign.arrays-constructed-order
 #[test]
 fn values_from_c_are_constructed_array_by_array_and_then_the_result() {
     let dir = scratch("foreign_constructed");
@@ -164,6 +170,9 @@ public class Divisions {
     );
 }
 
+//@ rule: execution.startup.call-given-stack
+//@ rule: omissions.implementation.exceeding-ends-program
+//@ rule: execution.startup.running-out-stack
 #[test]
 fn a_full_stack_ends_the_program() {
     let (_, exe) = build_text(
@@ -177,6 +186,8 @@ fn a_full_stack_ends_the_program() {
     assert!(r.err.contains("cannot be given stack space"), "{}", r.err);
 }
 
+//@ rule: execution.exceptions.exception-no-caller
+//@ rule: execution.startup.exception-leaves-main
 #[test]
 fn an_uncaught_exception_ends_the_program_with_status_one() {
     let (_, exe) = build_text(
@@ -188,6 +199,8 @@ fn an_uncaught_exception_ends_the_program_with_status_one() {
     assert_eq!(r.err, "cleat.IllegalStateException: gave up\n");
 }
 
+//@ rule: execution.startup.process-exit-status
+//@ rule: execution.startup.ends-program-once
 #[test]
 fn exit_ends_the_program_at_once() {
     let (_, exe) = build_text(
@@ -211,6 +224,8 @@ fn exit_ends_the_program_at_once() {
 }
 
 /// `args` holds what the host passed, in order and without the program's own name.
+//@ rule: execution.startup.args-holds-arguments
+//@ rule: execution.startup.no-arguments-length
 #[test]
 fn main_is_given_the_arguments_the_host_passed() {
     let (_, exe) = build_text(
@@ -247,6 +262,7 @@ public class Echo {
     );
 }
 
+//@ rule: execution.startup.implementation-told-entry
 #[test]
 fn main_may_take_no_arguments_and_must_be_one() {
     let dir = scratch("entry");

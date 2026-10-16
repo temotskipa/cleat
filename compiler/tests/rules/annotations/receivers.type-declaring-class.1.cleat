@@ -1,0 +1,3 @@
+//@ rule: annotations.receivers.type-declaring-class
+//@ rejected: the receiver parameter has the type of the declaring class
+@Refines annotation Priced; class Order { public Int f(@Priced String this) { return 1; } }

@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.start-catch-finally
+//@ rejected: is used where it may not have been assigned
+class A { void f() { Int n; try { n = 1; } finally { var m = n; } } }

@@ -1,0 +1,3 @@
+//@ rule: source.tokens.written-between-digits
+//@ rejected: `_` in a number stands between two digits
+class A { Int a = 1__0; }

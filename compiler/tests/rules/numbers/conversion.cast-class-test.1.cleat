@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.cast-class-test
+//@ rejected: a cast from `Int` to `Float64` is rejected
+class A { Float64 f(Int n) { return (Float64) n; } }

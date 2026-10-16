@@ -1,0 +1,3 @@
+//@ rule: generics.bounds.type-argument-subtype
+//@ rejected: `P` is not within the bound `Ordered<P>`
+class Top<T extends Ordered<T>> { } class P { } class A { void f(Top<P> t) { } }

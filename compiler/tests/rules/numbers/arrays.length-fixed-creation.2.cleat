@@ -1,0 +1,3 @@
+//@ rule: numbers.arrays.length-fixed-creation
+//@ rejected: `Int[]` has no method named `resize`
+class A { void f(Int[] xs) { xs.resize(4); } }

@@ -1,0 +1,3 @@
+//@ rule: numbers.integer.unsigned-shift-not-spelling
+//@ accepted
+class A { Int f(Int a) { return a.shiftRight(1) + (a >> 1); } }

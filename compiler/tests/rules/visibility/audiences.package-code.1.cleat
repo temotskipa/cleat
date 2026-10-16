@@ -1,0 +1,7 @@
+//@ rule: visibility.audiences.package-code
+//@ rule: visibility.types.package-code
+//@ rejected: the field `x` of `A` is outside its audience here
+//@ file: a/A.cleat
+package a; public class A { package Int x = 1; }
+//@ file: b/B.cleat
+package b; class B { Int f(a.A v) { return v.x; } }

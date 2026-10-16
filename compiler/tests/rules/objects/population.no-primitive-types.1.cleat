@@ -1,0 +1,3 @@
+//@ rule: objects.population.no-primitive-types
+//@ rejected: `int` is a reserved word
+class A { int x = 1; }

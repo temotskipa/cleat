@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.qualifiers-part-types
+//@ accepted
+@Refines annotation P; class A { Int f(@P Int n) { return n; } Int g(@P Int n) { return f(n); } }

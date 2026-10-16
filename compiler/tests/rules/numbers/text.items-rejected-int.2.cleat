@@ -1,0 +1,3 @@
+//@ rule: numbers.text.items-rejected-int
+//@ accepted
+class A { String f(Int n) { return "count: " + n; } }

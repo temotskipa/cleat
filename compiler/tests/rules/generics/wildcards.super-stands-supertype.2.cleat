@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.super-stands-supertype
+//@ accepted
+open class Shape { } class Circle extends Shape { } class A { static void fill(List<? super Circle> sink) { sink.add(new Circle()); } static void f(List<Shape> a, List<Object> b, List<Circle> c) { fill(a); fill(b); fill(c); } }

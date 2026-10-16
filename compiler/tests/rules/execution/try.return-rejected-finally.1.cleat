@@ -1,0 +1,3 @@
+//@ rule: execution.try.return-rejected-finally
+//@ rejected: `return` is rejected in a `finally` block
+class A { Int f() { try { return 1; } finally { return 2; } } }

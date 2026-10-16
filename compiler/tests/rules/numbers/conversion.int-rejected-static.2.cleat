@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.int-rejected-static
+//@ rejected: a cast from `Float64` to `Int` is rejected
+class A { Int f(Float64 x) { return (Int) x; } }

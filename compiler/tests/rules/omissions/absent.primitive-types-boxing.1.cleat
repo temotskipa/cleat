@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.primitive-types-boxing
+//@ rejected: `int` is a reserved word
+class A { int x = 1; }

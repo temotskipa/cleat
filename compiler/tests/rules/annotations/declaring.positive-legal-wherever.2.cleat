@@ -1,0 +1,6 @@
+//@ rule: annotations.declaring.positive-legal-wherever
+//@ accepted
+//@ file: a/Positive.cleat
+package a; @Refines public annotation Positive;
+//@ file: b/B.cleat
+package b; import a.Positive; class B { @Positive Int f(@Positive Int n) { return n; } }

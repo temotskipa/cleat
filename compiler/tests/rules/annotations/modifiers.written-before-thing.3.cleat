@@ -1,0 +1,3 @@
+//@ rule: annotations.modifiers.written-before-thing
+//@ accepted
+annotation M; class A { @M public final Int x = 1; }

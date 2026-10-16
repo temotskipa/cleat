@@ -1,0 +1,3 @@
+//@ rule: execution.values.parameters-fields-class
+//@ rejected: `String` is not assignable to `Int`
+value class V { public Int x; public String y; } class A { void f() { var v = new V("a", 2); } }

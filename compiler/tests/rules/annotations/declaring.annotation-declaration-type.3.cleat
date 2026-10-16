@@ -1,0 +1,6 @@
+//@ rule: annotations.declaring.annotation-declaration-type
+//@ accepted
+//@ file: a/Mark.cleat
+package a; public annotation Mark;
+//@ file: b/B.cleat
+package b; import a.Mark; @Mark class B { }

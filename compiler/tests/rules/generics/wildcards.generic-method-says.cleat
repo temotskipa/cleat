@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.generic-method-says
+//@ accepted
+class A { static <T> void swap(List<T> items, Int i, Int j) { T held = items[i]; items[i] = items[j]; items[j] = held; } static void swapFirstTwo(List<?> items) { swap(items, 0, 1); } }

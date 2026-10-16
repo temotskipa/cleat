@@ -1,0 +1,3 @@
+//@ rule: source.units.prelude-declares-further
+//@ accepted
+class A { void f() { var a = new List<Int>(); var b = new Map<String, Int>(); var c = new StringBuilder(); Console.println("x"); var t = File.readText("x"); } }

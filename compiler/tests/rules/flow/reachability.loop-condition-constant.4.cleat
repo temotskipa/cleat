@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.loop-condition-constant
+//@ accepted
+class A { void f(Boolean off) { while (off) { } } }

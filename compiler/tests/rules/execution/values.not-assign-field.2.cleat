@@ -1,0 +1,3 @@
+//@ rule: execution.values.not-assign-field
+//@ accepted
+value class V { public Int a; public V { if (a < 0) { throw new IllegalArgumentException("negative"); } } }

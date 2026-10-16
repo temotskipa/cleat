@@ -1,0 +1,5 @@
+//@ rule: source.tokens.opens-end-line
+//@ accepted
+class A { String s = """
+    abc
+    """; }

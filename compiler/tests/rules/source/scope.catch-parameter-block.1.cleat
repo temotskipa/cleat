@@ -1,0 +1,3 @@
+//@ rule: source.scope.catch-parameter-block
+//@ rejected: `e` is not a variable, a field or a type in scope
+class A { String f() { try { } catch (Throwable e) { } return e.message(); } }

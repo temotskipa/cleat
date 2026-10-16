@@ -1,0 +1,3 @@
+//@ rule: flow.narrowing.fact-holds-point
+//@ accepted
+class A { Int f(@Nullable String s, Boolean b) { if (b) { if (s == null) { return 0; } } else { if (s == null) { return 1; } } return s.length(); } }

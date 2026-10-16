@@ -1,0 +1,3 @@
+//@ rule: objects.extension.class-no-extends
+//@ accepted
+class A { } class B { Object f(A a) { return a; } String g(A a) { return a.toString(); } }

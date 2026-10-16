@@ -1,0 +1,3 @@
+//@ rule: annotations.modifiers.declaration-annotations-prelude
+//@ accepted
+class A { @Override public String toString() { return "a"; } }

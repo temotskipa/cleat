@@ -1,0 +1,3 @@
+//@ rule: null.null-class.literal-null-instance
+//@ accepted
+class A { Null f() { Null n = null; return n; } Boolean g(Null n) { return n == null; } }

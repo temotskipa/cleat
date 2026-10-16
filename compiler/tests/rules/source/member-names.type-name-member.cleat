@@ -1,0 +1,3 @@
+//@ rule: source.member-names.type-name-member
+//@ accepted
+class a { Int B = 1; Int C() { var D = B; return D; } }

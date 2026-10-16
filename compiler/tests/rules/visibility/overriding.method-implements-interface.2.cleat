@@ -1,0 +1,3 @@
+//@ rule: visibility.overriding.method-implements-interface
+//@ accepted
+interface I { Int f(); } class C implements I { @Override public Int f() { return 1; } }

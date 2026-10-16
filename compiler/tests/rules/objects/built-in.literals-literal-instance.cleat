@@ -1,0 +1,3 @@
+//@ rule: objects.built-in.literals-literal-instance
+//@ accepted
+class A { Int8 a = 1; Float64 b = 1; String s = "x"; Char c = 'c'; Boolean t = true; Int n = "x".length() + 'c'.code(); }

@@ -1,0 +1,3 @@
+//@ rule: methods.calls.call-method-used
+//@ accepted
+class A { static Int g() { return 1; } static void h(Int n) { } static void f() { var a = g(); a = g(); h(g()); var b = g() + 1; } }

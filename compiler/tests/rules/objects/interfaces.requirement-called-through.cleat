@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.requirement-called-through
+//@ accepted
+class A { static <T extends Numeric<T>> T z() { return T.zero(); } Int g() { return A.<Int>z(); } }

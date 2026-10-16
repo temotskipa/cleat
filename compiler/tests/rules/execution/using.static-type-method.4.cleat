@@ -1,0 +1,3 @@
+//@ rule: execution.using.static-type-method
+//@ accepted
+class R { public R() { } public void close() { } } class A { void f() { using (R x = new R(), var y = new R()) { } } }

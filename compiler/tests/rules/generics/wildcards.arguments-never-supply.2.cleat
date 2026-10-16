@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.arguments-never-supply
+//@ accepted
+class A { static <T> void copy(List<T> from, List<T> to) { } static <T> Int count(List<T> xs) { return xs.size(); } void f(List<Int> a, List<Int> b, List<?> c) { copy(a, b); var n = count(c); } }

@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.cast-instanceof-type
+//@ rejected: a value does not carry its qualifiers at run time, so `instanceof` does not test one
+@Refines annotation P; class C { Boolean f(Object o) { return o instanceof @P Int; } }

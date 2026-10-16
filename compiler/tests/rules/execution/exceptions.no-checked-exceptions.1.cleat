@@ -1,0 +1,3 @@
+//@ rule: execution.exceptions.no-checked-exceptions
+//@ rejected: expected `{`, found `throws`
+class A { void f() throws Throwable { } }

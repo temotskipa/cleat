@@ -1,0 +1,3 @@
+//@ rule: source.tokens.exponent-optional-run
+//@ accepted
+class A { Rational a = 1e2; Rational b = 1E+2; Rational c = 1e-2; }

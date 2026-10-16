@@ -1,0 +1,3 @@
+//@ rule: generics.parameters.use-generic-class
+//@ rejected: `Box` takes 1 type arguments, not 2
+class Box<T> { } class A { void f(Box<String, Int> b) { } }

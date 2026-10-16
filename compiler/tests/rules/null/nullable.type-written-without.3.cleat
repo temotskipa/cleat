@@ -1,0 +1,3 @@
+//@ rule: null.nullable.type-written-without
+//@ accepted
+class A { @Nullable Int n = null; }

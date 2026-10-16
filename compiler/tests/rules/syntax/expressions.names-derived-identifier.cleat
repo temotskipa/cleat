@@ -1,0 +1,6 @@
+//@ rule: syntax.expressions.names-derived-identifier
+//@ accepted
+//@ file: p/Q.cleat
+package p; public class Q { public static Q one = new Q(); public Int n = 1; }
+//@ file: A.cleat
+class B { public Q2 b = new Q2(); } class Q2 { public Int c = 3; } class A { Int f(B a) { return a.b.c + p.Q.one.n; } }

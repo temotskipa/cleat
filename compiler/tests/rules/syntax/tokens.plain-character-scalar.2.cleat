@@ -1,0 +1,3 @@
+//@ rule: syntax.tokens.plain-character-scalar
+//@ accepted
+class A { String s = "a'b 😀"; Char c = '"'; }

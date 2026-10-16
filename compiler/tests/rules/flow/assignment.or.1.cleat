@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.or
+//@ rejected: is used where it may not have been assigned
+class A { Boolean f(Boolean p) { Int n; return p || n > 0; } }

@@ -1,0 +1,3 @@
+//@ rule: visibility.overriding.overriding-method-audience
+//@ accepted
+open class A { package open Int f() { return 1; } protected open Int g() { return 1; } public open Int h() { return 1; } } class B extends A { @Override protected Int f() { return 2; } @Override public Int g() { return 2; } @Override public Int h() { return 2; } }

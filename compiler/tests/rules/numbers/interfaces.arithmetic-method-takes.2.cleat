@@ -1,0 +1,3 @@
+//@ rule: numbers.interfaces.arithmetic-method-takes
+//@ accepted
+class A { Int8 f(Int8 a, Int8 b) { Int8 c = a + b; Int8 d = a * b - a; return -c; } Float32 g(Float32 a) { return a + a; } }

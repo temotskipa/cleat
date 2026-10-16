@@ -1,0 +1,3 @@
+//@ rule: execution.try.parameter-local-clause
+//@ rejected: `e` is already a variable of this method
+class A { void f() { try { } catch (Throwable e) { var e = 1; } } }

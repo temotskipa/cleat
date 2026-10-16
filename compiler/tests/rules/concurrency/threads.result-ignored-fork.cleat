@@ -1,0 +1,3 @@
+//@ rule: concurrency.threads.result-ignored-fork
+//@ accepted
+class A { void f() { Thread.start(() -> { }); var z = Scope.call((scope) -> { scope.fork(() -> 1); return 0; }); } }

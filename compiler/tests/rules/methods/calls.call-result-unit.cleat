@@ -1,0 +1,3 @@
+//@ rule: methods.calls.call-result-unit
+//@ accepted
+class A { void log() { } void f(A a) { a.log(); log(); } }

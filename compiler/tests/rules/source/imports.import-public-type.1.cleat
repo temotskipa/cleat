@@ -1,0 +1,6 @@
+//@ rule: source.imports.import-public-type
+//@ rejected: there is no type named `P` here
+//@ file: a/b/P.cleat
+package a.b; package class P { }
+//@ file: D.cleat
+import a.b.*; class D { void f(P p) { } }

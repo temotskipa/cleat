@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.locals-local-definitely
+//@ rejected: is used where it may not have been assigned
+class A { Int f() { Int n; return n; } }

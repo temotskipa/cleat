@@ -1,0 +1,3 @@
+//@ rule: flow.constants.name-enum-constant
+//@ accepted
+enum E { X, Y } annotation M(E e); @M(E.X) @Target(Site.TYPE) annotation N; class A { Int f(E e) { return switch (e) { case E.X -> 1; case E.Y -> 2; }; } }

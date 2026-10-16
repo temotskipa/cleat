@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.qualifier-no-elements
+//@ accepted
+annotation M(Int n); @Refines annotation Q;

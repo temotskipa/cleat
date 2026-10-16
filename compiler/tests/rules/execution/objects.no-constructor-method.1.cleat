@@ -1,0 +1,3 @@
+//@ rule: execution.objects.no-constructor-method
+//@ rejected: is not assigned on every path to the `super(...)` call
+class A { Int x; public A() { } }

@@ -1,0 +1,3 @@
+//@ rule: source.tokens.integer-literal-decimal
+//@ rejected: a number needs at least one digit here
+class A { Int a = 0xG; }

@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.call-static-receiver
+//@ accepted
+class Target { public static String who() { return "s"; } public String who(Int n) { return "i"; } } class A { String f(Target t) { return Target.who() + t.who(1); } }

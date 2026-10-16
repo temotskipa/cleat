@@ -1,0 +1,3 @@
+//@ rule: methods.overriding.receiver-qualifiers-overrides
+//@ accepted
+@Refines annotation Priced; open class Order { public open Int price(@Priced Order this) { return 1; } } class Rush extends Order { @Override public Int price(@Priced Rush this) { return 2; } }

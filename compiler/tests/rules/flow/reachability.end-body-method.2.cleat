@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.end-body-method
+//@ accepted
+class A { void f() { } Unit g() { } void h(Boolean b) { if (b) { return; } } }

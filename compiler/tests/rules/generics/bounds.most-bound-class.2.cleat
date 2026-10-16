@@ -1,0 +1,3 @@
+//@ rule: generics.bounds.most-bound-class
+//@ accepted
+open class C1 { } class A { static <T extends C1> void f(T x) { } }

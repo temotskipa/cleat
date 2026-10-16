@@ -1,0 +1,3 @@
+//@ rule: objects.extension.new-rejected
+//@ rejected: `new A` is rejected: an abstract class has no instances of its own
+abstract class A { } class B { A f() { return new A(); } }

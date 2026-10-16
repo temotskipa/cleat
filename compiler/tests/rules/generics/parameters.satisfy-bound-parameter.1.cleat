@@ -1,0 +1,3 @@
+//@ rule: generics.parameters.satisfy-bound-parameter
+//@ rejected: `String` is not within the bound `Throwable`
+class Box<T extends Throwable> { } class A { void f(Box<String> b) { } }

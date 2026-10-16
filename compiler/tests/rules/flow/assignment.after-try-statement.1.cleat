@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.after-try-statement
+//@ rejected: is used where it may not have been assigned
+class A { Int f() { Int n; try { n = 1; } catch (ArithmeticException e) { n = 2; } catch (Throwable e) { } return n; } }

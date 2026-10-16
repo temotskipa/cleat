@@ -1,0 +1,10 @@
+//@ rule: visibility.fixed.class-declares-no
+//@ accepted
+//@ file: a/P.cleat
+package a; public class P { }
+//@ file: a/Q.cleat
+package a; package class Q { }
+//@ file: a/R.cleat
+package a; class R { Q f() { return new Q(); } }
+//@ file: b/B.cleat
+package b; class B { a.P f() { return new a.P(); } }

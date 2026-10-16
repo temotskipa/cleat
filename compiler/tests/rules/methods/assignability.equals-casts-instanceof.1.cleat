@@ -1,0 +1,3 @@
+//@ rule: methods.assignability.equals-casts-instanceof
+//@ rejected: `==` between `P` and `Q` is rejected: the two types are disjoint
+class P { } class Q { } class C { Boolean f(P a, Q b) { return a == b; } }

@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.class-methods-happen
+//@ accepted
+interface I { Int f(); } class C implements I { @Override public Int f() { return 1; } } class D { I g(C c) { return c; } }

@@ -1,0 +1,3 @@
+//@ rule: source.units.type-not-declared
+//@ rejected: a type is not declared inside a method
+class A { void f() { class B { } } }

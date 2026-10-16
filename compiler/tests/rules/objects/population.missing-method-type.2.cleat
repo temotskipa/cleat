@@ -1,0 +1,3 @@
+//@ rule: objects.population.missing-method-type
+//@ rejected: `P` has no method `times`
+class P { } class A { P f(P p) { return p * p; } }

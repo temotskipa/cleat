@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.conversions-method-from
+//@ rejected: `Int` is not assignable to `Float64`
+class A { void f(Int n) { Float64 x = n; } }

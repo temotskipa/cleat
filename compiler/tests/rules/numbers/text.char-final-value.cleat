@@ -1,0 +1,3 @@
+//@ rule: numbers.text.char-final-value
+//@ rejected: `Char` is not a class that can be extended
+class A extends Char { }

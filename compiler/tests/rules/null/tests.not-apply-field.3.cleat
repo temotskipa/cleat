@@ -1,0 +1,3 @@
+//@ rule: null.tests.not-apply-field
+//@ accepted
+class A { @Nullable String s = null; Int f() { var held = s; if (held != null) { return held.length(); } return 0; } }

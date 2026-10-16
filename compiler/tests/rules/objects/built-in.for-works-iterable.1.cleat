@@ -1,0 +1,3 @@
+//@ rule: objects.built-in.for-works-iterable
+//@ rejected: a `for` statement visits an `Iterable`, and `Count` is not one
+class Count { } class A { void f() { for (Int x : new Count()) { } } }

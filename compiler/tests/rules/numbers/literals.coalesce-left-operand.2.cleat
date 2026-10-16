@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.coalesce-left-operand
+//@ accepted
+class A { Float64 g(@Nullable Float64 x) { return x ?? 0.5; } }

@@ -1,0 +1,3 @@
+//@ rule: execution.storage.no-finalizer-weak
+//@ rejected: there is no type named `WeakReference` here
+class A { void f(Object o) { var w = new WeakReference<Object>(o); } }

@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.fields-constructor-assign
+//@ rejected: is not assigned on every path to the `super(...)` call
+class A { Int n; public A() { super(); this.n = 1; } }

@@ -1,0 +1,3 @@
+//@ rule: methods.assignability.class-type-interface
+//@ accepted
+open class P { } interface I { } class Q implements I { } class C { Boolean f(P a, Q q, I i) { return a == i && q == i; } }

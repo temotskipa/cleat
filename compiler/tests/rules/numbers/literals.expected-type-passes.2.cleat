@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.expected-type-passes
+//@ rejected: the literal is outside the range of `UInt8`
+class A { UInt8 g(Int n) { return switch (n) { case 1 -> 1; default -> 256; }; } }

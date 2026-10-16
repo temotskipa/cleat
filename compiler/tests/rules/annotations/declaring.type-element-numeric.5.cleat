@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.type-element-numeric
+//@ accepted
+enum Mode { FAST } annotation In(String v); annotation M(Int a, UInt8 b, Float64 c, Rational r, Boolean d, Char e, String f, Mode g, Class h, In i, Int[] j, String[] k, Mode[] l, Class[] m, In[] n); class A { }

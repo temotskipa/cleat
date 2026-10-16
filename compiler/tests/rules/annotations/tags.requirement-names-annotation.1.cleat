@@ -1,0 +1,3 @@
+//@ rule: annotations.tags.requirement-names-annotation
+//@ rejected: a requirement names the annotation and no arguments
+@Target(Site.TYPE) annotation Kind(String name = "k"); class S<@Kind("x") T> { }

@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.qualifier-annotation-declared
+//@ rejected: a qualifier is declared with exactly one of `@Refines` and `@Widens`
+@Refines @Widens annotation Q;

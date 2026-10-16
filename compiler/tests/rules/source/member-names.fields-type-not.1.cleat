@@ -1,0 +1,3 @@
+//@ rule: source.member-names.fields-type-not
+//@ rejected: the field `x` is declared twice
+class A { Int x = 1; Int x = 2; }

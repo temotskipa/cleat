@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.checked-exceptions-method
+//@ rejected: expected `{`, found `throws`
+class A { void f() throws Throwable { } }

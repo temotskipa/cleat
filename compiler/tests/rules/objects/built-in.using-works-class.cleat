@@ -1,0 +1,3 @@
+//@ rule: objects.built-in.using-works-class
+//@ accepted
+class R { public void close() { } } class A { void f() { using (R r = new R()) { } } }

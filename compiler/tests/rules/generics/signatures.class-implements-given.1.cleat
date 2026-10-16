@@ -1,0 +1,3 @@
+//@ rule: generics.signatures.class-implements-given
+//@ rejected: `Src` is implemented with two sets of type arguments
+interface Src<T> { T get(); } open class Base implements Src<String> { @Override public String get() { return "s"; } } class D extends Base implements Src<Int> { }

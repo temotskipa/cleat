@@ -1,0 +1,3 @@
+//@ rule: null.tests.expression-type-not-equals
+//@ accepted
+class A { String f(@Nullable String s) { return s ?? "x"; } @Nullable String g(@Nullable String s, @Nullable String t) { return s ?? t; } Object h(@Nullable String s, Object o) { return s ?? o; } }

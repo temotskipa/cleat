@@ -1,0 +1,3 @@
+//@ rule: generics.variance.generic-type-subtype
+//@ rejected: `Fn<Circle, String>` is not assignable to `Fn<Shape, String>`
+open class Shape { } class Circle extends Shape { } interface Fn<in A, out R> { R call(A a); } class X { Fn<Shape, String> f(Fn<Circle, String> g) { return g; } }

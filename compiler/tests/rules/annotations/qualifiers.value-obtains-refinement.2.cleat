@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.value-obtains-refinement
+//@ accepted
+@Refines annotation P; class A { @P Int f(@P Int n) { @P Int m = n; return m; } }

@@ -1,0 +1,3 @@
+//@ rule: execution.objects.constructor-reference-class
+//@ rejected: expected a name, found `(`
+class A { public B() { } }

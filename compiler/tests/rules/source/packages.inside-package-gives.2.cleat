@@ -1,0 +1,6 @@
+//@ rule: source.packages.inside-package-gives
+//@ accepted
+//@ file: a/P.cleat
+package a; public class P { }
+//@ file: a/b/Q.cleat
+package a.b; class Q { void f(a.P p) { } }

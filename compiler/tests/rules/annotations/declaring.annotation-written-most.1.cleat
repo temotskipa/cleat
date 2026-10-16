@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.annotation-written-most
+//@ rejected: an annotation is written at most once in one position
+annotation M; @M @M class A { }

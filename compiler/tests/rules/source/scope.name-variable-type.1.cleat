@@ -1,0 +1,3 @@
+//@ rule: source.scope.name-variable-type
+//@ accepted
+class P { public static Int n = 1; public Int m = 2; } class A { Int f(P P) { return P.m; } }

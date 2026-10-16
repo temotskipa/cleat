@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.method-without-body
+//@ accepted
+interface I { Int f(); } abstract class C implements I { }

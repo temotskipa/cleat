@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.literal-class-denote
+//@ rejected: the literal is outside the range of `Int8`
+class A { Int8 x = 128; }

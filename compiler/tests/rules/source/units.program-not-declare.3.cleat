@@ -1,0 +1,4 @@
+//@ rule: source.units.program-not-declare
+//@ accepted
+//@ file: cleats/Extra.cleat
+package cleats; public class Extra { }

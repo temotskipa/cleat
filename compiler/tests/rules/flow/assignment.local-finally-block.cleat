@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.local-finally-block
+//@ accepted
+class A { Int f() { Int n; try { } finally { n = 1; } return n; } Int g() { Int n; try { } catch (Throwable e) { } finally { n = 1; } return n; } }

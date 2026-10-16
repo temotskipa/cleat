@@ -1,0 +1,3 @@
+//@ rule: numbers.integer.shift-count-int
+//@ rejected: `Float64` is not assignable to `Int`
+class A { Int8 f(Int8 a, Float64 n) { return a.shiftLeft(n); } }

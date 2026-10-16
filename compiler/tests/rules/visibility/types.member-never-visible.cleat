@@ -1,0 +1,6 @@
+//@ rule: visibility.types.member-never-visible
+//@ rejected: there is no type named `Hidden` here
+//@ file: A.cleat
+class Hidden { public Int x = 1; }
+//@ file: B.cleat
+class B { Int f(Hidden h) { return h.x; } }

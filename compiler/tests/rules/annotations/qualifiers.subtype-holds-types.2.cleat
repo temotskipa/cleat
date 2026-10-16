@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.subtype-holds-types
+//@ accepted
+@Refines annotation P; class A { Object f(@P Int n) { return n; } }

@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.types-inside-no
+//@ rejected: a type is not declared inside a method
+class A { void f() { class B { } } }

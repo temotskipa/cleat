@@ -1,0 +1,3 @@
+//@ rule: objects.classes.extends-no-class
+//@ rejected: a value class extends no class
+open class P { } value class V extends P { public Int a; }

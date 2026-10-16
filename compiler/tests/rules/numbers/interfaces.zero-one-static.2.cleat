@@ -1,0 +1,3 @@
+//@ rule: numbers.interfaces.zero-one-static
+//@ accepted
+class A { Int f() { return Int.zero() + Int.one(); } Rational g() { return Rational.zero() + Rational.one(); } static <T extends Numeric<T>> T h() { return T.zero(); } }

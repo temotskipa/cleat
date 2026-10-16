@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.wildcards-rule-containment
+//@ rejected: `Map<String, Int>` is not assignable to `Map<? extends Object, String>`
+class A { Map<? extends Object, String> f(Map<String, Int> m) { return m; } }

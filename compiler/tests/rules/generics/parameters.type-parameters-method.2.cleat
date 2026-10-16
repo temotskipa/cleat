@@ -1,0 +1,3 @@
+//@ rule: generics.parameters.type-parameters-method
+//@ accepted
+class A { static <T> List<T> one(T x) { List<T> xs = new List<T>(); xs.add(x); return xs; } }

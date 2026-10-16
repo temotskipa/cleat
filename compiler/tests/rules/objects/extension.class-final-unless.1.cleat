@@ -1,0 +1,3 @@
+//@ rule: objects.extension.class-final-unless
+//@ rejected: `A` is final; only an `open`, `sealed` or `abstract` class is extended
+class A { } class B extends A { }

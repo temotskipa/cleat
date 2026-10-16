@@ -1,0 +1,3 @@
+//@ rule: methods.foreign.program-passes-back
+//@ accepted
+class A { foreign static Pointer malloc(UInt64 n); foreign static void free(Pointer p); void f() { var p = malloc(8); free(p); var same = p == Pointer.zero(); } }

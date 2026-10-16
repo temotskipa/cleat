@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.capture-lambda-use
+//@ accepted
+class A { Function0<Int> f(Int n) { return () -> n; } }

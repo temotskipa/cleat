@@ -1,0 +1,3 @@
+//@ rule: objects.extension.final-written-state
+//@ rejected: `A` is final
+final class A { } class B extends A { }

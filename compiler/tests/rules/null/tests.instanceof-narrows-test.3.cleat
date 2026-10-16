@@ -1,0 +1,3 @@
+//@ rule: null.tests.instanceof-narrows-test
+//@ accepted
+class A { Int f(Object o) { if (o instanceof String) { return o.length(); } return 0; } Int g(Object o) { if (!(o instanceof String)) { return 0; } return o.length(); } }

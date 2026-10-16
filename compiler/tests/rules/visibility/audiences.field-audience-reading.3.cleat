@@ -1,0 +1,3 @@
+//@ rule: visibility.audiences.field-audience-reading
+//@ accepted
+class A { public Int x = 1; } class B { Int f(A a) { a.x = 2; return a.x; } }

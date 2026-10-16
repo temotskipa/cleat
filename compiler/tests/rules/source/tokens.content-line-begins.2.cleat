@@ -1,0 +1,6 @@
+//@ rule: source.tokens.content-line-begins
+//@ accepted
+class A { String s = """
+        ok
+          deeper
+        """; }

@@ -1,0 +1,3 @@
+//@ rule: methods.expressions.and-or-operands
+//@ rejected: `Int` is not assignable to `Boolean`
+class A { Boolean f(Int n, Boolean b) { return n && b; } }

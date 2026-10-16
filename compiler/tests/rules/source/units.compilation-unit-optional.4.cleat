@@ -1,0 +1,3 @@
+//@ rule: source.units.compilation-unit-optional
+//@ accepted
+class A { }

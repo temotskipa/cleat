@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.body-method-not
+//@ accepted
+class A { Int f(Boolean b) { if (b) { return 1; } else { throw new IllegalStateException(); } } Int g() { while (true) { } } void h() { } }

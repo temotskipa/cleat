@@ -1,0 +1,3 @@
+//@ rule: generics.bounds.class-snapshot-frozen
+//@ rejected: `String` does not carry the tag `@Frozen`
+@Target(Site.TYPE) annotation Frozen; class Snapshot<@Frozen T> { } class C { void f(Snapshot<String> s) { } }

@@ -1,0 +1,3 @@
+//@ rule: flow.narrowing.while-for-statement
+//@ accepted
+class A { @Nullable String g() { return null; } Int f(@Nullable String s) { while (s == null) { s = g(); } return s.length(); } Int h(@Nullable String s) { var n = 0; while (s != null) { n += s.length(); s = g(); } for (var t = g(); t != null; t = g()) { n += t.length(); } return n; } }

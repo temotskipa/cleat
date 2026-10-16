@@ -1,0 +1,6 @@
+# The rules of chapter 3 that no program shows, each with the reason.
+
+visibility.audiences.says-no-accessor: It points to section 2.8, whose sentences have their own cases.
+visibility.governs.audience-governs-naming: It introduces the points after it, which have their own cases.
+visibility.governs.not-depend-class: It says the audience rules are decided from static types, as every case of this chapter is.
+visibility.governs.not-audiences-defines: It points to section 2.4, whose sentences have their own cases.

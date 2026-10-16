@@ -1,0 +1,3 @@
+//@ rule: methods.expressions.rejected-static-type
+//@ rejected: `String` and `Int` are disjoint, so this test could never be `true`
+class C { Boolean f(String s) { return s instanceof Int; } }

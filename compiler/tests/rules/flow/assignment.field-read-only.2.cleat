@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.field-read-only
+//@ accepted
+class A { Int n; Int m; public A() { this.n = 1; this.m = n; super(); } }

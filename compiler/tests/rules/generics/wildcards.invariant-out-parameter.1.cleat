@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.invariant-out-parameter
+//@ accepted
+class A { List<Iterable<?>> f(List<Iterable<@Nullable Object>> x) { return x; } List<Iterable<@Nullable Object>> g(List<Iterable<?>> x) { return x; } List<List<?>> h(List<List<? extends @Nullable Object>> x) { return x; } }

@@ -1,0 +1,3 @@
+//@ rule: numbers.arrays.not-contain-null
+//@ accepted
+class A { void f(@Nullable String[] a) { a[0] = null; } }

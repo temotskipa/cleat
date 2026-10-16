@@ -1,0 +1,3 @@
+//@ rule: methods.calls.call-expression-type
+//@ accepted
+class A { Int count() { return 1; } void f(A a) { Int n = a.count(); Rational r = a.count() + 1; } }

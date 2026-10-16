@@ -1,0 +1,3 @@
+//@ rule: null.sends.object-declares-four
+//@ accepted
+class A { String f(@Nullable Object o) { return o.toString() + o.hashCode() + o.equals(o) + o.identical(o); } }

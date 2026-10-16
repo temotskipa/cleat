@@ -1,0 +1,4 @@
+//@ rule: visibility.types.ties-public-type
+//@ accepted
+//@ file: B.cleat
+public class B { }

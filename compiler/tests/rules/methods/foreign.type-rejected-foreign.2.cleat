@@ -1,0 +1,3 @@
+//@ rule: methods.foreign.type-rejected-foreign
+//@ rejected: the result of a `foreign` method is a machine type or `void`, and `Rational` is neither
+class A { foreign static Rational f(); }

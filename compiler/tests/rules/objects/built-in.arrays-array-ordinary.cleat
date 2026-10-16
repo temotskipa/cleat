@@ -1,0 +1,3 @@
+//@ rule: objects.built-in.arrays-array-ordinary
+//@ accepted
+class A { Array<Int> f(Int[] a) { return a; } Int[] g(Array<Int> a) { return a; } Object h(Int[] a) { return a; } }

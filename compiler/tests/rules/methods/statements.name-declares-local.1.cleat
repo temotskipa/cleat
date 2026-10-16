@@ -1,0 +1,3 @@
+//@ rule: methods.statements.name-declares-local
+//@ rejected: is used where it may not have been assigned
+class A { Int f() { Int a; return a; } }

@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.method-declaration-modifiers
+//@ rejected: the method `f` needs a body
+class A { Int f(); }

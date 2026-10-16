@@ -1,0 +1,3 @@
+//@ rule: null.type-arguments.type-parameter-declared
+//@ accepted
+class A { Iterator<@Nullable String> f(Iterator<String> it) { return it; } }

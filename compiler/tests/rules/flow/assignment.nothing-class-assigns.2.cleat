@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.nothing-class-assigns
+//@ rejected: a field of a value class is final
+value class V { public Int a; public void f() { a = 2; } }

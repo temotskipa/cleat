@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.invariant-type-parameter
+//@ rejected: `List<@P Int>` is not assignable to `List<Int>`
+@Refines annotation P; class A { List<Int> f(List<@P Int> xs) { return xs; } }

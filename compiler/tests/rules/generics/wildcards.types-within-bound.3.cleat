@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.types-within-bound
+//@ accepted
+open class Shape { } class Circle extends Shape { } class Box<T extends Shape> { } class A { void f(Box<? extends Circle> a, Box<? super Circle> b) { } }

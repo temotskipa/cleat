@@ -1,0 +1,3 @@
+//@ rule: execution.values.field-value-class
+//@ rejected: a field of a value class has no initializer
+value class V { public Int a = 1; }

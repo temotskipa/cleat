@@ -1,0 +1,3 @@
+//@ rule: flow.constants.literal-null
+//@ accepted
+annotation M(String s, Int n, Boolean b, Char c); @M("x", 1, true, 'c') class A { Int f(Int n) { return switch (n) { case 1 -> 1; default -> 0; }; } }

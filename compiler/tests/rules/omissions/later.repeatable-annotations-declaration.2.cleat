@@ -1,0 +1,3 @@
+//@ rule: omissions.later.repeatable-annotations-declaration
+//@ rejected: a declaration annotation is not written on a local
+annotation M; class A { void f() { @M Int x = 1; } }

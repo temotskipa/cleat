@@ -1,0 +1,6 @@
+//@ rule: annotations.declaring.annotation-declaration-type
+//@ rejected: there is no type named `a.Mark`
+//@ file: a/Mark.cleat
+package a; annotation Mark;
+//@ file: b/B.cleat
+package b; @a.Mark class B { }

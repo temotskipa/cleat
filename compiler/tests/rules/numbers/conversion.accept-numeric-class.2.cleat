@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.accept-numeric-class
+//@ accepted
+class A { void f(Int8 a, Int16 b, Int32 c, Int d, UInt8 e, UInt16 g, UInt32 h, UInt64 i, Float32 j, Float64 k, Rational l) { var x = Float64.nearest(a) + Float64.nearest(b) + Float64.nearest(c) + Float64.nearest(d) + Float64.nearest(e) + Float64.nearest(g) + Float64.nearest(h) + Float64.nearest(i) + Float64.nearest(j) + Float64.nearest(k) + Float64.nearest(l); var y = Float32.nearest(a) + Float32.nearest(b) + Float32.nearest(c) + Float32.nearest(d) + Float32.nearest(e) + Float32.nearest(g) + Float32.nearest(h) + Float32.nearest(i) + Float32.nearest(j) + Float32.nearest(k) + Float32.nearest(l); } }

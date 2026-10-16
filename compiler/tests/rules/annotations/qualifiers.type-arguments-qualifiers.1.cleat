@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.type-arguments-qualifiers
+//@ rejected: `List<Int>` is not assignable to `List<@P Int>`
+@Refines annotation P; class A { List<@P Int> f(List<Int> xs) { return xs; } }

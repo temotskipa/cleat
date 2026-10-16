@@ -1,0 +1,6 @@
+//@ rule: annotations.narrowing.narrows-class-method
+//@ accepted
+//@ file: a/Positive.cleat
+package a; @Refines public annotation Positive;
+//@ file: a/Counts.cleat
+package a; public class Counts { @Narrows(Positive.class) public static Boolean isPositive(Int n) { return n > 0; } }

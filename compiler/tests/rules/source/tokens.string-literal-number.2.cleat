@@ -1,0 +1,3 @@
+//@ rule: source.tokens.string-literal-number
+//@ accepted
+class A { String a = ""; String b = "héllo \t"; }

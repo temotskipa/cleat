@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.after-local-assigned
+//@ rejected: is used where it may not have been assigned
+class A { Int f(Boolean b) { Int n; var r = b ? (n = 1) : 2; return n; } }

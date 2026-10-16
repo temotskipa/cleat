@@ -1,0 +1,3 @@
+//@ rule: objects.root.object-not-declare
+//@ accepted
+class A { String f(Object o) { return o.toString() + o.hashCode() + o.equals(o); } }

@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.unsigned-shift-unary-power
+//@ rejected: there is no unary `+`
+class A { Int f(Int n) { return +n; } }

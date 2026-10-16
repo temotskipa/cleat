@@ -1,0 +1,3 @@
+//@ rule: null.nullable.string-nullable-array
+//@ rejected: `null` is not a value of `String`
+class A { void f(String @Nullable [] a) { if (a != null) { a[0] = null; } } }

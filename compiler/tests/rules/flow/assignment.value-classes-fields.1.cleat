@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.value-classes-fields
+//@ rejected: constructor `V` takes 2 arguments, and 1 is written
+value class V { public Int a; public Int b; } class A { V f() { return new V(1); } }

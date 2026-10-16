@@ -1,0 +1,3 @@
+//@ rule: objects.enums.program-not-write
+//@ rejected: a class does not extend `Enum`; an enum is declared with `enum`
+class A extends Enum { }

@@ -1,0 +1,3 @@
+//@ rule: numbers.text.no-value-converted
+//@ rejected: `Int` is not assignable to `String`
+class A { String f(Int n) { String s = n; return s; } }

@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.argument-assignable-parameter
+//@ accepted
+class A { void f(List<? super String> xs, String s) { xs.add(s); } }

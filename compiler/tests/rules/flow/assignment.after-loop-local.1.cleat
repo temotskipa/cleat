@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.after-loop-local
+//@ rejected: is used where it may not have been assigned
+class A { Int f(Int k) { Int n; while (k > 0) { n = k; k--; } return n; } }

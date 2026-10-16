@@ -1,0 +1,3 @@
+//@ rule: execution.objects.part-body-this
+//@ rejected: before `super(...)` is called, `this` is used only to assign a field of the class and to read one that is assigned
+class A { Int n; public A() { Object o = this; this.n = 1; super(); } }

@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.happens-only-program
+//@ accepted
+class A { Rational f() { var x = 0.1; return x; } Float64 g() { Float64 x = 0.1; return x; } }

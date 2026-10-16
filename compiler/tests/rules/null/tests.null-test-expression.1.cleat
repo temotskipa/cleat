@@ -1,0 +1,3 @@
+//@ rule: null.tests.null-test-expression
+//@ rejected: a null test of a `String` is rejected, because it cannot be `null`
+class A { Boolean f(String s) { return s == null; } }

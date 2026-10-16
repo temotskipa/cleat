@@ -1,0 +1,3 @@
+//@ rule: source.tokens.decimal-numeral-no
+//@ accepted
+class A { Int f() { return 0; } Float64 g() { return 0.5; } }

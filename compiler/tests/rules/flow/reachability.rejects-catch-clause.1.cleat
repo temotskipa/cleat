@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.rejects-catch-clause
+//@ rejected: this `catch` clause can never run
+class A { void f() { try { } catch (Throwable e) { } catch (ArithmeticException e) { } } }

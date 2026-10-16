@@ -1,0 +1,14 @@
+# The rules of chapter 1 that no program shows, each with the reason.
+
+source.status.rejected-requirements-implementation: It defines the words the other sentences use.
+source.status.program-specification-rejects: It binds an implementation: every rejected program of this file is one the checker diagnoses.
+source.status.program-behavior-specification: It is about programs the specification does not define.
+source.status.example-normative-says: tests/spec_examples.rs holds every example to what it says.
+source.status.examples-illustrate-rule: It says how to read the examples.
+source.status.example-lists-members: It says how to read the examples, and tests/spec_examples.rs reads such an example as signatures.
+source.status.describe-syntax-prose: It says how the document is arranged.
+source.tokens.escapes: It introduces the table after it, whose rows have their own cases.
+source.units.specification-defines-prelude: It says what the document covers.
+source.packages.not-object-no: It says what a package is; the import cases name types through packages.
+source.imports.simple-name-used: It introduces the list after it, whose lines have their own cases.
+source.scope.type-parameter-says: It points to section 7.1, whose sentences have their own cases.

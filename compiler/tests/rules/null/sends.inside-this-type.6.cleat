@@ -1,0 +1,3 @@
+//@ rule: null.sends.inside-this-type
+//@ accepted
+class C { Int n = 1; public Int size(@Nullable C this) { if (this == null) { return 0; } n = 2; return n + this.n; } }

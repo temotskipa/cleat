@@ -1,0 +1,3 @@
+//@ rule: source.scope.variable-not-hide
+//@ rejected: a variable does not hide another
+class A { void f(Int n) { Function1<Int, Int> g = (n) -> n; } }

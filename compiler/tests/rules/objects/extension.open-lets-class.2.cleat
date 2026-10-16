@@ -1,0 +1,6 @@
+//@ rule: objects.extension.open-lets-class
+//@ accepted
+//@ file: a/P.cleat
+package a; public open class P { }
+//@ file: b/C.cleat
+package b; class C extends a.P { }

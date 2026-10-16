@@ -1,0 +1,3 @@
+//@ rule: numbers.integer.unsigned-shift-not-spelling
+//@ rejected: `>>>` is not an operator
+class A { Int f(Int a) { return a >>> 1; } }

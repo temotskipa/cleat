@@ -24,7 +24,7 @@ cargo test
 
 clang compiles the IR. The compiler looks for it where `CLEAT_CLANG` points, then in `C:\Program Files\LLVM\bin`, then under `%LOCALAPPDATA%\cleat-llvm`, then on the path.
 
-The tests are the specification's own examples, a case for every sentence of the chapters (a program that breaks a requirement, a line of a program's output, another test, or the reason no program can show it), programs the checker must reject, programs with the output they must print, and the nine programs in [design/programs/](design/programs/). Each compiled program runs twice, the second time with the collector forced at every allocation.
+The tests are the specification's own examples, a case for every rule of the chapters (a program the checker must reject or accept, a line of a program's output, another test, or the reason no program can show it), programs the checker must reject, programs with the output they must print, and the nine programs in [design/programs/](design/programs/). Each compiled program runs twice, the second time with the collector forced at every allocation.
 
 | Chapter | Status |
 | --- | --- |
@@ -45,6 +45,8 @@ The tests are the specification's own examples, a case for every sentence of the
 ## How to read the specification
 
 Chapters 1 through 9, together with chapters 11 through 13, define the language. Chapter 10 records what is absent, what may come later, and which choices an implementation may make. An omission is not permission to invent a rule.
+
+Each sentence of a chapter stands on a line of its own and ends with the label of its rule, such as `<!-- r[visibility.audiences.use-outside-audience] -->`, which does not render. A label stays the same when the text around it changes, and the tests name a rule by it.
 
 | Chapter | Subject |
 | --- | --- |

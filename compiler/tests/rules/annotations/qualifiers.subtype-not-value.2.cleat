@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.subtype-not-value
+//@ accepted
+@Widens annotation Raw; class A { @Raw String f(String s) { return s; } }

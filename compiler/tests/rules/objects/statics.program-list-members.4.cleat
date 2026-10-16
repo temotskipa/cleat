@@ -1,0 +1,3 @@
+//@ rule: objects.statics.program-list-members
+//@ accepted
+class A { String f(Class c) { return c.getName(); } }

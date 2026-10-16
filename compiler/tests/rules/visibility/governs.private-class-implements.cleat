@@ -1,0 +1,8 @@
+//@ rule: visibility.governs.private-class-implements
+//@ accepted
+//@ file: a/Shape.cleat
+package a; public interface Shape { Int area(); }
+//@ file: a/Shapes.cleat
+package a; class Square implements Shape { @Override public Int area() { return 4; } } public class Shapes { public static Shape make() { return new Square(); } }
+//@ file: b/B.cleat
+package b; class B { Int f() { return a.Shapes.make().area(); } }

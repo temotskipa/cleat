@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.integer-division-written
+//@ rejected: `Int` has no method `div`
+class A { Int f(Int a, Int b) { return a / b; } }

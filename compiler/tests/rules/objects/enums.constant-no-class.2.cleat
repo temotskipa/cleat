@@ -1,0 +1,3 @@
+//@ rule: objects.enums.constant-no-class
+//@ accepted
+enum E { A, B }

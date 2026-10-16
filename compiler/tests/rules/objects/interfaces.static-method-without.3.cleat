@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.static-method-without
+//@ accepted
+interface Z { static Int zero(); } class C implements Z { @Override public static Int zero() { return 0; } } abstract class D implements Z { }

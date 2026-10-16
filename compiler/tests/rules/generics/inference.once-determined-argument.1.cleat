@@ -1,0 +1,3 @@
+//@ rule: generics.inference.once-determined-argument
+//@ rejected: `String` is not assignable to `Int`
+class A { static <T> void g(T a, List<T> b) { } static void h(String s, List<Int> b) { g(s, b); } }

@@ -1,0 +1,3 @@
+//@ rule: visibility.only.type-listed-twice
+//@ accepted
+class A { package only(B, C) Int x = 1; } class B { } class C { }

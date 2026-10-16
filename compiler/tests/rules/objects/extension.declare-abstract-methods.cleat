@@ -1,0 +1,3 @@
+//@ rule: objects.extension.declare-abstract-methods
+//@ accepted
+abstract class A { abstract Int f(); Int g() { return f(); } }

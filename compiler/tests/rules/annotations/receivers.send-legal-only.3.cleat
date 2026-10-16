@@ -1,0 +1,3 @@
+//@ rule: annotations.receivers.send-legal-only
+//@ accepted
+@Refines annotation Priced; @Widens annotation Raw; class Order { public Int unitPrice(@Priced Order this) { return 1; } public Int id(@Raw Order this) { return 2; } } class C { Int f(@Priced Order o, @Raw Order r) { return o.unitPrice() + o.id() + r.id(); } }

@@ -1,0 +1,3 @@
+//@ rule: numbers.classes.no-numeric-class
+//@ rejected: `Int32` is not assignable to `Numeric<Int>`
+class A { Numeric<Int> f(Int32 x) { return x; } }

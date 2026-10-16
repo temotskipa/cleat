@@ -1,0 +1,3 @@
+//@ rule: generics.parameters.enum-annotation-not
+//@ accepted
+class B<T> { } interface I<T> { } class A { <T> void f(T x) { } }

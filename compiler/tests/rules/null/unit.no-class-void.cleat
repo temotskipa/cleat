@@ -1,0 +1,3 @@
+//@ rule: null.unit.no-class-void
+//@ rejected: there is no type named `Void` here
+class A { Void f() { return; } }

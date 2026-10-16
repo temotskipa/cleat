@@ -1,0 +1,3 @@
+//@ rule: source.scope.type-static-member
+//@ rejected: `n` is an instance field and is read from a value
+class P { public Int n = 1; } class A { Int f() { return P.n; } }

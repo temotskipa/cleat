@@ -1,0 +1,9 @@
+# The rules of chapter 11 that no program shows, each with the reason.
+
+syntax.intro.add-restrictions-grammar: It says how the chapters fit together; the restrictions have their own cases.
+syntax.intro.notation-uses-definition: It explains the notation.
+syntax.intro.words-outside-quotes: It explains the notation.
+syntax.tokens.describes-tokens-prose: It points to chapter 1, whose sentences have their own cases.
+syntax.declarations.annotation-end-modifiers: It names the two readings that the next two sentences settle.
+syntax.expressions.grammar-derives-more: It introduces the rules after it, which the other chapters state.
+syntax.expressions.says-parts-name: It points to section 1.8, whose sentences have their own cases.

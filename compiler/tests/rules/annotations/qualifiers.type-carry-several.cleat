@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.type-carry-several
+//@ accepted
+@Refines annotation P; @Refines annotation E; class A { static Int needP(@P Int n) { return n; } static Int needE(@E Int n) { return n; } Int f(@P @E Int n) { return needP(n) + needE(n); } }

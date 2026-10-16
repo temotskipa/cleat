@@ -1,0 +1,3 @@
+//@ rule: source.units.type-declaration-declares
+//@ accepted
+class A { } interface I { } enum E { X } annotation M;

@@ -1,0 +1,3 @@
+//@ rule: execution.exceptions.open-class-program
+//@ accepted
+class A extends ArithmeticException { } class B extends ClassCastException { } class C extends IndexOutOfBoundsException { } class D extends IllegalArgumentException { } class E extends IllegalStateException { } class F extends IllegalAccessException { } class G extends AssertionException { } class H extends ClassInitializationException { } class I extends OutOfMemoryException { } class J extends CancellationException { } class K extends Throwable { }

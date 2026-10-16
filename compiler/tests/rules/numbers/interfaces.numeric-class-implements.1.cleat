@@ -1,0 +1,3 @@
+//@ rule: numbers.interfaces.numeric-class-implements
+//@ rejected: cannot be inferred from this call
+class A { static <T extends Numeric<T> & Ordered<T>> void need(T x) { } void f(String s) { need(s); } }

@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.says-implicit-conversion
+//@ accepted
+class A { static Int take(Int n) { return n; } Rational f(Int32 small) { Int count = small; Int again = take(small); Rational price = 4.35; Rational total = price * count; return count; } }

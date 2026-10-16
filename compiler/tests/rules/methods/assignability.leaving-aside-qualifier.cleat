@@ -1,0 +1,3 @@
+//@ rule: methods.assignability.leaving-aside-qualifier
+//@ accepted
+@Refines annotation P; class A { Boolean f(@P Int a, Int b, @Nullable Int c) { return a == b || b == c; } }

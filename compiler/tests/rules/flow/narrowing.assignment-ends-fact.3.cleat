@@ -1,0 +1,3 @@
+//@ rule: flow.narrowing.assignment-ends-fact
+//@ accepted
+class A { Int f(@Nullable String s, @Nullable String t) { if (s != null) { var n = s.length(); s = t; return n; } return 0; } }

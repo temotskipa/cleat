@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.qualifier-no-elements
+//@ rejected: a qualifier has no elements
+@Refines annotation Q(Int n);

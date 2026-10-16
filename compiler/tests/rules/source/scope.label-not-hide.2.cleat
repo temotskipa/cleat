@@ -1,0 +1,3 @@
+//@ rule: source.scope.label-not-hide
+//@ accepted
+class A { void f() { a: while (true) { b: while (true) { break a; } } } }

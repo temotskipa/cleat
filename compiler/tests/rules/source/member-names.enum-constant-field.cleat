@@ -1,0 +1,3 @@
+//@ rule: source.member-names.enum-constant-field
+//@ accepted
+enum E { A, B } class C { E f() { E first = E.A; return first; } }

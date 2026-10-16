@@ -1,6 +1,6 @@
-// Chapter 7 at run time. tests/spec_rules/described_07.rs names a line of this
-// program's output for each sentence it shows. A type argument is part of an object's
-// class, so the name of a class shows what a call inferred.
+// Chapter 7 at run time. A line `//@ rule:` names the rule that the next statement
+// shows. A type argument is part of an object's class, so the name of a class shows
+// what a call inferred.
 package t;
 
 @Refines
@@ -253,8 +253,11 @@ public class Sentences07 {
         var any = new List<List<?>>();
         any.add(new List<Int>());
         any.add(new List<String>());
+        //@ rule: generics.wildcards.wildcard-inside-arguments
         Console.println("lists of any kind: " + any.size() + " " + any.getClass().getName());
+        //@ rule: generics.wildcards.list-extends-shape-subtype
         Console.println("a for statement: " + totalArea(circles));
+        //@ rule: generics.wildcards.run-time-type
         Console.println("the unknown type: " + unknown(circles) + " " + unknown(names));
 
         // ---- 7.5 ----
@@ -262,25 +265,49 @@ public class Sentences07 {
         @Nullable String maybe = "text";
         List<? extends Shape> someShapes = circles;
         List<? super Circle> someSink = shapes;
+        //@ rule: generics.inference.call-writes-none
+        //@ rule: generics.inference.argument-static-type
         Console.println("a lower bound: " + Infer.one("a") + " " + Infer.nullable("a") + " " + Infer.one(circle));
+        //@ rule: generics.inference.argument-parameter-type
         Console.println("through a supertype: " + Infer.source(names));
+        //@ rule: generics.inference.type-argument-found
+        //@ rule: generics.inference.constraints-fix-type
         Console.println("an invariant position: " + Infer.list(names) + " " + Infer.listAnd(shapes, circle));
+        //@ rule: generics.inference.lower-bound-position
         Console.println("out and in: " + Infer.sources(circles, shapes) + " " + Infer.sinks(new Bin<Circle>(), new Bin<Shape>()));
+        //@ rule: generics.inference.nested-more-deeply
         Console.println("nested: " + Infer.nested(new Bin<Sink<Circle>>(), new Bin<Sink<Shape>>()));
+        //@ rule: generics.inference.parameter-type-writes
         Console.println("wildcard parameters: " + Infer.producers(circles, shapes) + " " + Infer.consumers(circles, shapes));
+        //@ rule: generics.inference.argument-type-wildcard
+        //@ rule: generics.inference.invariant-position-wildcard
         Console.println("wildcard arguments: " + Infer.producer(someShapes) + " " + Infer.consumer(someSink) + " " + Infer.list(someShapes));
         List<String> expected = Infer.empty();
         var fromEmpty = Infer.seen;
         Shape result = Infer.cast(circle);
+        //@ rule: generics.inference.expected-type-call
+        //@ rule: generics.inference.upper-bound-result
         Console.println("the expected type: " + fromEmpty + " " + expected.getClass().getName() + " " + Infer.seen);
+        //@ rule: generics.inference.lambda-argument-considered
+        //@ rule: generics.inference.parameter-type-lambda
         Console.println("a lambda: " + Infer.mapped(names, (s) -> s.length()) + " | " + Infer.function((String s) -> s.length()));
+        //@ rule: numbers.literals.parameter-type-determines
+        //@ rule: generics.inference.numeric-literal-argument
+        //@ rule: numbers.literals.nothing-else-determines
+        //@ rule: generics.inference.otherwise-literal-default
         Console.println("a literal: " + Infer.two(small, 1) + " " + Infer.one(1) + " " + Infer.one(1.5));
+        //@ rule: generics.inference.lower-bounds-bound
         Console.println("lower bounds: " + Infer.two(circle, shape) + " " + Infer.two(shape, circle));
         List<Object> mixed = Infer.pair("a", 'b');
+        //@ rule: generics.inference.no-lower-bound
         Console.println("no greatest lower bound: " + Infer.seen);
+        //@ rule: generics.inference.upper-bound-argument
+        //@ rule: generics.inference.several-subtype-others
         Console.println("upper bounds: " + Infer.consumer(shapes) + " " + Infer.consumers(shapes, circles));
         var written = Infer.<Shape>empty();
+        //@ rule: generics.inference.program-writes-type
         Console.println("written: " + Infer.seen + " " + Infer.<Object>one("a"));
+        //@ rule: generics.inference.type-inferred-qualifiers
         Console.println("with its qualifiers: " + Infer.one(maybe));
 
         // ---- 7.6 ----
@@ -290,10 +317,17 @@ public class Sentences07 {
         var counts = new List<Int>();
         counts.add(2);
         counts.add(4);
+        //@ rule: generics.static.bound-interface-requires
+        //@ rule: generics.static.method-runs-class
+        //@ rule: generics.static.sum-iterable-rational
         Console.println("a static requirement: " + Kinds.sum(numbers) + " " + Kinds.sum(counts) + " " + Kinds.<Money>zeroOf() + " " + Kinds.<Weight>zeroOf());
 
         // ---- 7.7 ----
         Object ints = new List<Int>();
+        //@ rule: generics.parameters.says-means-run
+        //@ rule: generics.run-time.type-arguments-exist
+        //@ rule: generics.run-time.list-string-int
+        //@ rule: generics.run-time.instantiation-generic-class
         Console.println("classes: " + (new List<String>().getClass() == new List<Int>().getClass()) + " " + (new List<String>().getClass() == strings.getClass()) + " " + (List<String>.class == strings.getClass()));
         var castOfInts = "accepted";
         try {
@@ -302,23 +336,43 @@ public class Sentences07 {
             castOfInts = "fails";
         }
         Object circleList = circles;
+        //@ rule: generics.run-time.cast-instanceof-test
+        //@ rule: generics.run-time.list-string-fails
+        //@ rule: generics.run-time.instanceof-iterable-object
+        //@ rule: generics.run-time.instanceof-list-true
         Console.println("tests: a cast " + castOfInts + ", " + (strings instanceof Iterable<Object>) + " " + (strings instanceof List<?>) + " " + (ints instanceof List<?>) + " " + (circleList instanceof List<? extends Shape>) + " " + (strings instanceof List<? extends Shape>));
+        //@ rule: generics.run-time.inside-generic-class
+        //@ rule: generics.run-time.instanceof-test-against
         Console.println("a type parameter: " + Kinds.<String>isA("x") + " " + Kinds.<Int>isA("x") + " " + Kinds.<String>cast("x") + " " + Kinds.<Int>cast("x") + " " + Kinds.<String>array());
         Object objects = new Object[] { "o" };
         Object circleArray = new Circle[] { circle };
+        //@ rule: generics.run-time.array-invariant-generic
+        //@ rule: generics.run-time.instanceof-string-false
+        //@ rule: generics.run-time.array-subtype-shape
         Console.println("arrays: " + new String[] { "s" }.getClass().getName() + " " + (objects instanceof String[]) + " " + (objects instanceof Object[]) + " " + (circleArray instanceof Shape[]) + " " + (circleArray instanceof Array<? extends Shape>));
+        //@ rule: generics.run-time.wildcard-type-argument
+        //@ rule: generics.run-time.list-string-different
         Console.println("a wildcard argument: " + (new List<List<?>>().getClass() == new List<List<String>>().getClass()) + " " + new List<List<String>>().getClass().getName());
+        //@ rule: generics.run-time.qualifiers-type-argument
+        //@ rule: generics.run-time.list-nullable-strings
+        //@ rule: generics.run-time.getname-instantiation-name
+        //@ rule: generics.run-time.name-type-argument
         Console.println("names: " + new Map<String, Int>().getClass().getName() + " " + new List<@Nullable String>().getClass().getName() + " " + new List<@Positive @Nullable Int>().getClass().getName());
+        //@ rule: generics.run-time.wildcard-inside-type
         Console.println("wildcard names: " + new List<List<?>>().getClass().getName() + " " + new List<List<? extends Shape>>().getClass().getName() + " " + new List<List<? super Circle>>().getClass().getName());
+        //@ rule: generics.run-time.spellings-type-name
         Console.println("one name: " + new List<Iterable<? extends Shape>>().getClass().getName() + " " + new List<List<? extends @Nullable Object>>().getClass().getName() + " " + (new List<Iterable<? extends Shape>>().getClass() == new List<Iterable<Shape>>().getClass()) + " " + (new List<List<? extends @Nullable Object>>().getClass() == new List<List<?>>().getClass()));
 
         // ---- 7.8 ----
         var accepts = new Accepts();
+        //@ rule: generics.signatures.signature-keeps-type
         Console.println("signatures: " + accepts.accept(names) + " " + accepts.accept(counts));
         Named named = new Both();
         Base base = new Both();
+        //@ rule: generics.signatures.superclass-method-interface
         Console.println("one method: " + named.name() + ", " + base.name());
         Ordered<Money> price = new Money(5);
+        //@ rule: generics.signatures.class-implements-ordered
         Console.println("substituted: " + price.compare(new Money(7)));
     }
 }

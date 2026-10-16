@@ -1,0 +1,3 @@
+//@ rule: methods.assignability.nothing-else-converted
+//@ rejected: `Int32[]` is not assignable to `Int[]`
+class A { Int[] f(Int32[] a) { return a; } }

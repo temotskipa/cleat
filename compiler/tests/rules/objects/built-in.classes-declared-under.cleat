@@ -1,0 +1,3 @@
+//@ rule: objects.built-in.classes-declared-under
+//@ accepted
+value class Money { public Int cents; public Money plus(Money o) { return new Money(cents + o.cents); } public Boolean lessThan(Money o) { return cents < o.cents; } } class A { Boolean f(Money a, Money b) { return a + b < b; } }

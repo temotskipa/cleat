@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.receiver-parameter-not
+//@ rejected: method `absent` takes 0 arguments, and 1 is written
+class A { public Boolean absent(@Nullable A this) { return this == null; } static Boolean g(@Nullable A a) { return a.absent(a); } }

@@ -1,0 +1,10 @@
+# The rules of chapter 7 that no program shows, each with the reason.
+
+generics.wildcards.type-wildcard-among: It names a kind of type. The next sentence says what follows from the name, and has its own case.
+generics.wildcards.subtyping-compares-arguments: It points back to section 7.3, whose sentences have their own cases.
+generics.wildcards.members-member-used: It names the unknown type that the sentences after it reason with, and they have their own cases.
+generics.inference.type-parameter-method: It introduces the constraints after it, which have their own cases.
+generics.inference.determined-first-rules: It introduces the three rules after it, which have their own cases.
+generics.inference.inference-never-produces: It describes every result of inference; the examples of section 7.5 are held by tests/spec_examples.rs.
+generics.run-time.how-implementation-represents: It says that a choice of the implementation cannot be seen, so no program shows it.
+generics.signatures.no-bridge-method: It says what an implementation need not make. A program sees only the methods it declared, which the sentences around it show.

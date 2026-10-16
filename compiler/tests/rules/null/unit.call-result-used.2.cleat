@@ -1,0 +1,3 @@
+//@ rule: null.unit.call-result-used
+//@ accepted
+class A { @Discardable static Int g() { return 1; } static void h() { } static void f() { g(); h(); } }

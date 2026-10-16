@@ -1,0 +1,3 @@
+//@ rule: source.scope.catch-parameter-block
+//@ accepted
+class A { String f() { try { } catch (Throwable e) { return e.message(); } return ""; } }

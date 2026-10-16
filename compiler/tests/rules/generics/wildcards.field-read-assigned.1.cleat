@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.field-read-assigned
+//@ rejected: is not assignable to `an unknown type`
+open class Shape { } class Circle extends Shape { } class Cell<T> { public T v; public Cell(T v) { this.v = v; } } class A { void h(Cell<? extends Shape> c) { c.v = new Circle(); } }

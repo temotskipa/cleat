@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.argument-assignable-parameter
+//@ rejected: `String` is not assignable to `an unknown type`
+class A { void f(List<?> xs, String s) { xs.add(s); } }

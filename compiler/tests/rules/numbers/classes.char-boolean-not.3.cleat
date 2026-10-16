@@ -1,0 +1,3 @@
+//@ rule: numbers.classes.char-boolean-not
+//@ accepted
+class A { Int f(Char c) { return c.code(); } }

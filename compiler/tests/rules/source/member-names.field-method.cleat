@@ -1,0 +1,3 @@
+//@ rule: source.member-names.field-method
+//@ accepted
+class A { Int n = 1; Int n() { return n; } Int twice() { return n + n(); } }

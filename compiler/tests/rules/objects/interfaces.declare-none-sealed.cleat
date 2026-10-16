@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.declare-none-sealed
+//@ accepted
+sealed interface S permits P, Q { } class P implements S { } class Q implements S { } class A { Int f(S s) { return switch (s) { case P p -> 1; case Q q -> 2; }; } }

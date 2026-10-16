@@ -1,0 +1,3 @@
+//@ rule: visibility.only.member-named-code
+//@ rejected: the field `x` of `A` is outside its audience here
+class A { public only(B) Int x = 1; } class B { } class C { Int f(A a) { return a.x; } }

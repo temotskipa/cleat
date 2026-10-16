@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.targets-target-declaration
+//@ rejected: its `@Target` does not list this site
+@Target(Site.METHOD) annotation Route; @Route class A { }

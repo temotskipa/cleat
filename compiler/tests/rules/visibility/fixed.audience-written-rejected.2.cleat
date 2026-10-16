@@ -1,0 +1,3 @@
+//@ rule: visibility.fixed.audience-written-rejected
+//@ rejected: a field of an interface is public
+interface I { package Int X = 1; }

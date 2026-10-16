@@ -1,0 +1,13 @@
+# The rules of chapter 9 that no program shows, each with the reason.
+
+execution.exceptions.implementation-record-exception: It says what an implementation may do, and no run shows that it does not.
+execution.exceptions.program-read: It is about what an implementation may record of an exception.
+execution.initialization.happen-only-during: It explains the sentence before it; tests/behavior/Statics.cleat reads a static field before it is assigned.
+execution.storage.implementation-reclaims-storage: The next sentence says a program cannot observe it. The run tests collect at every allocation, and a program that drops objects goes on.
+execution.storage.storage-found-allocation: It says what a running program does when storage runs out.
+execution.storage.program-not-rely: It limits what a program may assume, and no program can be shown to break it.
+execution.program.no-class-added: It says what the language leaves out; no program can ask for it.
+execution.program.no-stable-binary: It says what the language leaves out, and no program can show a form that is not there.
+execution.program.nothing-compiled-compilation: It withholds a promise.
+execution.program.implementation-compile-program: It says what an implementation may do, and no run shows that it does not.
+execution.startup.program-ends-four: It introduces the table after it, whose rows have their own cases.

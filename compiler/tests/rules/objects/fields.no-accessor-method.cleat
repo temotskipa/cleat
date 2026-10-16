@@ -1,0 +1,3 @@
+//@ rule: objects.fields.no-accessor-method
+//@ rejected: `P` has no method named `getX`
+class P { public Int x = 1; } class A { Int f(P p) { return p.getX(); } }

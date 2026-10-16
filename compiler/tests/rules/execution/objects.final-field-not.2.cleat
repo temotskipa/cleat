@@ -1,0 +1,3 @@
+//@ rule: execution.objects.final-field-not
+//@ accepted
+class A { final Int x; Int y; public A() { this.x = 1; this.y = 1; super(); this.y = 2; } }

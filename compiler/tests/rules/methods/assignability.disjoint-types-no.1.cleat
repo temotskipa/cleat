@@ -1,0 +1,3 @@
+//@ rule: methods.assignability.disjoint-types-no
+//@ rejected: the two types are disjoint, so no pair of values is equal
+class A { Boolean f(String s, Int n) { return s == n; } }

@@ -1,0 +1,3 @@
+//@ rule: visibility.fixed.constructors-private
+//@ rejected: the constructors of an enum are private
+enum E { A; public E() { } }

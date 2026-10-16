@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.var-rejected-positions
+//@ accepted
+class A { Int f(Int x) { var y = x; return y; } }

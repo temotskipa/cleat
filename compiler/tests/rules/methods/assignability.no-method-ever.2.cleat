@@ -1,0 +1,3 @@
+//@ rule: methods.assignability.no-method-ever
+//@ rejected: `Int` is not assignable to `Int8`
+class A { Int8 f(Int n) { return n; } }

@@ -1,0 +1,3 @@
+//@ rule: visibility.fixed.constructors-private
+//@ accepted
+enum E { A; E() { } }

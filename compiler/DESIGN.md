@@ -102,18 +102,18 @@ context, and a call that finds the stack full ends the program.
   and the prelude, and every reference between the documents.
 - `tests/spec_consistency.rs`: the chapters against each other and against
   `design/foundations.md`, wherever two places state the same thing.
-- `tests/spec_rules.rs`: every sentence of the specification that states a requirement
-  ("must", "is rejected", "cannot", "may not", "legal"), with a program that breaks it
-  and the diagnostic it must get, and a program that keeps it. A second table does the
-  same for every sentence that restricts in other words ("only", "never", "does not",
-  "is not a", "are not", "has no"). A sentence that no checker can decide names the
-  run test that covers it, most often `tests/behavior/Rules.cleat`. A test fails when a
-  chapter gains a sentence of either kind and no case names it.
-  `tests/spec_rules/described_NN.rs` gives each of chapter NN's remaining sentences, the
-  ones that define or describe, a case of one of four ways: programs for the checker, a
-  line of a run test (`tests/behavior/SentencesNN.cleat` for most), another test by name,
-  or a reason no program can show it. A phrase names its sentence and must be found in
-  exactly one, so every sentence of the specification has exactly one case.
+- `tests/spec_rules.rs`: every rule of the specification against its cases. A rule is a
+  sentence of a chapter, on a line of its own, or a row of a table, and it ends with its
+  label, `<!-- r[visibility.audiences.use-outside-audience] -->`. A table that one test
+  holds whole has one label, on its header row. A case names rules with a line
+  `//@ rule: label`, and is one of four things: a program in `tests/rules/<chapter>/`
+  whose header says `//@ rejected: words of the diagnostic` or `//@ accepted` (one test
+  for each chapter runs them through the checker), a line above the statement of a run
+  program in `tests/behavior/` whose output shows the rule (`SentencesNN.cleat` for
+  most), a line above a test, or a line `label: reason` in
+  `tests/rules/<chapter>/reasons.txt` for a rule no program shows. The test fails when a
+  line of a chapter has no label, a rule has no case, or a case names a rule that does
+  not exist.
 - `tests/prelude_intrinsics.rs`: every `@Intrinsic` method of the prelude, with the reason
   it is not written in the language.
 - `tests/rejections.rs` and `tests/declarations.rs`: programs the checker must reject.

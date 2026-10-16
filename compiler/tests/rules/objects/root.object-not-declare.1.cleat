@@ -1,0 +1,3 @@
+//@ rule: objects.root.object-not-declare
+//@ rejected: `Object` has no method named `notify`
+class A { void f(Object o) { o.notify(); } }

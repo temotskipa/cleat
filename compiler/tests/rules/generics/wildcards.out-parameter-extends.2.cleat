@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.out-parameter-extends
+//@ accepted
+class A { void f(Iterable<? extends Object> x, Iterable<?> y) { } }

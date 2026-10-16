@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.argument-in-parameter
+//@ rejected: `Snk<?>` is not assignable to `Snk<Shape>`
+open class Shape { } class Circle extends Shape { } interface Snk<in T> { void put(T x); } class Bin<T> implements Snk<T> { @Override public void put(T x) { } } class Box<T> { public Snk<T> sink() { return new Bin<T>(); } } class A { Snk<Shape> h(Box<? extends Shape> b) { return b.sink(); } }

@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.use-site-rejected
+//@ rejected: its `@Target` does not list this site
+@Target(Site.TYPE) annotation M; class C { @M Int x = 1; }

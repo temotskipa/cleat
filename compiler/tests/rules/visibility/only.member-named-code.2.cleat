@@ -1,0 +1,3 @@
+//@ rule: visibility.only.member-named-code
+//@ accepted
+class A { public only(B) Int x = 1; Int own(A other) { return x + other.x; } } class B { Int f(A a) { return a.x; } }

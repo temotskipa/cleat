@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.int-positive-qualifies
+//@ rejected: `Int` is not assignable to `@Positive Int`
+@Refines annotation Positive; class A { static Int need(@Positive Int n) { return n; } Int f(Int @Positive [] xs) { return need(xs[0]); } }

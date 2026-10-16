@@ -1,0 +1,3 @@
+//@ rule: numbers.boolean.boolean-final-value
+//@ rejected: the constructor of `Boolean` is outside its audience here
+class A { Boolean f() { return new Boolean(); } }

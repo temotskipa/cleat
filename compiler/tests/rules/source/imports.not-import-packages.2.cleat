@@ -1,0 +1,6 @@
+//@ rule: source.imports.not-import-packages
+//@ accepted
+//@ file: a/b/c/X.cleat
+package a.b.c; public class X { }
+//@ file: D.cleat
+import a.b.c.*; class D { void f(X x) { } }

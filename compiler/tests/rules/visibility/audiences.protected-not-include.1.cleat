@@ -1,0 +1,3 @@
+//@ rule: visibility.audiences.protected-not-include
+//@ rejected: the field `x` of `A` is outside its audience here
+open class A { protected Int x = 1; } class B { Int f(A a) { return a.x; } }

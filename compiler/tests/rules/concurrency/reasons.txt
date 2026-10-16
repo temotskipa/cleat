@@ -1,0 +1,20 @@
+# The rules of chapter 13 that no program shows, each with the reason.
+
+concurrency.threads.sleep-waits-least: No program can read a clock, so no run of a program shows how long it waited.
+concurrency.memory.language-guarantees-four: It introduces the four guarantees after it.
+concurrency.memory.read-returns-value: It holds for every interleaving, which no run can enumerate.
+concurrency.memory.never-returns-part: It holds for every interleaving, which no run can enumerate. The compiler keeps a value-class instance behind one pointer, so a read or an assignment moves one word.
+concurrency.memory.object-complete-before: It follows from the constructor rules of section 9.5, whose sentences have their own cases.
+concurrency.memory.holds-across-threads: It holds for every interleaving, which no run can enumerate.
+concurrency.memory.synchronization-orders-joins: It introduces the table after it, whose rows have their own cases.
+concurrency.memory.otherwise-read-stale: It says what an implementation may do, and no run shows that it does not.
+concurrency.memory.older-value-latest: It says what an implementation may do, and no run shows that it does not.
+concurrency.memory.nothing-else-goes: It holds for every interleaving, which no run can enumerate.
+concurrency.memory.within-thread-actions: It points to section 9.1, whose sentences have their own cases.
+concurrency.memory.field-update-count: It says how the next sentence comes about.
+concurrency.memory.threads-run-nothing: It says what an implementation may do, and no run shows that it does not.
+concurrency.memory.value-change-step: It is advice to a program, and no checker decides which values those are.
+concurrency.locks.return-without-signal: It says what an implementation may do, and no run shows that it does not.
+concurrency.scopes.call-waited-task: It introduces the three ways after it, which have their own cases.
+concurrency.cancellation.no-exception-arrives: It holds for every interleaving, which no run can enumerate. `cancellation_is_raised_only_where_section_13_6_says` checks that one method raises it and only the listed methods call that one.
+concurrency.cancellation.long-computation-task: It is advice to a program.

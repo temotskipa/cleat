@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.type-parameter-unknown
+//@ accepted
+open class Shape { } class A { static <T> T firstOf(List<T> xs) { return xs[0]; } Shape f(List<? extends Shape> xs) { return firstOf(xs); } }

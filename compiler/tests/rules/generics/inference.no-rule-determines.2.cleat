@@ -1,0 +1,3 @@
+//@ rule: generics.inference.no-rule-determines
+//@ accepted
+class A { static <P> List<P> empty() { return new List<P>(); } void f() { List<Int> e = empty(); } }

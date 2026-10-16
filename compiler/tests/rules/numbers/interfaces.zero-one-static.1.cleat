@@ -1,0 +1,3 @@
+//@ rule: numbers.interfaces.zero-one-static
+//@ rejected: `zero` is a static requirement of `Numeric`; it is called through a type parameter, not on the interface
+class A { Int f() { return Numeric.zero(); } }

@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.float-becomes-integer
+//@ rejected: `Float64` is not assignable to `Int`
+class A { Int f(Float64 x) { return x; } }

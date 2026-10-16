@@ -1,0 +1,3 @@
+//@ rule: execution.objects.class-declare-several
+//@ accepted
+class A { Int x; public A() { this.x = 0; } public A(Int x) { this.x = x; } public A(String s) { this.x = s.length(); } static void f() { var a = new A(); var b = new A(1); var c = new A("s"); } }

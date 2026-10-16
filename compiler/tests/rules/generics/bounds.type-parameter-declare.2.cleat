@@ -1,0 +1,3 @@
+//@ rule: generics.bounds.type-parameter-declare
+//@ accepted
+interface P { } interface Q { } class Both implements P, Q { } class A { static <T extends P & Q> T pick(T x) { return x; } static Both f(Both b) { return pick(b); } }

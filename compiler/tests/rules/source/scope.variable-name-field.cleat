@@ -1,0 +1,3 @@
+//@ rule: source.scope.variable-name-field
+//@ accepted
+class A { Int n = 1; static Int m = 2; Int f(Int n, Int m) { return n + this.n + m + A.m; } }

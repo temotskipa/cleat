@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.block-body-returns
+//@ accepted
+class A { void f() { Function1<Int, Int> a = (x) -> { if (x > 0) { return 1; } return 0; }; } }

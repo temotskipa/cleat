@@ -1,0 +1,3 @@
+//@ rule: methods.overloading.otherwise-call-rejected
+//@ accepted
+interface P { } interface Q { } class B implements P, Q { } class A { static void g(P p) { } static void g(Q q) { } static void f(B b) { g((P) b); } }

@@ -1,0 +1,3 @@
+//@ rule: objects.built-in.null-stands-outside
+//@ rejected: `null` is not a value of `Object`
+class A { Object f() { return null; } }

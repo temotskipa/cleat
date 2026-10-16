@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.types-inside-no
+//@ rejected: expected `;`, found `{`
+class A { Object f() { return new Object() { }; } }

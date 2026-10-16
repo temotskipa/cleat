@@ -1,0 +1,3 @@
+//@ rule: execution.objects.no-inherited-instance
+//@ accepted
+open class B { public Int inherited = 1; public Int get() { return 1; } } class D extends B { Int x; public D() { this.x = 1; super(); this.x = inherited + get(); } }

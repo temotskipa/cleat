@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.method-carries-override
+//@ rejected: `zero` overrides or implements a method and must carry `@Override`
+interface Z { static Int zero(); } class C implements Z { public static Int zero() { return 0; } }

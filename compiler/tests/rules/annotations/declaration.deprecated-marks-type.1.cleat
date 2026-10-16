@@ -1,0 +1,3 @@
+//@ rule: annotations.declaration.deprecated-marks-type
+//@ rejected: its `@Target` does not list this site
+class A { void f(@Deprecated Int p) { } }

@@ -1,0 +1,4 @@
+//@ rule: visibility.types.nothing-code-file
+//@ accepted
+//@ file: A.cleat
+class Hidden { } class Beside { void f(Hidden h) { } }

@@ -1,0 +1,3 @@
+//@ rule: objects.root.no-per-object
+//@ rejected: `Object` has no method named `wait`
+class A { void f(Object o) { o.wait(); } }

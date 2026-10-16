@@ -1,0 +1,6 @@
+//@ rule: visibility.only.after-package-type
+//@ accepted
+//@ file: a/A.cleat
+package a; public class A { package only(B) Int x = 1; }
+//@ file: a/B.cleat
+package a; public class B { Int f(A v) { return v.x; } }

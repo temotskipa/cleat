@@ -1,0 +1,3 @@
+//@ rule: flow.constants.constant-field-static
+//@ rejected: the constant of a `case` is a constant expression
+class A { static Int g() { return 3; } static final Int LIMIT = g(); Int f(Int n) { return switch (n) { case LIMIT -> 1; default -> 0; }; } }

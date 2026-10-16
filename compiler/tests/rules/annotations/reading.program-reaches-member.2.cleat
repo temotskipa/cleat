@@ -1,0 +1,3 @@
+//@ rule: annotations.reading.program-reaches-member
+//@ accepted
+annotation Mark; class A { Field[] f(Class c) { return c.<Mark>getAnnotatedFields(); } }

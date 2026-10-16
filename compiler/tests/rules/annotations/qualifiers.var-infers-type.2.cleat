@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.var-infers-type
+//@ accepted
+@Refines annotation P; class A { static Int need(@P Int n) { return n; } Int f(@P Int n) { var m = n; return need(m); } }

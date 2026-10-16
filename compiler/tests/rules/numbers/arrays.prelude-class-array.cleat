@@ -1,0 +1,3 @@
+//@ rule: numbers.arrays.prelude-class-array
+//@ accepted
+class A { Array<Int> f(Int[] xs) { return xs; } Int[] g(Array<Int> xs) { return xs; } Array<Array<String>> h(String[][] x) { return x; } }

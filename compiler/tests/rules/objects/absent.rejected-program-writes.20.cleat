@@ -1,0 +1,3 @@
+//@ rule: objects.absent.rejected-program-writes
+//@ rejected: `default` is not written on an interface method
+interface I { default Int f() { return 1; } }

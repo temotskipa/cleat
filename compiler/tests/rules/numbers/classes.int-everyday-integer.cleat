@@ -1,0 +1,3 @@
+//@ rule: numbers.classes.int-everyday-integer
+//@ accepted
+class A { Int f() { var i = 0; Int n = i; return n + "abc".length(); } }

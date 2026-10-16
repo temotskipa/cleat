@@ -1,0 +1,3 @@
+//@ rule: source.tokens.permits-after-header
+//@ accepted
+sealed class A permits B { Int permits = 1; } class B extends A { }

@@ -1,0 +1,3 @@
+//@ rule: flow.constants.constant-expressions-required
+//@ rejected: the constant of a `case` is a constant expression
+class A { Int f(Int n, Int k) { return switch (n) { case k -> 1; default -> 0; }; } }

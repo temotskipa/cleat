@@ -1,0 +1,3 @@
+//@ rule: generics.bounds.bound-written-without
+//@ rejected: `@Nullable String` is not within the bound `Object`
+class Box<T extends Object> { } class A { void f(Box<@Nullable String> b) { } }

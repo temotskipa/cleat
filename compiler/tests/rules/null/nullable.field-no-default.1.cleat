@@ -1,0 +1,3 @@
+//@ rule: null.nullable.field-no-default
+//@ rejected: the field `s` is not assigned on every path
+class A { String s; public A() { } }

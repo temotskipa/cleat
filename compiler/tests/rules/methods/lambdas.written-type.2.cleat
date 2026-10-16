@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.written-type
+//@ accepted
+class A { Function1<Int, Int> f() { return (Int x) -> x; } Function1<Int, Int> g() { return (x) -> x; } }

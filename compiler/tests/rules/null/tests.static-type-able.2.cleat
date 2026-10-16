@@ -1,0 +1,3 @@
+//@ rule: null.tests.static-type-able
+//@ accepted
+class A { String f(@Nullable String s) { return s ?? "x"; } }

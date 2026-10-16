@@ -1,0 +1,8 @@
+//@ rule: source.imports.type-imported-name
+//@ accepted
+//@ file: p/X.cleat
+package p; public class X { public Int fromP() { return 1; } }
+//@ file: q/X.cleat
+package q; public class X { public Int fromQ() { return 2; } }
+//@ file: q/A.cleat
+package q; import p.X; class A { Int f(X x) { return x.fromP(); } }

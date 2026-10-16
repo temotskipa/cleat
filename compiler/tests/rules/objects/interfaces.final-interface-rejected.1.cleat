@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.final-interface-rejected
+//@ rejected: `final interface` is rejected
+final interface I { }

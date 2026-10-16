@@ -1,0 +1,6 @@
+//@ rule: execution.values.without-compact-form
+//@ accepted
+//@ file: a/V.cleat
+package a; public value class V { public Int x; }
+//@ file: b/B.cleat
+package b; class B { void f() { var v = new a.V(1); } }

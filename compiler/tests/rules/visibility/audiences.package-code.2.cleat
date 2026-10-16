@@ -1,0 +1,7 @@
+//@ rule: visibility.audiences.package-code
+//@ rule: visibility.types.package-code
+//@ rejected: `a.P` is not visible here
+//@ file: a/P.cleat
+package a; package class P { }
+//@ file: b/B.cleat
+package b; class B { void f(a.P p) { } }

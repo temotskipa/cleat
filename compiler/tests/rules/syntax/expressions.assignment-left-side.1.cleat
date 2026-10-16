@@ -1,0 +1,3 @@
+//@ rule: syntax.expressions.assignment-left-side
+//@ rejected: the left side of an assignment is a variable, a field or an indexed element
+class A { Int g() { return 1; } void f() { g() = 1; } }

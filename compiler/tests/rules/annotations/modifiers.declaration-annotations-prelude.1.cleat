@@ -1,0 +1,3 @@
+//@ rule: annotations.modifiers.declaration-annotations-prelude
+//@ rejected: `f` carries `@Override` and overrides nothing
+class A { @Override void f() { } }

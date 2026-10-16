@@ -1,0 +1,3 @@
+//@ rule: execution.startup.process-exit-declared
+//@ accepted
+class A { void f(Int status) { Process.exit(status); } }

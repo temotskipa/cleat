@@ -1,0 +1,3 @@
+//@ rule: source.tokens.keyword-not-identifier
+//@ rejected: `new` is a keyword and cannot be a name
+class A { void new() { } }

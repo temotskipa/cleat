@@ -1,0 +1,3 @@
+//@ rule: visibility.governs.sealed-permits-restrict
+//@ rejected: `S` is sealed and does not permit this type
+sealed interface S permits P { } class P implements S { } class Q implements S { }

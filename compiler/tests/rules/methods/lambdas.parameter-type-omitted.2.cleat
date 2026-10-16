@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.parameter-type-omitted
+//@ accepted
+class A { void f() { Function1<String, Int> a = (s) -> s.length(); } }

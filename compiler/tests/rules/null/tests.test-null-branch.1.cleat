@@ -1,0 +1,3 @@
+//@ rule: null.tests.test-null-branch
+//@ rejected: `length` is sent to a `@Nullable String`
+class A { Int f(@Nullable String s) { if (s == null) { } return s.length(); } }

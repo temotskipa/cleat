@@ -1,0 +1,3 @@
+//@ rule: syntax.expressions.negative-literals-directly
+//@ accepted
+class A { Int8 a = -128; Int min = -9223372036854775808; Float64 x = -1.5; }

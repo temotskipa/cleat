@@ -1,0 +1,3 @@
+//@ rule: execution.objects.arguments-super-this
+//@ accepted
+open class B { public B(Int x) { } } class D extends B { Int y; public D(Int v) { this.y = v; super(y + 1); } }

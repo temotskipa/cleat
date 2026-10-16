@@ -1,0 +1,3 @@
+//@ rule: null.sends.parameter-equals-nullable
+//@ rejected: `equals` carries `@Override` and overrides nothing
+class A { @Override public Boolean equals(Object other) { return true; } }

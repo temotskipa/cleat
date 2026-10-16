@@ -1,0 +1,3 @@
+//@ rule: annotations.declaration.parameter-type-value
+//@ rejected: an `@Implicit` method is a static method of a value class `T` with one parameter of another value class, the result `T`, and no type parameters
+value class Meters { public Int length; @Implicit public static Meters from(Int whole, Int more) { return new Meters(whole); } }

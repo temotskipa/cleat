@@ -1,0 +1,3 @@
+//@ rule: generics.signatures.class-implements-method
+//@ rejected: `put` carries `@Override` and overrides nothing
+interface Snk<T> { void put(T x); } class S implements Snk<String> { @Override public void put(Object x) { } }

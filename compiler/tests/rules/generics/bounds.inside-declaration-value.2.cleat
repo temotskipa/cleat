@@ -1,0 +1,3 @@
+//@ rule: generics.bounds.inside-declaration-value
+//@ accepted
+interface Named { String name(); } class A { static <T extends Named> String f(T x) { return x.name(); } }

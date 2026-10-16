@@ -1,0 +1,3 @@
+//@ rule: numbers.arrays.string-not-subtype
+//@ accepted
+class A { Object f(String[] a) { return a; } }

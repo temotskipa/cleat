@@ -1,0 +1,3 @@
+//@ rule: omissions.later.inline-methods-lambda
+//@ rejected: `inline` is a reserved word
+class A { inline void each(Function0<Unit> body) { body.invoke(); } }

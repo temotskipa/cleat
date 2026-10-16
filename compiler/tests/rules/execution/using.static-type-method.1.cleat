@@ -1,0 +1,3 @@
+//@ rule: execution.using.static-type-method
+//@ rejected: `String` has no method named `close`
+class A { void f(String s) { using (String t = s) { } } }

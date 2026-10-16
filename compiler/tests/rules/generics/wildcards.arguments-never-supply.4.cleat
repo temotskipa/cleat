@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.arguments-never-supply
+//@ accepted
+class A { static <T> Int count(List<T> xs) { return xs.size(); } Int f(List<?> a) { return count(a); } }

@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.method-without-body
+//@ rejected: `C` does not implement `f` of `I`
+interface I { Int f(); } class C implements I { }

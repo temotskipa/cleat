@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.body-loop-reachable
+//@ rejected: a loop whose condition is the constant `false` is rejected
+class A { void g() { } void f() { while (false) { g(); } } }

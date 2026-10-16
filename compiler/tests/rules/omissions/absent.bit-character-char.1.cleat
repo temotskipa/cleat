@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.bit-character-char
+//@ rejected: this escape names a surrogate
+class A { Char c = '\uD83D'; }

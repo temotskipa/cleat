@@ -1,0 +1,3 @@
+//@ rule: methods.foreign.lambda-passed-function
+//@ rejected: a parameter of a `foreign` method is a machine type or an array of one
+class A { foreign static void f(Function0<Int> g); }

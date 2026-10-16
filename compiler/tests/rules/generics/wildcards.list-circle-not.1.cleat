@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.list-circle-not
+//@ rejected: is not assignable to `List<List<?>>`
+class Circle { } class A { List<List<?>> f(List<List<Circle>> xs) { return xs; } }

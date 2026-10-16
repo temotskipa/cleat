@@ -1,0 +1,3 @@
+//@ rule: execution.exceptions.exception-instance-throwable
+//@ accepted
+class E extends Throwable { } class A { void f() { throw new E(); } void g() { throw new Throwable("x"); } }

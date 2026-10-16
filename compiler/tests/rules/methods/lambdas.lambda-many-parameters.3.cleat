@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.lambda-many-parameters
+//@ accepted
+class A { void f() { Function2<Int, Int, Int> a = (x, y) -> x + y; } }

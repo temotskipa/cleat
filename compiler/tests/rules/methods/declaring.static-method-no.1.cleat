@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.static-method-no
+//@ rejected: `this` is not available in a static context
+class A { void g() { } static void f() { this.g(); } }

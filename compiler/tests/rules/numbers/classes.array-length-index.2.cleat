@@ -1,0 +1,3 @@
+//@ rule: numbers.classes.array-length-index
+//@ rejected: `UInt64` is not assignable to `Int`
+class A { Int f(Int[] xs, UInt64 i) { return xs[i]; } }

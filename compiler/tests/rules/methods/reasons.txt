@@ -1,0 +1,22 @@
+# The rules of chapter 4 that no program shows, each with the reason.
+
+methods.intro.defines-methods-expressions: It says what the chapter covers.
+methods.intro.gives-syntax-including: It points to chapter 11, whose sentences have their own cases.
+methods.declaring.methods-interface-described: It points to chapter 2, whose sentences have their own cases.
+methods.declaring.says-qualifiers-mean: It points to chapter 8, whose sentences have their own cases.
+methods.overloading.says-numeric-literal: It points to chapter 6 and to section 4.8, whose sentences have their own cases.
+methods.operators.cases-differ: It introduces the two cases after it, which have their own cases here and in the other tables.
+methods.expressions.defines: It points to chapter 5, whose sentences have their own cases.
+methods.expressions.says-cast-null: It points to chapters 5 and 8, whose sentences have their own cases.
+methods.expressions.array-creation: It points to chapter 6, whose sentences have their own cases.
+methods.lambdas.tostring-chosen-implementation: It leaves a text to the implementation, so no program shows a text it must be.
+methods.lambdas.says-how-lambda: It points to chapter 7, whose sentences have their own cases.
+methods.statements.gives-scope: It points to chapter 1, whose sentences have their own cases.
+methods.statements.arm-three-kinds: It introduces the three kinds after it, which have their own cases.
+methods.statements.defines-exceptions-try: It points to chapter 9, whose sentences have their own cases.
+methods.statements.no-mode-removes: It says what an implementation does not offer. `cleatc` has no option that does, and the run tests show the assertion checked.
+methods.foreign.read-write-array: It says what a C function may do, and C code is outside what a Cleat program can show.
+methods.foreign.empty-array-pointer: It binds the C function, which is outside the language.
+methods.foreign.memory-code-allocates: It says what the collector leaves alone, and a program has no way to see storage that C allocated.
+methods.foreign.code-outside-specification: It says what the specification leaves out.
+methods.foreign.function-writes-outside: It is about the C function, which is outside the language.

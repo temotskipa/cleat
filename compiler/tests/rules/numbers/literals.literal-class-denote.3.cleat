@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.literal-class-denote
+//@ rejected: the literal is outside the range of `UInt16`
+class A { UInt16 x = -1; }

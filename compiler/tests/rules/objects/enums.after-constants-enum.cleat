@@ -1,0 +1,3 @@
+//@ rule: objects.enums.after-constants-enum
+//@ accepted
+interface Named { String label(); } enum E implements Named { A(1), B(2); public final Int n; E(Int n) { this.n = n; } @Override public String label() { return name() + n; } }

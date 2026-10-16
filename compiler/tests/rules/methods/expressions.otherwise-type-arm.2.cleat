@@ -1,0 +1,3 @@
+//@ rule: methods.expressions.otherwise-type-arm
+//@ accepted
+open class P { } class Q extends P { } class A { P f(Boolean b, P p, Q q) { var x = b ? p : q; var y = b ? q : p; Int n = b ? 1 : 2; return b ? x : y; } }

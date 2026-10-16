@@ -1,0 +1,3 @@
+//@ rule: visibility.only.listed-type-lie
+//@ rejected: after `protected`, `only` lists subclasses of the declaring type
+open class A { protected only(B) Int x = 1; } class B { }

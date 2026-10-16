@@ -1,0 +1,3 @@
+//@ rule: objects.statics.static-member-not
+//@ accepted
+class A<T> { static <U> U f(U x) { return x; } static Int[] g(Int n) { return Array.build(n, (i) -> i); } }

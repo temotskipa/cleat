@@ -1,0 +1,3 @@
+//@ rule: annotations.narrowing.subject-method-receiver
+//@ accepted
+@Refines annotation Priced; class Order { @Narrows(Priced.class) public Boolean isPriced() { return true; } public Int price(@Priced Order this) { return 1; } static Int g(Order o) { if (o.isPriced()) { return o.price(); } return 0; } }

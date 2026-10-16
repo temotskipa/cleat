@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.interface-no-instance
+//@ accepted
+interface I { Int X = 1; }

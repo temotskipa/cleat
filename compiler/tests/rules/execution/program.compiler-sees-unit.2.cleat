@@ -1,0 +1,6 @@
+//@ rule: execution.program.compiler-sees-unit
+//@ accepted
+//@ file: a/A.cleat
+package a; public class A { public static Int f() { return b.B.g(); } }
+//@ file: b/B.cleat
+package b; public class B { public static Int g() { return a.A.f(); } }

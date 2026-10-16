@@ -1,0 +1,3 @@
+//@ rule: objects.root.class-null-subclass
+//@ accepted
+class A { Object f(String s, Int n, List<Int> xs, Int[] arr, A a) { Object o = s; o = n; o = xs; o = arr; return a; } }

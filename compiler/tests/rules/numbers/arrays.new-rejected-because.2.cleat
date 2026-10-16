@@ -1,0 +1,3 @@
+//@ rule: numbers.arrays.new-rejected-because
+//@ rejected: has no default value
+class B { public B() { } } class A { B[] f() { return new B[2]; } }

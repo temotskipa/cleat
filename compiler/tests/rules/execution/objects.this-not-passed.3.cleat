@@ -1,0 +1,3 @@
+//@ rule: execution.objects.this-not-passed
+//@ rejected: a lambda does not capture `this` before `super(...)` is called
+class A { Int x; public A() { Function0<Int> g = () -> this.x; this.x = 1; } }

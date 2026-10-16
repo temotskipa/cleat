@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.accept-numeric-class
+//@ rejected: no method `nearest` accepts the arguments (String)
+class A { Float64 f(String s) { return Float64.nearest(s); } }

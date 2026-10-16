@@ -1,0 +1,3 @@
+//@ rule: source.scope.field-initializer-name
+//@ accepted
+class A { Int a = 1; Int b = a + 1; static Int c = 2; static Int d = c + 1; }

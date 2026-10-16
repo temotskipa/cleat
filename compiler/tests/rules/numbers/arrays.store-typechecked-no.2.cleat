@@ -1,0 +1,3 @@
+//@ rule: numbers.arrays.store-typechecked-no
+//@ accepted
+class A { void f(Object[] xs, String s) { xs[0] = s; } }

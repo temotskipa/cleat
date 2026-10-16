@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.expected-type-expression
+//@ rejected: the literal is outside the range of `Int8`
+class A { Int8[] g() { return new Int8[] { 1, 200 }; } }

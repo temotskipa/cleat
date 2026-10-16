@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.parameter-variable-for
+//@ accepted
+class R { public void close() { } public Int n() { return 1; } } class A { Int f(Int p, List<Int> xs, Object o) { var t = p; for (Int x : xs) { t += x; } try { } catch (Throwable e) { t += e.message().length(); } using (R r = new R()) { t += r.n(); } switch (o) { case String s -> { t += s.length(); } default -> { } } return t; } }

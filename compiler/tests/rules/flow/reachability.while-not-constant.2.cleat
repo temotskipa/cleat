@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.while-not-constant
+//@ rejected: this statement is unreachable
+class A { void g() { } void f() { while (true) { while (true) { break; } } g(); } }

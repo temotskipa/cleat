@@ -1,0 +1,3 @@
+//@ rule: generics.inference.wildcard-no-bound
+//@ rejected: cannot be inferred from this call
+open class Shape { } class A { static <P> void consumer(List<? super P> a) { } void f(List<? extends Shape> xs) { consumer(xs); } }

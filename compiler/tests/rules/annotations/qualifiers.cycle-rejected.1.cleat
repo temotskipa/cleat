@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.cycle-rejected
+//@ rejected: this refinement is placed below itself
+@Refines(B.class) annotation A; @Refines(A.class) annotation B;

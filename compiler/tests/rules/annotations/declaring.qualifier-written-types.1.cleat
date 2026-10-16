@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.qualifier-written-types
+//@ rejected: a qualifier is written on types, and `@Target` on its declaration is rejected
+@Refines @Target(Site.TYPE) annotation Q;

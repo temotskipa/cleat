@@ -1,0 +1,3 @@
+//@ rule: source.tokens.exponent-optional-run
+//@ rejected: a numeric literal has no suffix and is not followed by a letter
+class A { Rational a = 1e; }

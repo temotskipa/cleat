@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.using-local-lambda
+//@ accepted
+class A { Function0<Int> f(Int m) { var n = m + 1; return () -> n + m; } }

@@ -1,0 +1,3 @@
+//@ rule: visibility.types.private-protected-rejected
+//@ rejected: a type is `public`, `package`, or visible to its file only
+private class A { }

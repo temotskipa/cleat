@@ -1,0 +1,4 @@
+//@ rule: source.units.file-declares-most
+//@ rejected: the public type `B` must be in a file named `B.cleat`
+//@ file: A.cleat
+public class B { }

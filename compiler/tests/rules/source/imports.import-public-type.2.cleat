@@ -1,0 +1,8 @@
+//@ rule: source.imports.import-public-type
+//@ accepted
+//@ file: a/b/C.cleat
+package a.b; public class C { }
+//@ file: a/b/E.cleat
+package a.b; public class E { }
+//@ file: D.cleat
+import a.b.*; class D { void f(C c, E e) { } }

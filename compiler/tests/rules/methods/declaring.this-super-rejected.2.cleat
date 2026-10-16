@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.this-super-rejected
+//@ rejected: is not available in a static context
+class A { static String f() { return super.toString(); } }

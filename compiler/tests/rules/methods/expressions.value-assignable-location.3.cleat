@@ -1,0 +1,3 @@
+//@ rule: methods.expressions.value-assignable-location
+//@ accepted
+class A { Int[] a = new Int[2]; Object o = 1; void f(String s, Int32 small) { Int n = 1; n = 2; n = small; o = s; a[0] = n; } }

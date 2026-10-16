@@ -1,0 +1,3 @@
+//@ rule: flow.constants.and-or-operands
+//@ accepted
+annotation Flag(Boolean on); @Flag(true && !false || false) class A { Int f(Int n) { return switch (n) { case (true ? 1 : 2) -> 1; default -> 0; }; } }

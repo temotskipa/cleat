@@ -1,0 +1,3 @@
+//@ rule: generics.variance.out-parameter-subtype
+//@ rejected: `Iterable<Object>` is not assignable to `Iterable<String>`
+class A { Iterable<String> f(Iterable<Object> x) { return x; } }

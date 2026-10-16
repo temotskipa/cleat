@@ -1,0 +1,3 @@
+//@ rule: methods.assignability.subtyping-reflexive-transitive
+//@ accepted
+interface I { } interface J extends I { } open class B implements J { } class C extends B { } class A { void f(C c) { C same = c; B b = c; J j = c; I i = c; Object o = i; } }

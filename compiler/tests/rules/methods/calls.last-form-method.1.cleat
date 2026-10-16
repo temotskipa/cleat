@@ -1,0 +1,3 @@
+//@ rule: methods.calls.last-form-method
+//@ rejected: `A` has no method named `missing`
+class A { Int f() { return missing(); } }

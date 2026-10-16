@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.return-value-rejected
+//@ accepted
+class A { public A() { } }

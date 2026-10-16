@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.super-contains-type
+//@ rejected: `List<? super Circle>` is not assignable to `List<? super Shape>`
+open class Shape { } class Circle extends Shape { } class A { List<? super Shape> g(List<? super Circle> x) { return x; } }

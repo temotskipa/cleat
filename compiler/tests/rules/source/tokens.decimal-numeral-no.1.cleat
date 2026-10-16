@@ -1,0 +1,3 @@
+//@ rule: source.tokens.decimal-numeral-no
+//@ rejected: a decimal numeral has no leading zero
+class A { Int f() { return 007; } }

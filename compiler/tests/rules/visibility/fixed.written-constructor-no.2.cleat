@@ -1,0 +1,3 @@
+//@ rule: visibility.fixed.written-constructor-no
+//@ accepted
+class R { R() { } static R make() { return new R(); } }

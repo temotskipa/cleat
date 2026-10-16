@@ -1,0 +1,8 @@
+//@ rule: source.imports.imports-provide-name
+//@ accepted
+//@ file: a/X.cleat
+package a; public class X { public X() { } }
+//@ file: b/X.cleat
+package b; public class X { public X() { } }
+//@ file: C.cleat
+import a.*; import b.*; class C { a.X x = new a.X(); }

@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.interface-no-instance
+//@ rejected: a field of an interface is a constant and needs an initializer
+interface I { Int x; }

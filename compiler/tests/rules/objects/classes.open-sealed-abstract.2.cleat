@@ -1,0 +1,3 @@
+//@ rule: objects.classes.open-sealed-abstract
+//@ rejected: a value class is final
+abstract value class V { public Int a; }

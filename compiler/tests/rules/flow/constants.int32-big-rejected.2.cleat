@@ -1,0 +1,3 @@
+//@ rule: flow.constants.int32-big-rejected
+//@ rejected: this constant expression would raise `ArithmeticException`
+class A { void f() { var x = 1.0 / 0; } }

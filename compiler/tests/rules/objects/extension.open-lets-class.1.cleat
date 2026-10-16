@@ -1,0 +1,6 @@
+//@ rule: objects.extension.open-lets-class
+//@ rejected: `a.P` is not visible here
+//@ file: a/P.cleat
+package a; package open class P { }
+//@ file: b/C.cleat
+package b; class C extends a.P { }

@@ -1,0 +1,3 @@
+//@ rule: generics.inference.fix-type
+//@ rejected: the type arguments of `g` cannot be inferred from this call
+class A { static <T> void g(List<T> a, List<T> b) { } static void h(List<Int> a, List<String> b) { g(a, b); } }

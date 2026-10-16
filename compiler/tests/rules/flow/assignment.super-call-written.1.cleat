@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.super-call-written
+//@ rejected: is not assigned on every path to the `super(...)` call
+class A { Int n; public A() { } }

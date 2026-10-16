@@ -1,0 +1,3 @@
+//@ rule: execution.objects.no-result
+//@ accepted
+class A { public A() { } }

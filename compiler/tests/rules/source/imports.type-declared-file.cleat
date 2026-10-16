@@ -1,0 +1,3 @@
+//@ rule: source.imports.type-declared-file
+//@ accepted
+class List { public Int only() { return 1; } } class A { Int f(List l) { return l.only(); } }

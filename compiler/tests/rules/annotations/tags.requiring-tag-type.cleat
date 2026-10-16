@@ -1,0 +1,3 @@
+//@ rule: annotations.tags.requiring-tag-type
+//@ accepted
+@Target(Site.TYPE) annotation Frozen; class Snapshot<@Frozen T> { } class Pair<@Frozen A, B> { <@Frozen C> void f(C c) { } }

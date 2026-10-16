@@ -1,0 +1,3 @@
+//@ rule: objects.root.override-declares-ordinary
+//@ accepted
+class A { @Override public String toString() { return "a"; } }

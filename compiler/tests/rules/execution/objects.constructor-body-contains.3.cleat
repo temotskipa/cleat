@@ -1,0 +1,3 @@
+//@ rule: execution.objects.constructor-body-contains
+//@ accepted
+open class B { public B(Int x) { } } class D extends B { public D() { super(1); } }

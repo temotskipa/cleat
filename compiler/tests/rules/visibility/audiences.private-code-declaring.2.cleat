@@ -1,0 +1,3 @@
+//@ rule: visibility.audiences.private-code-declaring
+//@ accepted
+class A { private Int x = 1; Int f(A other) { return x + other.x; } }

@@ -1,0 +1,3 @@
+//@ rule: methods.expressions.cast-rejected-static
+//@ rejected: a cast from `String` to `Int` is rejected: the types are disjoint
+class C { Int f(String s) { return (Int) s; } }

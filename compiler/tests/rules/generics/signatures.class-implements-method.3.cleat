@@ -1,0 +1,3 @@
+//@ rule: generics.signatures.class-implements-method
+//@ accepted
+interface Src<T> { T get(); } interface Snk<T> { void put(T x); } class S implements Src<String>, Snk<Int> { @Override public String get() { return "s"; } @Override public void put(Int x) { } }

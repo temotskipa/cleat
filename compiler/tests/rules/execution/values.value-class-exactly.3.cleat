@@ -1,0 +1,3 @@
+//@ rule: execution.values.value-class-exactly
+//@ accepted
+value class V { public Int x; public V { } }

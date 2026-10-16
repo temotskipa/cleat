@@ -1,0 +1,3 @@
+//@ rule: flow.constants.constant-expression-evaluation
+//@ accepted
+class A { Int8 x = 100 + 27; Char c = Char.from(65); Int8 y = Int8.from(27); }

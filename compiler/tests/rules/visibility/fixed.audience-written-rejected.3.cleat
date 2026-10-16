@@ -1,0 +1,3 @@
+//@ rule: visibility.fixed.audience-written-rejected
+//@ accepted
+interface I { public void f(); public Int X = 1; }

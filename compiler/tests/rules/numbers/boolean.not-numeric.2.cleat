@@ -1,0 +1,3 @@
+//@ rule: numbers.boolean.not-numeric
+//@ rejected: cannot be inferred from this call
+class A { static <T extends Numeric<T>> void need(T x) { } void f() { need(true); } }

@@ -1,0 +1,6 @@
+//@ rule: objects.interfaces.field-declared-interface
+//@ accepted
+//@ file: a/I.cleat
+package a; public interface I { Int X = 1; }
+//@ file: b/B.cleat
+package b; class B { Int f() { return a.I.X; } }

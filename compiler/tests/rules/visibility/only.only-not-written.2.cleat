@@ -1,0 +1,3 @@
+//@ rule: visibility.only.only-not-written
+//@ rejected: `only` is not written on a type
+package only(B) class A { } class B { }

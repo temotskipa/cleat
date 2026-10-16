@@ -1,0 +1,3 @@
+//@ rule: generics.inference.already-determined-literal
+//@ rejected: the literal is outside the range of `Int8`
+class A { static <P> P two(P a, P b) { return a; } Int8 f(Int8 small) { return two(small, 1000); } }

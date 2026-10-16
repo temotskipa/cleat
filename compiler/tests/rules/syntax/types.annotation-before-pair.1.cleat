@@ -1,0 +1,3 @@
+//@ rule: syntax.types.annotation-before-pair
+//@ rejected: `null` is not a value of
+class A { String[] g() { return null; } }

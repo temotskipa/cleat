@@ -1,0 +1,3 @@
+//@ rule: methods.overriding.only-open-method
+//@ rejected: `f` is final in `I` and cannot be overridden
+interface I { final Int f() { return 1; } } class C implements I { @Override public Int f() { return 2; } }

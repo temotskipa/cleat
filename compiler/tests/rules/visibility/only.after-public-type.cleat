@@ -1,0 +1,6 @@
+//@ rule: visibility.only.after-public-type
+//@ accepted
+//@ file: a/A.cleat
+package a; import b.B; public class A { public only(B) Int y = 2; }
+//@ file: b/B.cleat
+package b; import a.A; public class B { Int f(A v) { return v.y; } }

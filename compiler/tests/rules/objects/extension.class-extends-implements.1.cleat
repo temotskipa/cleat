@@ -1,0 +1,3 @@
+//@ rule: objects.extension.class-extends-implements
+//@ rejected: expected `{`, found `,`
+open class P { } open class Q { } class C extends P, Q { }

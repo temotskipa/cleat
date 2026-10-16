@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.receiver-parameter-instance
+//@ accepted
+class A { public Boolean absent(@Nullable A this) { return this == null; } }

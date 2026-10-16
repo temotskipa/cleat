@@ -1,0 +1,6 @@
+//@ rule: visibility.types.nothing-code-file
+//@ rejected: there is no type named `Hidden` here
+//@ file: A.cleat
+class Hidden { }
+//@ file: B.cleat
+class B { void f(Hidden h) { } }

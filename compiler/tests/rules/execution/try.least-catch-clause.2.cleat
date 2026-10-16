@@ -1,0 +1,3 @@
+//@ rule: execution.try.least-catch-clause
+//@ accepted
+class A { void f() { try { } finally { } } }

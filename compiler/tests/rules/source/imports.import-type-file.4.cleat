@@ -1,0 +1,6 @@
+//@ rule: source.imports.import-type-file
+//@ accepted
+//@ file: a/Shown.cleat
+package a; public class Shown { }
+//@ file: b/B.cleat
+package b; import a.Shown; class B { void f(Shown s) { } }

@@ -1,0 +1,3 @@
+//@ rule: source.tokens.numeric-literal-no
+//@ rejected: a numeric literal has no suffix
+class A { Float64 f() { return 2.5d; } }

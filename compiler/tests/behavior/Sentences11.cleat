@@ -1,5 +1,5 @@
 // Chapter 11 at run time: how the grammar's open choices are settled.
-// tests/spec_rules/described_11.rs names a line of this program's output for each.
+// A line `//@ rule:` names the rule that the next statement shows.
 package t;
 
 public class Sentences11 {
@@ -9,26 +9,33 @@ public class Sentences11 {
     }
 
     public static void main() {
+        //@ rule: syntax.statements.else-belongs-nearest
         Console.println("dangling else: " + pick(true, false) + " " + pick(false, false));
 
         var two = 2;
         var seven = 7;
+        //@ rule: syntax.expressions.rules-run-loosest
         Console.println("binding: " + (1 + two * 3) + " " + (1 + two < 4 && two * 2 == 4 || false));
 
         var a = 0;
         var b = 0;
         a = b = 5;
         @Nullable String missing = null;
+        //@ rule: syntax.expressions.assignment-conditional-coalesce
         Console.println("right: " + a + " " + b + " " + (false ? 1 : true ? 2 : 3) + " " + (missing ?? missing ?? "c"));
+        //@ rule: syntax.expressions.binary-operators-group
         Console.println("left: " + (two - 3 - 4) + " " + (seven % 4 % 2));
 
         var n = 5;
+        //@ rule: syntax.expressions.subtraction-negated-operand
         Console.println("cast or subtraction: " + ((n) - 1) + " " + (Int) (-n));
+        //@ rule: syntax.expressions.new-lists-elements
         Console.println("array creation: " + new Int[3].length() + " " + new Int[] { 7, 8 }.length());
 
         String s = "abc";
         Function0<Int> through = s::length;
         Function1<String, Int> onType = String::length;
+        //@ rule: syntax.expressions.reference-through-value
         Console.println("references: " + through.invoke() + " " + onType.invoke("hello"));
     }
 }

@@ -1,0 +1,3 @@
+//@ rule: visibility.fixed.audience-written-rejected
+//@ rejected: a method of an interface is public
+interface I { private void f(); }

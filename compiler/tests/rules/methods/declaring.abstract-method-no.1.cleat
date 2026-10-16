@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.abstract-method-no
+//@ rejected: an abstract method appears only in an abstract class
+class A { abstract void f(); }

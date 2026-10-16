@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.generic-method-writes
+//@ rejected: expected `;`, found `<`
+class A { static T id<T>(T x) { return x; } }

@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.static-fields-end
+//@ accepted
+class A { static Int n; static Int m = 1; static { n = m + 1; } }

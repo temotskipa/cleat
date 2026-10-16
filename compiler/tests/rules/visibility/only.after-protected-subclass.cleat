@@ -1,0 +1,3 @@
+//@ rule: visibility.only.after-protected-subclass
+//@ accepted
+open class A { protected only(B) Int x = 1; } class B extends A { Int f() { return x; } }

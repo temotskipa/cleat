@@ -1,0 +1,3 @@
+//@ rule: null.null-class.new-null-rejected
+//@ accepted
+class A { @Nullable Object f() { return null; } }

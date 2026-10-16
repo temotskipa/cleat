@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.no-body-type
+//@ rejected: an annotation declaration has no body
+annotation N { }

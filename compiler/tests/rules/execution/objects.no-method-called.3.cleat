@@ -1,0 +1,3 @@
+//@ rule: execution.objects.no-method-called
+//@ accepted
+class A { Int n; public A() { this.n = h(); super(); n = g(); } Int g() { return 1; } static Int h() { return 2; } }

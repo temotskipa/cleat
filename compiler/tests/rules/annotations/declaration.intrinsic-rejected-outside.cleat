@@ -1,0 +1,3 @@
+//@ rule: annotations.declaration.intrinsic-rejected-outside
+//@ rejected: `@Intrinsic` is rejected outside the package `cleat`
+class A { @Intrinsic Int f(); }

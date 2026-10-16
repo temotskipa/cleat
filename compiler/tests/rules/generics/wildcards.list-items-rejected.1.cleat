@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.list-items-rejected
+//@ rejected: is not assignable to `an unknown type`
+class A { void f(List<?> items) { items[0] = items[1]; } }

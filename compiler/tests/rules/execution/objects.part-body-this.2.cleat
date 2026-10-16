@@ -1,0 +1,3 @@
+//@ rule: execution.objects.part-body-this
+//@ rejected: the inherited field `base` is not used before `super(...)` is called
+open class P { public Int base = 0; } class A extends P { Int n; public A() { this.n = base; super(); } }

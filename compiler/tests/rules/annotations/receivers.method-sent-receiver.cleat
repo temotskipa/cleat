@@ -1,0 +1,3 @@
+//@ rule: annotations.receivers.method-sent-receiver
+//@ accepted
+@Refines annotation Priced; class Order { Int f() { return 1; } static Int g(@Priced Order o) { return o.f() + o.hashCode(); } }

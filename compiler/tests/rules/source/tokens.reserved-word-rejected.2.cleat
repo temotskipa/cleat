@@ -1,0 +1,3 @@
+//@ rule: source.tokens.reserved-word-rejected
+//@ rejected: `when` is a reserved word
+class when { }

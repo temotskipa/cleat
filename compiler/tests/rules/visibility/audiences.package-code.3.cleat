@@ -1,0 +1,9 @@
+//@ rule: visibility.audiences.package-code
+//@ rule: visibility.types.package-code
+//@ accepted
+//@ file: a/A.cleat
+package a; public class A { package Int x = 1; }
+//@ file: a/P.cleat
+package a; package class P { Int f(A v) { return v.x; } }
+//@ file: a/Q.cleat
+package a; class Q { void g(P p) { } }

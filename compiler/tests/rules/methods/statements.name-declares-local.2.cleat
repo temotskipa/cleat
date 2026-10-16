@@ -1,0 +1,3 @@
+//@ rule: methods.statements.name-declares-local
+//@ accepted
+class A { Int f() { Int a; a = 1; return a; } }

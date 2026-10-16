@@ -1,0 +1,3 @@
+//@ rule: numbers.boolean.conditions-if-while
+//@ rejected: `@Nullable Boolean` is not assignable to `Boolean`
+class A { void f(@Nullable Boolean b) { if (b) { } } }

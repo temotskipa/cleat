@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.type-declaring-class
+//@ accepted
+@Refines annotation Priced; interface Order { Int price(@Priced Order this); } class A { Int f(@Priced Order o) { return o.price(); } }

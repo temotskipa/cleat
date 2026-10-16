@@ -1,0 +1,3 @@
+//@ rule: generics.inference.call-generic-method
+//@ rejected: method `two` has 2 type parameters; a call writes all of its type arguments or none
+class A { static <P, Q> P two(P a, Q b) { return a; } String f() { return A.<String>two("a", 1); } }

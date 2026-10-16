@@ -1,0 +1,6 @@
+//@ rule: source.units.file-no-package
+//@ rejected: there is no type named `U` here
+//@ file: U.cleat
+public class U { }
+//@ file: a/B.cleat
+package a; class B { void f(U u) { } }

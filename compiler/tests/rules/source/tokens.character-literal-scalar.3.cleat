@@ -1,0 +1,3 @@
+//@ rule: source.tokens.character-literal-scalar
+//@ accepted
+class A { Char a = 'x'; Char b = '\n'; Char c = '\u{1F600}'; Char d = 'é'; }

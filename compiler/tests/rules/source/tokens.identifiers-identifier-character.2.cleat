@@ -1,0 +1,3 @@
+//@ rule: source.tokens.identifiers-identifier-character
+//@ rejected: expected `;`, found `-`
+class A { Int a-b = 1; }

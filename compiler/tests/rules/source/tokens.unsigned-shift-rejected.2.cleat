@@ -1,0 +1,3 @@
+//@ rule: source.tokens.unsigned-shift-rejected
+//@ accepted
+class A { Int f(Int a) { return a >> 1; } }

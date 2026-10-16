@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.final-local-assigned
+//@ rejected: it is final and may already have a value
+class A { void f() { final Int n = 1; n = 2; } }

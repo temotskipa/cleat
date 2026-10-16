@@ -1,0 +1,3 @@
+//@ rule: execution.objects.super-call-field
+//@ rejected: the field `n` is not assigned on every path to the `super(...)` call
+class A { Int n; public A(Boolean b) { if (b) { this.n = 1; } super(); } }

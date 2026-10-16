@@ -1,0 +1,3 @@
+//@ rule: objects.fields.field-value-class
+//@ rejected: a field of a value class is final
+value class V { public Int a; } class A { void f(V v) { v.a = 2; } }

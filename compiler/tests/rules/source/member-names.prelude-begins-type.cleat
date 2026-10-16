@@ -1,0 +1,3 @@
+//@ rule: source.member-names.prelude-begins-type
+//@ accepted
+class lower { } class A { void f(lower x) { } }

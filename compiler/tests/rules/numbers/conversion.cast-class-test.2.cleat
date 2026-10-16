@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.cast-class-test
+//@ accepted
+class A { Float64 f(Object o) { return (Float64) o; } }

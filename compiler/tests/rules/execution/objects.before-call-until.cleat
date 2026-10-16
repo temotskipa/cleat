@@ -1,0 +1,3 @@
+//@ rule: execution.objects.before-call-until
+//@ accepted
+open class B { } class D extends B { Int x; Int y; public D(Int v) { this.x = v; y = x + 1; super(); } }

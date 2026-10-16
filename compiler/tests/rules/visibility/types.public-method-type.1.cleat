@@ -1,0 +1,8 @@
+//@ rule: visibility.types.public-method-type
+//@ rejected: `Shape` has no method named `side`
+//@ file: Shape.cleat
+public interface Shape { Int area(); }
+//@ file: Shapes.cleat
+class Square implements Shape { @Override public Int area() { return 4; } public Int side() { return 2; } } public class Shapes { public static Shape make() { return new Square(); } }
+//@ file: B.cleat
+class B { Int f() { return Shapes.make().side(); } }

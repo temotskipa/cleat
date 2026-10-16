@@ -1,0 +1,3 @@
+//@ rule: objects.fields.field-reference-class
+//@ accepted
+class P { public Int x = 1; } class A { void f(P p) { p.x = 2; } }

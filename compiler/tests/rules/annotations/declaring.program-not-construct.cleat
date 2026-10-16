@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.program-not-construct
+//@ rejected: `new M` is rejected: an annotation value comes only from a use of the annotation
+annotation M; class A { Object f() { return new M(); } }

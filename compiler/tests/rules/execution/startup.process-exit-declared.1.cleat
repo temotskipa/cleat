@@ -1,0 +1,3 @@
+//@ rule: execution.startup.process-exit-declared
+//@ rejected: `String` is not assignable to `Int`
+class A { void f() { Process.exit("three"); } }

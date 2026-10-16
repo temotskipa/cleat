@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.elements-declaration-list
+//@ accepted
+annotation Route(String path, Int priority = 0); @Route("/x") class A { }

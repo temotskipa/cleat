@@ -1,0 +1,3 @@
+//@ rule: source.scope.variable-not-hide
+//@ accepted
+class A { Int n = 1; void f() { Int n = 2; this.n = n; } void g() { { Int x = 1; } { Int x = 2; } } }

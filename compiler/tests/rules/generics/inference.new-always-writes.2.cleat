@@ -1,0 +1,3 @@
+//@ rule: generics.inference.new-always-writes
+//@ accepted
+class Box<T> { T v; public Box(T v) { this.v = v; } } class A { Box<Int> f() { return new Box<Int>(1); } }

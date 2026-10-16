@@ -1,0 +1,3 @@
+//@ rule: numbers.arrays.arrays-invariant
+//@ rejected: `String[]` is not assignable to `Object[]`
+class A { Object[] f(String[] xs) { return xs; } }

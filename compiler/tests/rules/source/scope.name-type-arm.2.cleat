@@ -1,0 +1,3 @@
+//@ rule: source.scope.name-type-arm
+//@ accepted
+class A { Int f(Object o) { switch (o) { case String s -> { return s.length(); } case Int n -> { return n; } default -> { return 0; } } } }

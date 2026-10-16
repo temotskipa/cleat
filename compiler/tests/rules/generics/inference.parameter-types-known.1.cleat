@@ -1,0 +1,3 @@
+//@ rule: generics.inference.parameter-types-known
+//@ rejected: the type arguments of `g` cannot be inferred from this call
+class A { static <T> void g(Function1<T, Int> f) { } static void h() { g((x) -> 1); } }

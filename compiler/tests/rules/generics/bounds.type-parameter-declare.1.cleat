@@ -1,0 +1,3 @@
+//@ rule: generics.bounds.type-parameter-declare
+//@ rejected: cannot be inferred from this call
+interface P { } interface Q { } class OnlyP implements P { } class A { static <T extends P & Q> T pick(T x) { return x; } static OnlyP f(OnlyP b) { return pick(b); } }

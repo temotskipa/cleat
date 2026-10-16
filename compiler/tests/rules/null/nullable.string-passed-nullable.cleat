@@ -1,0 +1,3 @@
+//@ rule: null.nullable.string-passed-nullable
+//@ accepted
+class A { Int f(@Nullable String s) { return 1; } Int g(String s) { return f(s) + f("x"); } }

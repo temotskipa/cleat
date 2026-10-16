@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.integer-literal-decimal
+//@ accepted
+class A { void f() { Int a = 255; Int b = 0xFF; Rational c = 1.5; Rational d = 2.5e3; Int e = 1_000; } }

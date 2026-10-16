@@ -1,0 +1,3 @@
+//@ rule: objects.extension.abstract-final-open
+//@ rejected: `final` contradicts `open` and `abstract`
+abstract final class A { }

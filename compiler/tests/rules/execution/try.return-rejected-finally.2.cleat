@@ -1,0 +1,3 @@
+//@ rule: execution.try.return-rejected-finally
+//@ rejected: a `break` does not leave a `finally` block
+class A { void f() { while (true) { try { } finally { break; } } } }

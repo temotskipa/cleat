@@ -1,0 +1,3 @@
+//@ rule: null.nullable.subtype-no-type
+//@ accepted
+class A { Null f(Null n) { return n; } }

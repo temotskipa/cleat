@@ -1,0 +1,3 @@
+//@ rule: syntax.declarations.constructor-ends-only
+//@ rejected: a constructor needs a body
+class A { public A(); }

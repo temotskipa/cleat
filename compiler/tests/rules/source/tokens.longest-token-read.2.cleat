@@ -1,0 +1,3 @@
+//@ rule: source.tokens.longest-token-read
+//@ accepted
+class A { List<List<Int>> x = new List<List<Int>>(); Int f(Int a) { return a >> 1; } }

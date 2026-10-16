@@ -1,0 +1,3 @@
+//@ rule: execution.objects.class-declares-no
+//@ accepted
+class A { } class B { void f() { var a = new A(); } }

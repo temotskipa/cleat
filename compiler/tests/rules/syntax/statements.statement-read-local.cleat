@@ -1,0 +1,3 @@
+//@ rule: syntax.statements.statement-read-local
+//@ accepted
+class A { void f() { List<Int> xs = new List<Int>(); Int[] a = new Int[1]; a[0] = 1; Map<String, List<Int>> m = new Map<String, List<Int>>(); } }

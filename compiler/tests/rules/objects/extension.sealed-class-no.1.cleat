@@ -1,0 +1,3 @@
+//@ rule: objects.extension.sealed-class-no
+//@ rejected: a sealed type names the types it permits
+sealed class A { }

@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.arguments-class-new
+//@ rejected: a wildcard is not written among the arguments of the class in `new`
+class A { List<?> f() { return new List<?>(); } }

@@ -1,0 +1,3 @@
+//@ rule: methods.overriding.only-open-method
+//@ rejected: `f` is static in one declaration and not in the other
+open class A { public static Int f() { return 1; } } class B extends A { @Override public Int f() { return 2; } }

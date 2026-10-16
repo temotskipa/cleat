@@ -1,0 +1,4 @@
+//@ rule: visibility.types.declaration-rejected-audience
+//@ rejected: the method `f` can be seen where `Hidden` cannot be named, and its signature names it
+//@ file: A.cleat
+public class A { public void f(Hidden h) { } } class Hidden { }

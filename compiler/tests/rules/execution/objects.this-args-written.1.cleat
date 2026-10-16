@@ -1,0 +1,3 @@
+//@ rule: execution.objects.this-args-written
+//@ rejected: `this(...)`, when written, is the first statement of the constructor
+class A { Int x; public A() { var y = 1; this(y); } public A(Int x) { this.x = x; } }

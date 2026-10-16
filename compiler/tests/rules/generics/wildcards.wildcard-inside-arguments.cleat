@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.wildcard-inside-arguments
+//@ accepted
+class A { void f() { var x = new List<List<?>>(); x.add(new List<Int>()); } }

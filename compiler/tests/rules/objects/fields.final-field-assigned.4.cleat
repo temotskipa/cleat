@@ -1,0 +1,3 @@
+//@ rule: objects.fields.final-field-assigned
+//@ accepted
+class A { final Int n; Int m = 0; public A(Int n) { this.n = n; super(); } void f() { m = n; } }

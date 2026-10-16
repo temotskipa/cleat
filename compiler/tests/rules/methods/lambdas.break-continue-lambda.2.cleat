@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.break-continue-lambda
+//@ rejected: no statement labeled `a` encloses this `continue`
+class A { void f() { a: while (true) { Function0<Unit> g = () -> { continue a; }; } } }

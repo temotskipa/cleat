@@ -1,0 +1,3 @@
+//@ rule: syntax.expressions.negative-literals-directly
+//@ rejected: the literal is outside the range of `Int8`
+class A { Int8 a = -(128); }

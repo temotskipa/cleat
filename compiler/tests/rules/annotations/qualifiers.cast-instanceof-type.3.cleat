@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.cast-instanceof-type
+//@ rejected: a value does not carry its qualifiers at run time, so a cast does not name one outside a type argument
+@Refines annotation Positive; class C { @Positive Int f(Int n) { return (@Positive Int) n; } }

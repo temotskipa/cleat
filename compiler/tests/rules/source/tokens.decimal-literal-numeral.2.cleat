@@ -1,0 +1,3 @@
+//@ rule: source.tokens.decimal-literal-numeral
+//@ accepted
+class A { Rational a = 1.5; Rational b = 1.5e3; Rational c = 2e3; Rational d = 0.25E-2; }

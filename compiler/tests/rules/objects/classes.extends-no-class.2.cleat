@@ -1,0 +1,3 @@
+//@ rule: objects.classes.extends-no-class
+//@ rejected: `V` is not a class that can be extended
+value class V { public Int a; } class W extends V { }

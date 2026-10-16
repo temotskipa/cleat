@@ -1,0 +1,3 @@
+//@ rule: objects.enums.declaration-lists-constants
+//@ rejected: expected `}`, found `n`
+enum E { Int n = 1; A }

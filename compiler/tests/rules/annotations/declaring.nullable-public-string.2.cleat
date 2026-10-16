@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.nullable-public-string
+//@ accepted
+open class A { @Nullable public open String find(String key) { return null; } } class B extends A { @Override public @Nullable String find(String key) { return null; } }

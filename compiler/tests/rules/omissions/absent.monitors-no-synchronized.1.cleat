@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.monitors-no-synchronized
+//@ rejected: there is no modifier `synchronized`
+class A { synchronized void f() { } }

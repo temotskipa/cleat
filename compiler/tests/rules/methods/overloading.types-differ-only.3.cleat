@@ -1,0 +1,3 @@
+//@ rule: methods.overloading.types-differ-only
+//@ accepted
+class A { void f(String s) { } void f(Int n) { } void f(String s, Int n) { } }

@@ -1,0 +1,3 @@
+//@ rule: objects.classes.implement-interfaces
+//@ accepted
+interface I { Int f(); } value class V implements I { public Int a; @Override public Int f() { return a; } }

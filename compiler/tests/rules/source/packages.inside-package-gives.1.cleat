@@ -1,0 +1,6 @@
+//@ rule: source.packages.inside-package-gives
+//@ rejected: `a.P` is not visible here
+//@ file: a/P.cleat
+package a; package class P { }
+//@ file: a/b/Q.cleat
+package a.b; class Q { void f(a.P p) { } }

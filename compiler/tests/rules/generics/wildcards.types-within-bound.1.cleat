@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.types-within-bound
+//@ rejected: `String` is not within the bound `Shape` of the type parameter `T`
+open class Shape { } class Box<T extends Shape> { } class A { void f(Box<? extends String> a) { } }

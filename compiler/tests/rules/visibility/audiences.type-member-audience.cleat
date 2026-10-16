@@ -1,0 +1,4 @@
+//@ rule: visibility.audiences.type-member-audience
+//@ accepted
+//@ file: A.cleat
+public class A { private Int a = 1; package Int b = 2; protected Int c = 3; public Int d = 4; Int e = 5; }

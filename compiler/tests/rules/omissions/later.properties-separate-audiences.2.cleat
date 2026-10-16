@@ -1,0 +1,3 @@
+//@ rule: omissions.later.properties-separate-audiences
+//@ rejected: expected `;`, found `{`
+class A { public Int x { get; set; } }

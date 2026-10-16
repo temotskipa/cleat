@@ -1,0 +1,3 @@
+//@ rule: execution.objects.constructor-reference-class
+//@ accepted
+class A { Int x; public A(Int x) { this.x = x; } }

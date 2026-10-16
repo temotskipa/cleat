@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.fields-constructor-assign
+//@ accepted
+class A { Int n; public A() { this.n = 1; super(); } }

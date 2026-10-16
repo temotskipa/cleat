@@ -1,0 +1,3 @@
+//@ rule: annotations.narrowing.refinement-subject-gains
+//@ accepted
+@Refines annotation Positive; class Counts { @Narrows(Positive.class) public static Boolean isPositive(Int n) { return n > 0; } static Int need(@Positive Int n) { return n; } static Int f(Int n) { if (isPositive(n)) { @Positive Int m = n; return need(m); } return 0; } }

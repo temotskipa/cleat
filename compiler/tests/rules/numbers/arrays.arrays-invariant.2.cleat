@@ -1,0 +1,3 @@
+//@ rule: numbers.arrays.arrays-invariant
+//@ accepted
+class A { String[] f(String[] xs) { return xs; } Array<? extends Object> g(String[] xs) { return xs; } }

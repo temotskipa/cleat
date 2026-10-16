@@ -1,0 +1,3 @@
+//@ rule: flow.constants.constant-expression-value
+//@ rejected: this constant expression would raise `ArithmeticException`
+class A { Int8 x = 100 + 100; }

@@ -1,0 +1,3 @@
+//@ rule: syntax.types.several-pairs-first
+//@ accepted
+class A { void f(Int[] @Nullable [] a) { a[0] = null; } Int @Nullable [][] g() { return null; } }

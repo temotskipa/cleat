@@ -1,0 +1,3 @@
+//@ rule: generics.parameters.use-generic-class
+//@ accepted
+class Box<T> { public T v; public Box(T v) { this.v = v; } } class A { Box<String> f(String s) { return new Box<String>(s); } }

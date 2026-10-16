@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.after-whole-expression
+//@ rejected: is used where it may not have been assigned
+class A { Int f(Boolean p) { Int n; if (p && (n = 1) > 0) { return n; } return 0; } }

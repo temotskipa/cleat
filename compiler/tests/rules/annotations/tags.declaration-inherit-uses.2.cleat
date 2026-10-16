@@ -1,0 +1,3 @@
+//@ rule: annotations.tags.declaration-inherit-uses
+//@ accepted
+@Inherited annotation Team(String name); @Team("a") interface P { } @Team("b") interface Q { } @Team("c") class C implements P, Q { } @Team("a") interface R { } class D implements P, R { }

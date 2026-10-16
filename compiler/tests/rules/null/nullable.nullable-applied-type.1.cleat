@@ -1,0 +1,3 @@
+//@ rule: null.nullable.nullable-applied-type
+//@ rejected: `@Nullable String` is not assignable to `String`
+class Box<T> { public @Nullable T get() { return null; } } class A { String f(Box<@Nullable String> b) { return b.get(); } }

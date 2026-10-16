@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.code-runs-compile
+//@ rejected: `A` has no method named `getX`
+annotation Getter; class A { @Getter Int x = 1; } class B { Int f(A a) { return a.getX(); } }

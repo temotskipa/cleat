@@ -1,0 +1,3 @@
+//@ rule: source.tokens.words-keywords-only
+//@ accepted
+class A { Int open = 1; Int value = 2; Int only = 3; void sealed() { } Int in(Int out) { return out; } }

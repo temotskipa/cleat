@@ -288,6 +288,7 @@ fn declared() -> BTreeMap<String, Vec<String>> {
     out
 }
 
+//@ rule: annotations.declaration.intrinsic-marks-method
 #[test]
 fn every_intrinsic_of_the_prelude_is_listed_with_its_reason() {
     let declared = declared();

@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.declaration-annotation-written
+//@ rejected: a declaration annotation is written before the modifiers of the declaration it marks
+annotation M; class A { public @M static void f() { } }

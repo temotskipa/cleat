@@ -1,0 +1,3 @@
+//@ rule: methods.operators.static-types-operands
+//@ rejected: `==` between `String` and `Int` is rejected: the two types are disjoint
+class C { Boolean f(String s, Int n) { return s == n; } }

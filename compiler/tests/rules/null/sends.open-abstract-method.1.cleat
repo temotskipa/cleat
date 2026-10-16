@@ -1,0 +1,3 @@
+//@ rule: null.sends.open-abstract-method
+//@ rejected: an `open` or `abstract` method does not declare a `@Nullable` receiver
+open class A { public open Int f(@Nullable A this) { return 1; } }

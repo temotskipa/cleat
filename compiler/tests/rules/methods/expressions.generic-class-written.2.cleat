@@ -1,0 +1,3 @@
+//@ rule: methods.expressions.generic-class-written
+//@ accepted
+class A { List<String> f() { return new List<String>(); } }

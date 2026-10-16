@@ -1,0 +1,3 @@
+//@ rule: null.unit.call-result-unit
+//@ accepted
+class A { void f() { } static Unit g() { } void h() { f(); g(); this.f(); A.g(); } }

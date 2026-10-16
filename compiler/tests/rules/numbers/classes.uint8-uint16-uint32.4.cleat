@@ -1,0 +1,3 @@
+//@ rule: numbers.classes.uint8-uint16-uint32
+//@ accepted
+class A { void f() { UInt8 a = 0; UInt8 b = 255; UInt16 c = 65535; UInt32 d = 4294967295; UInt64 e = 18446744073709551615; } }

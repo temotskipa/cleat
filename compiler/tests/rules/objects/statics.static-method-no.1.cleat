@@ -1,0 +1,3 @@
+//@ rule: objects.statics.static-method-no
+//@ rejected: `this` is not available in a static context
+class A { Int n = 1; static Int f() { return n; } }

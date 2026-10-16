@@ -1,0 +1,3 @@
+//@ rule: execution.values.field-value-class
+//@ accepted
+value class V { public Int a; }

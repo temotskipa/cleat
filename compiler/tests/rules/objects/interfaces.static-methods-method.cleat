@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.static-methods-method
+//@ accepted
+interface I { static Int one() { return 1; } } class A { Int f() { return I.one(); } }

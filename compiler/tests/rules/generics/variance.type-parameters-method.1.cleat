@@ -1,0 +1,3 @@
+//@ rule: generics.variance.type-parameters-method
+//@ rejected: the type parameters of a method have no variance
+class A { <out T> void f() { } }

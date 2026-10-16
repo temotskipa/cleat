@@ -1,0 +1,6 @@
+//@ rule: source.imports.import-lets-file
+//@ accepted
+//@ file: a/b/C.cleat
+package a.b; public class C { }
+//@ file: D.cleat
+import a.b.C; class D { C f(C c) { return c; } }

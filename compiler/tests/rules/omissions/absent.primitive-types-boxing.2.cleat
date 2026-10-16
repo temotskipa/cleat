@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.primitive-types-boxing
+//@ rejected: `boolean` is a reserved word
+class A { boolean b = true; }

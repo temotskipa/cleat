@@ -1,0 +1,3 @@
+//@ rule: numbers.integer.and-or-xor
+//@ accepted
+class A { Int f(Int a, Int8 b, UInt64 c) { return a.and(a).or(a).xor(a).complement().shiftLeft(1).shiftRight(1) + b.and(b) + Int.from(c.xor(c)); } }

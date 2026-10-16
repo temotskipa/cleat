@@ -1,0 +1,3 @@
+//@ rule: annotations.receivers.type-declaring-class
+//@ accepted
+@Refines annotation Priced; class Order { public Int f(@Priced Order this) { return 1; } public Boolean absent(@Nullable Order this) { return this == null; } }

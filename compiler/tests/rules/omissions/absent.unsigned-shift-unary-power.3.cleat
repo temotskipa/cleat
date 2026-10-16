@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.unsigned-shift-unary-power
+//@ rejected: expected an expression, found `*`
+class A { Int f(Int a, Int b) { return a ** b; } }

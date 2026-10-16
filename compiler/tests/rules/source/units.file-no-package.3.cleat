@@ -1,0 +1,6 @@
+//@ rule: source.units.file-no-package
+//@ accepted
+//@ file: U.cleat
+public class U { }
+//@ file: V.cleat
+class V { void f(U u) { } }

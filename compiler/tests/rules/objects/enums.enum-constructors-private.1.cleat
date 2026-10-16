@@ -1,0 +1,3 @@
+//@ rule: objects.enums.enum-constructors-private
+//@ rejected: `new E` is rejected: no expression creates an instance of an enum
+enum E { A; E() { } } class C { E f() { return new E(); } }

@@ -1,0 +1,6 @@
+//@ rule: source.imports.type-imported
+//@ accepted
+//@ file: p/List.cleat
+package p; public class List { public Int fromP() { return 1; } }
+//@ file: A.cleat
+import p.*; class A { Int f(List x) { return x.fromP(); } }

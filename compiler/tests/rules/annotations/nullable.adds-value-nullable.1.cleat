@@ -1,0 +1,3 @@
+//@ rule: annotations.nullable.adds-value-nullable
+//@ rejected: `null` is not a value of `String`
+class A { String s = null; }

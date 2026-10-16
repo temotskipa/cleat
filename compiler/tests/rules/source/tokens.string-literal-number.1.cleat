@@ -1,0 +1,4 @@
+//@ rule: source.tokens.string-literal-number
+//@ rejected: this string literal is never closed
+class A { String a = "x
+y"; }

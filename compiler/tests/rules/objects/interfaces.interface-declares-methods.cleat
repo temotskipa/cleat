@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.interface-declares-methods
+//@ accepted
+interface I { Int f(); String g(Int n); }

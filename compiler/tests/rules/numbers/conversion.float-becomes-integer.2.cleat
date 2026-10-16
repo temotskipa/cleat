@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.float-becomes-integer
+//@ accepted
+class A { Int f(Float64 x) { return Int.from(x.floor()) + Int.from(x.ceil()) + Int.from(x.round()) + Int.from(x.truncate()); } }

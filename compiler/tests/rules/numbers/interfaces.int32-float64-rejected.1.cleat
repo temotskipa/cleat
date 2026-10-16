@@ -1,0 +1,3 @@
+//@ rule: numbers.interfaces.int32-float64-rejected
+//@ rejected: `Float64` is not assignable to `Int32`
+class A { Float64 g(Int32 i, Float64 f) { return i + f; } }

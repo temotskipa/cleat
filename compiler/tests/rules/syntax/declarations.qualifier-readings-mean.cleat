@@ -1,0 +1,3 @@
+//@ rule: syntax.declarations.qualifier-readings-mean
+//@ accepted
+class A { @Nullable public String f() { return null; } public @Nullable String g() { return null; } @Nullable String h = null; }

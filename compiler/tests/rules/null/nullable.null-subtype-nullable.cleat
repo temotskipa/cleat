@@ -1,0 +1,3 @@
+//@ rule: null.nullable.null-subtype-nullable
+//@ accepted
+class A<T> { @Nullable String f(Null n) { return n; } @Nullable List<Int> g(Null n) { return n; } @Nullable T h(Null n) { return n; } }

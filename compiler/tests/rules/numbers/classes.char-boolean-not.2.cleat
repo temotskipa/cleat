@@ -1,0 +1,3 @@
+//@ rule: numbers.classes.char-boolean-not
+//@ rejected: `Char` is not assignable to `Int`
+class A { Int f(Char c) { Int n = c; return n; } }

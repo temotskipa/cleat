@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.static-method-constructor
+//@ accepted
+class A { void f(A this) { } }

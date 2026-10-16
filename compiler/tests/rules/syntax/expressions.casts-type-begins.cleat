@@ -1,0 +1,3 @@
+//@ rule: syntax.expressions.casts-type-begins
+//@ accepted
+class A { Int f(Int a, Int b) { return (a) - b; } Int g(Object o) { return (Int) o; } }

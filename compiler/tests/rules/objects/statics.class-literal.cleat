@@ -1,0 +1,3 @@
+//@ rule: objects.statics.class-literal
+//@ accepted
+class C { } class A { Class f() { return C.class; } }

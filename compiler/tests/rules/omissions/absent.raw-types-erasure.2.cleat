@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.raw-types-erasure
+//@ accepted
+class A { Boolean f(Object o) { return o instanceof List<Int>; } }

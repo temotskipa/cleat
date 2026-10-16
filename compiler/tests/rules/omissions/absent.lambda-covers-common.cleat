@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.lambda-covers-common
+//@ accepted
+interface Check { Boolean test(Int n); } class A { Check f() { return (n) -> n > 0; } }

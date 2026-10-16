@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.interface-methods-public
+//@ rejected: an overriding method has the audience of the method it overrides, or a wider one
+interface I { Int f(); } class C implements I { @Override Int f() { return 1; } }

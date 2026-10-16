@@ -1,0 +1,3 @@
+//@ rule: numbers.text.items-rejected-int
+//@ rejected: `String` is not assignable to `Int`
+class A { String f(Int n) { return n + " items"; } }

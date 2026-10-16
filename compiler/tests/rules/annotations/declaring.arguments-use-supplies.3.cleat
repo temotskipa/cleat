@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.arguments-use-supplies
+//@ accepted
+annotation Route(String path, Int priority = 0); @Route("/x", 2) class A { } @Route(path = "/y") class B { } @Route(priority = 3, path = "/z") class C { }

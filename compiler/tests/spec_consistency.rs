@@ -9,10 +9,23 @@ fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("..")
 }
 
+/// A document's text, without the labels of the specification's rules
+/// (`tests/spec_rules.rs`).
 fn read(path: &Path) -> String {
-    std::fs::read_to_string(path)
+    let text = std::fs::read_to_string(path)
         .unwrap_or_else(|e| panic!("{}: {e}", path.display()))
-        .replace("\r\n", "\n")
+        .replace("\r\n", "\n");
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text.as_str();
+    while let Some(start) = rest.find(" <!-- r[") {
+        let Some(end) = rest[start..].find("] -->") else {
+            break;
+        };
+        out.push_str(&rest[..start]);
+        rest = &rest[start + end + "] -->".len()..];
+    }
+    out.push_str(rest);
+    out
 }
 
 /// Every chapter: its two digits and its text, in order.
@@ -300,6 +313,7 @@ fn a_root_method_has_one_signature_in_every_chapter() {
     }
 }
 
+//@ rule: syntax.tokens.grammar
 #[test]
 fn the_grammar_uses_exactly_the_words_of_chapter_1() {
     let one = chapter("01");
@@ -355,11 +369,13 @@ fn the_operators_of_chapter_4_are_tokens_of_chapter_11() {
         }
     }
     // The compound assignments, which section 4.6 lists in prose.
-    let para = four
+    let para: Vec<&str> = four
         .lines()
-        .find(|l| l.starts_with("**Compound assignment.**"))
-        .expect("the paragraph");
-    let listed: BTreeSet<String> = ticks(para)
+        .skip_while(|l| !l.starts_with("**Compound assignment.**"))
+        .take_while(|l| !l.trim().is_empty())
+        .collect();
+    assert!(!para.is_empty(), "the paragraph");
+    let listed: BTreeSet<String> = ticks(&para.join(" "))
         .iter()
         .flat_map(|t| t.split(' ').map(|w| w.to_string()).collect::<Vec<_>>())
         .filter(|w| w.len() >= 2 && w.ends_with('='))

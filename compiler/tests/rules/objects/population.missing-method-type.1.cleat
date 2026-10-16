@@ -1,0 +1,3 @@
+//@ rule: objects.population.missing-method-type
+//@ rejected: `P` has no method named `missing`
+class P { } class A { void f(P p) { p.missing(); } }

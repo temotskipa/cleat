@@ -1,0 +1,3 @@
+//@ rule: syntax.declarations.places-before-first
+//@ rejected: a declaration annotation is written before the modifiers of the declaration it marks
+open class B { public open void f() { } } class D extends B { public @Override void f() { } }

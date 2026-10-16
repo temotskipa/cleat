@@ -1,0 +1,3 @@
+//@ rule: execution.values.value-class-write
+//@ accepted
+value class V { public Int x; public V { if (x < 0) { throw new IllegalArgumentException("negative"); } } }

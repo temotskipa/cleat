@@ -1,0 +1,3 @@
+//@ rule: source.tokens.default-switch-arm
+//@ accepted
+class A { Int default = 1; Int f(Int n) { return switch (n) { case 1 -> 1; default -> default; }; } }

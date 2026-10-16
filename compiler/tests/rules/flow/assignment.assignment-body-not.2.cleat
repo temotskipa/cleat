@@ -1,0 +1,3 @@
+//@ rule: flow.assignment.assignment-body-not
+//@ rejected: is used where it may not have been assigned
+class A { Int f(List<Int> xs) { Int n; for (Int x : xs) { n = x; } return n; } }

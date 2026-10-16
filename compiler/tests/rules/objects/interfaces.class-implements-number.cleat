@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.class-implements-number
+//@ accepted
+interface I { } interface J { } interface K extends I, J { } class C implements I, J, K { } class D implements K { I f() { return this; } }

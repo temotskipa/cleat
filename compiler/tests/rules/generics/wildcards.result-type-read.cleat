@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.result-type-read
+//@ accepted
+open class Shape { } class Circle extends Shape { } class A { Shape f(List<? extends Shape> shapes) { Shape first = shapes[0]; return first; } }

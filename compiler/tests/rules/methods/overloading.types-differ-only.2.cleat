@@ -1,0 +1,3 @@
+//@ rule: methods.overloading.types-differ-only
+//@ rejected: the method `f` is declared twice with the same parameter types
+class A { Int f() { return 1; } String f() { return ""; } }

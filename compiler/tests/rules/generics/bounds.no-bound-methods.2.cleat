@@ -1,0 +1,3 @@
+//@ rule: generics.bounds.no-bound-methods
+//@ accepted
+class A { static <T> String f(T x) { return x.toString() + x.hashCode() + x.equals(x) + x.identical(x); } }

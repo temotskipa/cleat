@@ -1,0 +1,3 @@
+//@ rule: methods.operators.operands-binary-operator
+//@ rejected: `Float64` is not assignable to `Int32`
+class A { Float64 f(Int32 i, Float64 x) { return i + x; } }

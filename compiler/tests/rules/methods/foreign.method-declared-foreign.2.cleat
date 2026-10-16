@@ -1,0 +1,3 @@
+//@ rule: methods.foreign.method-declared-foreign
+//@ rejected: an abstract, `foreign` or `@Intrinsic` method has no body
+class A { foreign static void f() { } }

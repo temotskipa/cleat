@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.nullable-public-string
+//@ rejected: the method `find` is declared twice with the same parameter types
+class A { @Nullable public String find(String key) { return null; } public @Nullable String find(String key) { return null; } }

@@ -1,0 +1,3 @@
+//@ rule: source.scope.variable-for-over
+//@ rejected: `x` is not a variable or a field in scope
+class A { Int f(List<Int> xs) { for (Int x : xs) { } return x; } }

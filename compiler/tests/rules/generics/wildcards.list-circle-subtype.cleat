@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.list-circle-subtype
+//@ accepted
+open class Shape { } class Circle extends Shape { } class A { List<?> f(List<Circle> x) { return x; } List<? extends Shape> g(List<Circle> x) { return x; } List<? super Circle> h(List<Circle> x) { return x; } }

@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.final-method-without
+//@ accepted
+interface I { final Int f() { return 1; } }

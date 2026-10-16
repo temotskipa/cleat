@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.static-method-constructor
+//@ rejected: a static method does not declare a receiver
+class A { static void f(A this) { } }

@@ -1,0 +1,6 @@
+//@ rule: source.imports.import-type-file
+//@ rejected: `a.Hidden` is visible to its file only, so it is not imported
+//@ file: a/Hidden.cleat
+package a; class Hidden { }
+//@ file: b/B.cleat
+package b; import a.Hidden; class B { }

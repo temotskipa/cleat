@@ -1,0 +1,3 @@
+//@ rule: visibility.fixed.constructors-private
+//@ rejected: no expression creates an instance of an enum
+enum E { A; E() { } } class C { E f() { return new E(); } }

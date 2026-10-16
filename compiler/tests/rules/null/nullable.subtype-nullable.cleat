@@ -1,0 +1,3 @@
+//@ rule: null.nullable.subtype-nullable
+//@ accepted
+class A { @Nullable String f(String s) { return s; } @Nullable Int g(Int n) { return n; } }

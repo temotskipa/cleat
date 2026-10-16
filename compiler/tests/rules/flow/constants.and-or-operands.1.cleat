@@ -1,0 +1,3 @@
+//@ rule: flow.constants.and-or-operands
+//@ rejected: an annotation argument is a constant expression, a class literal, or a use of an annotation
+annotation Flag(Boolean on); class A { public static Boolean g() { return true; } } @Flag(true && A.g()) class B { }

@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.for-init-update
+//@ accepted
+class A { void g() { } void f() { for (var i = 0; i < 3; i++) { } g(); for (;;) { break; } g(); } }

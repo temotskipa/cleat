@@ -1,0 +1,3 @@
+//@ rule: annotations.tags.inheriting-tag-declared
+//@ accepted
+@Target(Site.TYPE) @Inherited annotation Frozen; @Frozen open class A { } class B extends A { } @Frozen interface I { } class C implements I { } class S<@Frozen T> { } class U { void f(S<B> b, S<C> c) { } }

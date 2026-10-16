@@ -1,0 +1,3 @@
+//@ rule: objects.enums.value-enum-rejected
+//@ accepted
+enum E { A }

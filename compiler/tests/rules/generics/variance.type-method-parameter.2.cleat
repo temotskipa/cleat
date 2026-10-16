@@ -1,0 +1,3 @@
+//@ rule: generics.variance.type-method-parameter
+//@ accepted
+interface Snk<in T> { void put(T x); }

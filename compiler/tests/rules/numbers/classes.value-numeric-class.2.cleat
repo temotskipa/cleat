@@ -1,0 +1,3 @@
+//@ rule: numbers.classes.value-numeric-class
+//@ accepted
+class A { Boolean f(Object x) { return x instanceof Int; } }

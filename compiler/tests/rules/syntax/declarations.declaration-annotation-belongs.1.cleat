@@ -1,0 +1,3 @@
+//@ rule: syntax.declarations.declaration-annotation-belongs
+//@ rejected: its `@Target` does not list this site
+@Target(Site.TYPE) annotation M; class A { @M public Int f() { return 1; } }

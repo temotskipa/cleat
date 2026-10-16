@@ -1,0 +1,3 @@
+//@ rule: generics.parameters.enum-annotation-not
+//@ rejected: an enum declares no type parameters
+enum E<T> { A }

@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.conversions-method-from
+//@ accepted
+class A { void f(Int8 a, UInt8 b, Int32 c, Float32 x) { Int16 p = a; Int q = b; Int r = c; Float64 y = x; Rational z = c; UInt64 w = b; } }

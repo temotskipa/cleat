@@ -1,0 +1,3 @@
+//@ rule: null.unit.void-how-result
+//@ accepted
+class A { void f() { } Function0<Unit> g() { return () -> f(); } Unit h() { Unit u = f(); } }

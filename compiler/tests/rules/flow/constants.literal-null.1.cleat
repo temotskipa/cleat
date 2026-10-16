@@ -1,0 +1,3 @@
+//@ rule: flow.constants.literal-null
+//@ rejected: `null` is not a value of `String`
+annotation M(String s); @M(null) class A { }

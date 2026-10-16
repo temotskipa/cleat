@@ -1,0 +1,3 @@
+//@ rule: execution.exceptions.method-not-declare
+//@ rejected: expected `{`, found `throws`
+class A { void f() throws Throwable { } }

@@ -1,0 +1,3 @@
+//@ rule: objects.enums.declaration-lists-constants
+//@ accepted
+enum E { A; Int n = 1; }

@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.branches-if-reachable
+//@ accepted
+class A { static final Boolean OFF = false; void g() { } void f() { if (false) { g(); } else { g(); } if (true) { g(); } else { g(); } if (OFF) { g(); } } }

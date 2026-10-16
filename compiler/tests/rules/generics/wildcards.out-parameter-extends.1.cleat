@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.out-parameter-extends
+//@ rejected: `? super` is rejected for a parameter declared `out`
+class A { void f(Iterable<? super Int> x) { } }

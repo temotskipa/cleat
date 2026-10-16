@@ -1,0 +1,3 @@
+//@ rule: syntax.types.several-pairs-first
+//@ accepted
+class A { void f(Int[] @Nullable [] a) { a[0] = null; a[1] = new Int[2]; var first = a[1]; if (first != null) { first[0] = 1; } } }

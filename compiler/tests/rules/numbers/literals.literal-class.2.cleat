@@ -1,0 +1,4 @@
+//@ rule: numbers.literals.literal-class
+//@ rule: numbers.literals.literal-class-2
+//@ accepted
+class A { void f() { Float64 x = 1 + 0.5; Int8 y = 100 + 27; } }

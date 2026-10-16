@@ -1,0 +1,3 @@
+//@ rule: null.sends.inside-this-type
+//@ rejected: `own` is sent to a `@Nullable C`
+class C { public Int size(@Nullable C this) { return own(); } Int own() { return 1; } }

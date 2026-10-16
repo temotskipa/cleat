@@ -1,0 +1,4 @@
+//@ rule: source.tokens.opens-end-line
+//@ rejected: a text block opens with `"""` and the end of the line
+class A { String s = """abc
+    """; }

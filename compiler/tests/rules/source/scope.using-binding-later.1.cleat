@@ -1,0 +1,3 @@
+//@ rule: source.scope.using-binding-later
+//@ rejected: `a` is not a variable or a field in scope
+class R { public R() { } public void close() { } } class A { R f() { using (R a = new R()) { } return a; } }

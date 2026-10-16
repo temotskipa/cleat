@@ -1,0 +1,3 @@
+//@ rule: null.type-arguments.subtype
+//@ rejected: `List<@Nullable String>` is not assignable to `List<String>`
+class A { List<String> f(List<@Nullable String> xs) { return xs; } }

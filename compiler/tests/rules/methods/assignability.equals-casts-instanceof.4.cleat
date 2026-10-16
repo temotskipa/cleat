@@ -1,0 +1,3 @@
+//@ rule: methods.assignability.equals-casts-instanceof
+//@ rejected: `==` between `Q` and `I` is rejected: the two types are disjoint
+class Q { } interface I { } class C { Boolean f(Q a, I i) { return a == i; } }

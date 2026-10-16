@@ -1,0 +1,3 @@
+//@ rule: generics.signatures.implements-ordered-rejected
+//@ rejected: an interface is named once in a declaration
+class C implements Iterable<Int>, Iterable<String> { }

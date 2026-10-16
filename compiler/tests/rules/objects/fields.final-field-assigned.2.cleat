@@ -1,0 +1,3 @@
+//@ rule: objects.fields.final-field-assigned
+//@ rejected: the field `n` is not assigned on every path
+class A { final Int n; public A() { } }

@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.nullable-gives-expected
+//@ accepted
+class A { void f() { @Nullable Float64 x = 0.5; @Nullable UInt8 y = 255; } }

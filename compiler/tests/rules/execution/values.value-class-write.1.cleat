@@ -1,0 +1,6 @@
+//@ rule: execution.values.value-class-write
+//@ rejected: the constructor of `V` is outside its audience here
+//@ file: a/V.cleat
+package a; public value class V { public Int x; package V { } }
+//@ file: b/B.cleat
+package b; class B { void f() { var v = new a.V(1); } }

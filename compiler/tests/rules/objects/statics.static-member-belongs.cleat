@@ -1,0 +1,3 @@
+//@ rule: objects.statics.static-member-belongs
+//@ accepted
+class C { public static Int n = 1; public static Int f() { return n; } } class A { Int g() { return C.n + C.f(); } }

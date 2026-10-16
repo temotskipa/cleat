@@ -1,0 +1,3 @@
+//@ rule: execution.try.parameter-local-clause
+//@ accepted
+class A { String f() { try { return ""; } catch (Throwable e) { var m = e.message(); return m; } } }

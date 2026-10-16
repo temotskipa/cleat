@@ -1,0 +1,6 @@
+//@ rule: visibility.audiences.public-code-name
+//@ accepted
+//@ file: a/A.cleat
+package a; public class A { public Int x = 1; public Int f() { return x; } }
+//@ file: b/B.cleat
+package b; class B { Int g(a.A v) { return v.x + v.f(); } }

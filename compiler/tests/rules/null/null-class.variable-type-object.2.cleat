@@ -1,0 +1,3 @@
+//@ rule: null.null-class.variable-type-object
+//@ accepted
+class A { void f() { @Nullable Object o = null; Object p = 1; o = p; } }

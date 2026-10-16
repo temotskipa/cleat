@@ -1,0 +1,3 @@
+//@ rule: objects.classes.open-sealed-abstract
+//@ accepted
+value class V { public Int a; }

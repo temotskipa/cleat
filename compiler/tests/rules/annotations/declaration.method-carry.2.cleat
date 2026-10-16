@@ -1,0 +1,3 @@
+//@ rule: annotations.declaration.method-carry
+//@ rejected: `f` overrides or implements a method and must carry `@Override`
+interface I { Int f(); } class B implements I { public Int f() { return 2; } }

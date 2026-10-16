@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.var-rejected-positions
+//@ rejected: `var` is a keyword and cannot be a name
+class A { var f() { return 1; } }

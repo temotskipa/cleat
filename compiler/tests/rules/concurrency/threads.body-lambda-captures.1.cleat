@@ -1,0 +1,3 @@
+//@ rule: concurrency.threads.body-lambda-captures
+//@ rejected: a lambda may use `n` only if it is never assigned after it is initialized
+class A { void f() { var n = 1; n = 2; Thread.start(() -> { var m = n; }); } }

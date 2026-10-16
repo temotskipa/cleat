@@ -1,0 +1,3 @@
+//@ rule: flow.constants.constant-expressions-required
+//@ accepted
+annotation M(Int n); @M(1 + 2) class A { Int f(Int n) { return switch (n) { case 1 + 2 -> 1; default -> 0; }; } }

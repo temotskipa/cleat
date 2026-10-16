@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.int-implements-numeric
+//@ accepted
+class A { Int f() { return Int.zero(); } Numeric<Int> g(Int n) { return n; } }

@@ -1,0 +1,6 @@
+//@ rule: source.imports.not-import-packages
+//@ rejected: there is no type named `X` here
+//@ file: a/b/c/X.cleat
+package a.b.c; public class X { }
+//@ file: D.cleat
+import a.b.*; class D { void f(X x) { } }

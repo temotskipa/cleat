@@ -1,0 +1,3 @@
+//@ rule: source.scope.parameter-method-constructor
+//@ accepted
+class A { Int n; public A(Int p) { this.n = p; } Int f(Int p) { { return p; } } Function1<Int, Int> g() { return (p) -> { return p; }; } }

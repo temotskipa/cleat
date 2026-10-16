@@ -1,0 +1,3 @@
+//@ rule: objects.fields.field-reference-class
+//@ rejected: the field `x` is not assigned here: it is final
+class P { public final Int x = 1; } class A { void f(P p) { p.x = 2; } }

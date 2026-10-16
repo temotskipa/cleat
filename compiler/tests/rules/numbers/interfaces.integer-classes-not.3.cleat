@@ -1,0 +1,3 @@
+//@ rule: numbers.interfaces.integer-classes-not
+//@ accepted
+class A { static <T extends Divisible<T>> void g(T x) { } static void f(Float64 x, Rational r, Float32 y) { g(x); g(r); g(y); } Numeric<Int> h(Int n) { return n; } }

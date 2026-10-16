@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.label-break-leaves
+//@ accepted
+class A { void g() { } void f(Boolean b) { a: { if (b) { break a; } return; } g(); c: { } g(); } }

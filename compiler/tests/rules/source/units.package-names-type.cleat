@@ -1,0 +1,6 @@
+//@ rule: source.units.package-names-type
+//@ accepted
+//@ file: a/b/A.cleat
+package a.b; public class A { } package class Helper { }
+//@ file: a/b/C.cleat
+package a.b; class C { void f(Helper h, a.b.A x, a.b.Helper y) { } }

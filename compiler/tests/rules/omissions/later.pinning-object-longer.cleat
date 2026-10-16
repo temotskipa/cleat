@@ -1,0 +1,3 @@
+//@ rule: omissions.later.pinning-object-longer
+//@ rejected: `Pointer` has no method named `read`
+class A { Int f(Pointer p) { return p.read(); } }

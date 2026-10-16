@@ -1,0 +1,3 @@
+//@ rule: methods.overriding.method-class-overrides
+//@ rejected: carries `@Override` and overrides nothing
+open class S { public open Int f(Int n) { return 1; } } class D extends S { @Override public Int f(String n) { return 2; } }

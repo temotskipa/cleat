@@ -1,0 +1,3 @@
+//@ rule: generics.parameters.satisfy-bound-parameter
+//@ accepted
+class Box<T extends Throwable> { } class A<E extends IllegalStateException> { void f(Box<IllegalStateException> b, Box<E> c, Box<? extends ArithmeticException> d) { } }

@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.cycle-rejected
+//@ accepted
+@Refines annotation A; @Refines(A.class) annotation B; @Refines({A.class, B.class}) annotation C;

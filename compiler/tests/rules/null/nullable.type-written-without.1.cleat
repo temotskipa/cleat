@@ -1,0 +1,3 @@
+//@ rule: null.nullable.type-written-without
+//@ rejected: `null` is not a value of `Int`
+class A { Int n = null; }

@@ -1,5 +1,5 @@
-// What a running program does, for sentences of the specification that a checker
-// cannot decide. tests/spec_rules.rs names this file for each of them.
+// What a running program does, for rules of the specification that a checker cannot
+// decide. A line `//@ rule:` names the rule that the next statement shows.
 package t;
 
 open class Base {
@@ -45,6 +45,7 @@ class Loud {
 }
 
 interface Marked {
+    //@ rule: execution.initialization.interface-initialized-first
     Int SEEN = Rules.note("Marked is initialized");
 }
 
@@ -92,6 +93,7 @@ class Steps {
 
     public Steps(Int n) {
         this();
+        //@ rule: execution.objects.this-args-calls
         Rules.note("body of Steps(Int)");
     }
 }
@@ -136,23 +138,40 @@ public class Rules {
     public static void main() {
         // 2.8: no field is dispatched.
         Base b = new Derived();
+        //@ rule: objects.fields.field-subclass-name
+        //@ rule: objects.fields.static-type-receiver
+        //@ rule: objects.lookup.field-hides-superclass
+        //@ rule: objects.fields.no-field-dispatched
+        //@ rule: objects.lookup.final-method-static
         Console.println("fields: " + b.tag + " " + ((Derived) b).tag + " " + b.viaField());
         // 2.7: a static member hides, and is selected by the type that names it.
+        //@ rule: objects.statics.static-member-selected
+        //@ rule: objects.statics.static-member-subclass
+        //@ rule: objects.lookup.static-method-hides
+        //@ rule: objects.statics.not-override
+        //@ rule: objects.lookup.final-method-static
         Console.println("statics: " + Base.kind() + " " + Derived.kind() + " " + b.name());
         // 2.10: super.name(...) does not dispatch.
+        //@ rule: objects.lookup.super-name-runs
         Console.println("super: " + ((Derived) b).superName());
 
         // 2.7, 9.7, 12.1: a class literal and a constant do not initialize a class.
+        //@ rule: objects.statics.evaluating-not-initialize
+        //@ rule: execution.initialization.class-literal-not
         Console.println("class literal: " + Loud.class.getName());
+        //@ rule: flow.constants.reading-not-initialize
         Console.println("constant: " + Loud.LIMIT);
         Console.println("static method: " + Loud.touch());
         // 9.7: the interfaces a class implements are not initialized with it.
+        //@ rule: execution.initialization.interfaces-class-implements
         Console.println("class: " + Plain.get());
+        //@ rule: execution.initialization.interfaces-class-implements
         Console.println("interface: " + Marked.SEEN);
 
         // 4.1: assigning a parameter does not change a variable of the caller.
         var v = 1;
         var w = bump(v);
+        //@ rule: methods.calls.assigning-parameter-not
         Console.println("parameter: " + v + " " + w);
 
         // 4.9: the update of a `for` runs after `continue` and not after `break`.
@@ -169,18 +188,24 @@ public class Rules {
                 continue;
             }
         }
+        //@ rule: methods.statements.not-run-after
         Console.println("for: " + i + " " + rounds);
 
         // 9.1: `&&`, `||` and `?:` evaluate only the operands chapter 4 says.
+        //@ rule: execution.order.and-or-conditional
         Console.println("and:");
         var r1 = loud("left of &&", false) && loud("right of &&", true);
+        //@ rule: execution.order.and-or-conditional
         Console.println("or:");
         var r2 = loud("left of ||", true) || loud("right of ||", true);
+        //@ rule: execution.order.and-or-conditional
         Console.println("choice:");
         var r3 = loud("condition", true) ? loud("first arm", true) : loud("second arm", true);
         Console.println("results: " + r1 + " " + r2 + " " + r3);
 
         // 5.4: a null test is not a send of `equals`.
+        //@ rule: null.tests.null-test-not
+        //@ rule: null.tests.result-depends-only
         Console.println("null test: " + isNull(new Agreeable()) + " " + isNull(null) + " " + new Agreeable().equals(null));
 
         // 5.2: `Null` is a subtype of `@Nullable T`.
@@ -191,51 +216,64 @@ public class Rules {
             var sum = i8(127) + i8(1);
             Console.println("plus: " + sum);
         } catch (ArithmeticException e) {
+            //@ rule: numbers.integer.plus-minus-times
             Console.println("plus raises");
         }
         try {
             var neg = -i8(-128);
             Console.println("negate: " + neg);
         } catch (ArithmeticException e) {
+            //@ rule: numbers.integer.plus-minus-times
             Console.println("negate raises");
         }
         try {
             var q = i8(-128).floorDiv(i8(-1));
             Console.println("floorDiv: " + q);
         } catch (ArithmeticException e) {
+            //@ rule: numbers.integer.floordiv-truncatingdiv-raise
             Console.println("floorDiv raises");
         }
         try {
             var t = i8(-128).truncatingDiv(i8(-1));
             Console.println("truncatingDiv: " + t);
         } catch (ArithmeticException e) {
+            //@ rule: numbers.integer.floordiv-truncatingdiv-raise
             Console.println("truncatingDiv raises");
         }
         // 6.4: the wrapping methods do not raise.
+        //@ rule: numbers.integer.not-raise
+        //@ rule: numbers.float.not-raise
         Console.println("wrapping: " + i8(127).wrappingPlus(i8(1)) + " " + i8(-128).wrappingMinus(i8(1)) + " " + i8(64).wrappingTimes(i8(4)));
         // 6.7: `from` raises when the value does not fit.
         try {
             var small = i8(200);
             Console.println("from: " + small);
         } catch (ArithmeticException e) {
+            //@ rule: numbers.conversion.program-calls-name
+            //@ rule: numbers.conversion.from-returns-value
+            //@ rule: annotations.declaration.program-calls-name
             Console.println("from raises");
         }
         // 6.5: float arithmetic does not raise.
         var huge = f(1e308) * f(10.0);
         var over = f(1.0) / f(0.0);
         var none = f(0.0) / f(0.0);
+        //@ rule: numbers.integer.not-raise
+        //@ rule: numbers.float.not-raise
         Console.println("floats: " + huge.isInfinite() + " " + over.isInfinite() + " " + none.isNaN());
         // 6.7: a NaN or an infinity has no value in an integer class or in `Rational`.
         try {
             var n = Int.from(none);
             Console.println("from NaN: " + n);
         } catch (ArithmeticException e) {
+            //@ rule: numbers.conversion.nan-infinity-no
             Console.println("from NaN raises");
         }
         try {
             var x = Rational.from(over);
             Console.println("from infinity: " + x);
         } catch (ArithmeticException e) {
+            //@ rule: numbers.conversion.nan-infinity-no
             Console.println("from infinity raises");
         }
         // 6.9: `fromUtf8` raises on bytes that are not UTF-8.
@@ -243,6 +281,7 @@ public class Rules {
             var text = String.fromUtf8(new UInt8[] { 0xFF, 0xFE });
             Console.println("fromUtf8: " + text);
         } catch (IllegalArgumentException e) {
+            //@ rule: numbers.text.fromutf8-raises-illegalargumentexception
             Console.println("fromUtf8 raises");
         }
 
@@ -251,6 +290,7 @@ public class Rules {
         Console.println("type arguments: " + (list instanceof List<Int>) + " " + (list instanceof List<String>));
 
         // 9.5: field initializers run first, in source order, and once.
+        //@ rule: execution.objects.field-initializers-run
         Console.println("constructor:");
         var s1 = new Steps();
         Console.println("constructor that calls this(...):");
@@ -262,9 +302,14 @@ public class Rules {
         Object p = new Point(1, 2);
         Object q2 = new Point(1, 2);
         Object r = new Point(1, 3);
+        //@ rule: execution.storage.identical-not-affected
+        //@ rule: objects.classes.instances-no-identity
+        //@ rule: objects.root.prelude-value-class
+        //@ rule: objects.root.value-class-instance
         Console.println("identical: " + five.identical(alsoFive) + " " + p.identical(q2) + " " + p.identical(r) + " " + b.identical(new Derived()) + " " + b.identical(b));
 
         // 4.8: a lambda has no identity.
+        //@ rule: methods.lambdas.lambda-therefore-no
         Console.println("lambdas: " + constant(1).equals(constant(1)) + " " + constant(1).equals(constant(2)));
 
         // 8.9: a member that carries no annotation has no mirror.
@@ -272,13 +317,17 @@ public class Rules {
         for (Field field : Marks.class.<Mark>getAnnotatedFields()) {
             marked++;
         }
+        //@ rule: annotations.reading.member-carries-no
         Console.println("mirrors: " + marked);
 
         // 13.6: the thread that runs `main` and a started thread are never cancelled.
         Thread.checkCancelled();
+        //@ rule: concurrency.cancellation.thread-started-start
+        //@ rule: concurrency.cancellation.thread-not-cancelled
         Console.println("main is never cancelled");
         var plain = Thread.start(() -> {
             Thread.checkCancelled();
+            //@ rule: concurrency.cancellation.thread-started-start
             Console.println("a started thread is never cancelled");
         });
         plain.join();
@@ -292,6 +341,8 @@ public class Rules {
                     scope.fork(() -> 1);
                     Console.println("another thread forked");
                 } catch (IllegalStateException e) {
+                    //@ rule: concurrency.scopes.fork-raises-illegalstateexception
+                    //@ rule: concurrency.scopes.only-thread-running
                     Console.println("fork from another thread raises");
                 }
             });
@@ -302,6 +353,7 @@ public class Rules {
             ((Scope) kept[0]).fork(() -> 1);
             Console.println("forked after the call");
         } catch (IllegalStateException e) {
+            //@ rule: concurrency.scopes.only-thread-running
             Console.println("fork after the call raises");
         }
 
@@ -320,16 +372,21 @@ public class Rules {
             });
             Console.println("call returned");
         } catch (IllegalStateException e) {
+            //@ rule: concurrency.scopes.cancellationexception-task-never
             Console.println("call reports: " + e.message());
         } catch (CancellationException e) {
             Console.println("call reports a cancellation");
         }
 
         // 9.10, 13.2: a thread that is still running does not keep the program alive.
+        //@ rule: execution.startup.threads-still-running
+        //@ rule: concurrency.threads.thread-still-running
         Thread.start(() -> {
             Thread.sleep(400);
             Console.println("a thread outlived main");
         });
+        //@ rule: execution.startup.main-returns
+        //@ rule: concurrency.threads.program-ends-main
         Console.println("main returns");
     }
 }

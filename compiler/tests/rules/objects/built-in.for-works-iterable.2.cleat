@@ -1,0 +1,3 @@
+//@ rule: objects.built-in.for-works-iterable
+//@ accepted
+class Count implements Iterable<Int> { @Override public Iterator<Int> iterator() { return new Upto(); } } class Upto implements Iterator<Int> { Int i = 0; @Override public Boolean hasNext() { return i < 3; } @Override public Int next() { i = i + 1; return i; } } class A { Int f() { var n = 0; for (Int x : new Count()) { n += x; } return n; } }

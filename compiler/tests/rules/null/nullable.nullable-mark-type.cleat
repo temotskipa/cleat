@@ -1,0 +1,3 @@
+//@ rule: null.nullable.nullable-mark-type
+//@ accepted
+class A<T> { @Nullable String f = null; @Nullable T g(@Nullable T p) { @Nullable Int local = null; List<@Nullable String> xs = new List<@Nullable String>(); @Nullable String[] arr = new @Nullable String[1]; return p; } }

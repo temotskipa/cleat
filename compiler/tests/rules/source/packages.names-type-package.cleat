@@ -1,0 +1,6 @@
+//@ rule: source.packages.names-type-package
+//@ accepted
+//@ file: a/b/C.cleat
+package a.b; public class C { }
+//@ file: D.cleat
+class D { a.b.C f(a.b.C c) { return c; } }

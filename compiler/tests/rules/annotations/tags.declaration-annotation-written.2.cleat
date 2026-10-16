@@ -1,0 +1,3 @@
+//@ rule: annotations.tags.declaration-annotation-written
+//@ accepted
+@Target(Site.TYPE) annotation Frozen; @Frozen class A { } @Frozen interface I { } @Frozen enum E { ONE } class S<@Frozen T> { } class U { void f(S<A> a, S<I> i, S<E> e) { } }

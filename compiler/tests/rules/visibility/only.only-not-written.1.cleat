@@ -1,0 +1,3 @@
+//@ rule: visibility.only.only-not-written
+//@ rejected: `only` is not written after `private`
+class A { private only(B) Int x = 1; } class B { }

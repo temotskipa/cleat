@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.parameter-types-result
+//@ accepted
+class A { Int f(Int x, String s) { return x; } }

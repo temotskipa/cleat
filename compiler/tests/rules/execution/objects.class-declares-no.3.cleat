@@ -1,0 +1,6 @@
+//@ rule: execution.objects.class-declares-no
+//@ accepted
+//@ file: a/A.cleat
+package a; public class A { }
+//@ file: b/B.cleat
+package b; import a.A; class B { void f() { var a = new A(); } }

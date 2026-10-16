@@ -1,0 +1,3 @@
+//@ rule: flow.reachability.body-loop-reachable
+//@ accepted
+class A { void g() { } void f(Boolean b) { while (b) { g(); } while (true) { g(); break; } } }

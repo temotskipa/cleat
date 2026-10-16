@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.abstract-method-no
+//@ rejected: an abstract, `foreign` or `@Intrinsic` method has no body
+abstract class A { abstract void f() { } }

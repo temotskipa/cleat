@@ -1,0 +1,3 @@
+//@ rule: source.tokens.keyword-not-identifier
+//@ rejected: `while` is a keyword and cannot be a name
+class A { Int while = 1; }

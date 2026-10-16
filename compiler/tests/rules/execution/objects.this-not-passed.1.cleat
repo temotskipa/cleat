@@ -1,0 +1,3 @@
+//@ rule: execution.objects.this-not-passed
+//@ rejected: before `super(...)` is called, `this` is used only to assign a field of the class and to read one that is assigned
+class Reg { public static void add(Object o) { } } class A { Int x; public A() { Reg.add(this); this.x = 1; } }

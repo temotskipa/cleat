@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.superinterfaces-provide-body
+//@ rejected: two interfaces provide a body for `f`; the class must override it
+interface P { Int f() { return 1; } } interface Q { Int f() { return 2; } } class C implements P, Q { }

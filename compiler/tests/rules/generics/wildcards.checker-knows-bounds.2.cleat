@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.checker-knows-bounds
+//@ accepted
+open class Shape { } class Circle extends Shape { } class Box<T extends Shape> { public T v; public Box(T v) { this.v = v; } } class A { Shape f(List<? extends Shape> xs) { return xs[0]; } void g(List<? super Circle> s) { s.add(new Circle()); } Shape h(Box<?> b) { return b.v; } }

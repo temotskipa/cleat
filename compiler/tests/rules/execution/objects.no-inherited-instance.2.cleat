@@ -1,0 +1,3 @@
+//@ rule: execution.objects.no-inherited-instance
+//@ rejected: no method is called on `this` before `super(...)` is called, and `get` is an instance method
+open class B { public Int get() { return 1; } } class D extends B { Int x; public D() { this.x = get(); super(); } }

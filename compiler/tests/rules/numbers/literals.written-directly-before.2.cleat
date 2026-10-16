@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.written-directly-before
+//@ accepted
+class A { void f() { Int8 x = -128; Int m = -9223372036854775808; } }

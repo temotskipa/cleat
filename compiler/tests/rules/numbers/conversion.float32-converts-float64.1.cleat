@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.float32-converts-float64
+//@ rejected: `Float64` is not assignable to `Float32`
+class A { Float32 f(Float64 x) { return x; } }

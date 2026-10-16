@@ -1,0 +1,3 @@
+//@ rule: omissions.absent.loading-code-run
+//@ rejected: there is no type named `ClassLoader` here
+class A { void f(ClassLoader l) { } }

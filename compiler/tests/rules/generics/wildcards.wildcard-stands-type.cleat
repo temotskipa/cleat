@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.wildcard-stands-type
+//@ accepted
+class A { Int f(List<?> xs, Map<?, ? extends Throwable> m) { return xs.size(); } }

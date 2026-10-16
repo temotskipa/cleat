@@ -1,0 +1,3 @@
+//@ rule: execution.values.parameters-fields-class
+//@ rejected: constructor `V` takes 2 arguments, and 1 is written
+value class V { public Int x; public String y; } class A { void f() { var v = new V(1); } }

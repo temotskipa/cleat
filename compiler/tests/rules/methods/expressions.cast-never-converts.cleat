@@ -1,0 +1,3 @@
+//@ rule: methods.expressions.cast-never-converts
+//@ rejected: a cast from `Int32` to `Int` is rejected: the types are disjoint, and a cast never converts a value
+class A { Int f(Int32 x) { return (Int) x; } }

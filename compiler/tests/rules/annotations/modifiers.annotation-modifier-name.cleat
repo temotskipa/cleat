@@ -1,0 +1,3 @@
+//@ rule: annotations.modifiers.annotation-modifier-name
+//@ accepted
+annotation Mine; @Mine class A { }

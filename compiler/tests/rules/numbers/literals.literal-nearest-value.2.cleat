@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.literal-nearest-value
+//@ rejected: the literal is too large for `Float32`
+class A { Float32 x = 1e39; }

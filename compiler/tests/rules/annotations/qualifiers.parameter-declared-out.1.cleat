@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.parameter-declared-out
+//@ rejected: `Source<Int>` is not assignable to `Source<@P Int>`
+@Refines annotation P; interface Source<out T> { T get(); } class A { Source<@P Int> f(Source<Int> s) { return s; } }

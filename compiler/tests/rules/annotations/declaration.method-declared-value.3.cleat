@@ -1,0 +1,3 @@
+//@ rule: annotations.declaration.method-declared-value
+//@ accepted
+value class Meters { public Int length; @Implicit public static Meters from(Int whole) { return new Meters(whole); } } class A { Meters f() { return 3; } }

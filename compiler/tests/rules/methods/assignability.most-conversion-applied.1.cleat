@@ -1,0 +1,3 @@
+//@ rule: methods.assignability.most-conversion-applied
+//@ rejected: `Int8` is not assignable to `Meters`
+value class Meters { public Int length; @Implicit public static Meters from(Int whole) { return new Meters(whole); } } class A { Meters f(Int8 n) { return n; } }

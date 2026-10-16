@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.use-no-arguments
+//@ rejected: an annotation with no arguments writes no parentheses
+annotation M; @M() class A { }

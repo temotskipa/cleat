@@ -1,0 +1,3 @@
+//@ rule: methods.foreign.type-rejected-foreign
+//@ accepted
+class A { foreign static Int32 f(Int32 a, Float64[] b, Pointer p); }

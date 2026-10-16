@@ -1,0 +1,3 @@
+//@ rule: methods.lambdas.no-type
+//@ rejected: a lambda has no type of its own
+class A { void f() { var g = (Int x) -> x; } }

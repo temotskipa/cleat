@@ -90,6 +90,7 @@ public class Annotations {
             Console.println("wrong target");
         }
         Field hidden = c.<Column>getAnnotatedFields()[2];
+        //@ rule: visibility.governs.mirrors-use-only
         try {
             var v = hidden.get(p);
         } catch (IllegalAccessException x) {

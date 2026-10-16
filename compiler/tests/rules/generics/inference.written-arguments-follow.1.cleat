@@ -1,0 +1,3 @@
+//@ rule: generics.inference.written-arguments-follow
+//@ rejected: `id` is not a variable or a field in scope
+class A { static <T> T id(T x) { return x; } String f() { return id<String>("a"); } }

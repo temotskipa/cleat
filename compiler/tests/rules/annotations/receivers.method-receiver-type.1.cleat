@@ -1,0 +1,3 @@
+//@ rule: annotations.receivers.method-receiver-type
+//@ rejected: `total` is sent to a `Order`
+@Refines annotation Priced; class Order { public Int total(@Priced Order this) { return 1; } public Int twice() { return total() + total(); } }

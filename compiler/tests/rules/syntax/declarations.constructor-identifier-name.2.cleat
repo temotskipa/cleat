@@ -1,0 +1,3 @@
+//@ rule: syntax.declarations.constructor-identifier-name
+//@ accepted
+class A { public A() { } }

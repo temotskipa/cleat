@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.signature-use-interface
+//@ accepted
+interface Z<T> { static T zero(); } class C implements Z<C> { @Override public static C zero() { return new C(); } }

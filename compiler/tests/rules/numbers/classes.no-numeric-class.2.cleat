@@ -1,0 +1,3 @@
+//@ rule: numbers.classes.no-numeric-class
+//@ accepted
+class A { Object f(Int32 x) { return x; } Numeric<Int32> g(Int32 x) { return x; } }

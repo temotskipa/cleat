@@ -1,0 +1,3 @@
+//@ rule: numbers.arrays.new-rejected-because
+//@ accepted
+value class V { public Int a; public Rational r; public @Nullable String s; } class A { void f() { var a = new @Nullable String[3]; var b = new Int[3]; var c = new Boolean[1]; var d = new Char[1]; var e = new V[2]; var g = new Rational[2]; } }

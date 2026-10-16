@@ -1,0 +1,3 @@
+//@ rule: syntax.tokens.block-comment-ends
+//@ accepted
+/* a /* b */ class A { /* ** / */ }

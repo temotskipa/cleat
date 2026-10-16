@@ -1,0 +1,3 @@
+//@ rule: objects.fields.final-field-assigned
+//@ rejected: the field `a` is not assigned here: a field of a value class is final
+value class V { public Int a; public V bump() { a = 2; return this; } }

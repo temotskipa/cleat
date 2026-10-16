@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.method-body-default
+//@ accepted
+interface I { Int f() { return 1; } } class C implements I { } class D { Int g(C c) { return c.f(); } }

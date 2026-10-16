@@ -1,0 +1,3 @@
+//@ rule: objects.root.override-declares-ordinary
+//@ rejected: an override of `toString` declares an ordinary receiver
+class A { @Override public String toString(@Nullable A this) { return "a"; } }

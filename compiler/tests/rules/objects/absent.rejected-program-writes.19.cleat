@@ -1,0 +1,3 @@
+//@ rule: objects.absent.rejected-program-writes
+//@ rejected: `Object` has no method named `clone`
+class A { Object f(Object o) { return o.clone(); } }

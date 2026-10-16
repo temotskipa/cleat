@@ -1,0 +1,3 @@
+//@ rule: generics.bounds.others-interfaces
+//@ accepted
+open class C1 { } interface P { } interface Q { } class A { static <T extends C1 & P & Q> void f(T x) { } static <U extends P & Q> void g(U x) { } }

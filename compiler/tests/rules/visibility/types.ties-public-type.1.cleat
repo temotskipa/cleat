@@ -1,0 +1,4 @@
+//@ rule: visibility.types.ties-public-type
+//@ rejected: the public type `B` must be in a file named `B.cleat`
+//@ file: A.cleat
+public class B { }

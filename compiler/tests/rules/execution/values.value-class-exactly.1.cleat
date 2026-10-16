@@ -1,0 +1,3 @@
+//@ rule: execution.values.value-class-exactly
+//@ rejected: a value class has exactly one constructor
+value class V { public Int x; public V { } public V { } }

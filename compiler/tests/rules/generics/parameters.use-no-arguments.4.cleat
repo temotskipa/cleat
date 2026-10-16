@@ -1,0 +1,3 @@
+//@ rule: generics.parameters.use-no-arguments
+//@ accepted
+class A { void f(Int n) { var a = Array.build(n, (i) -> i); } }

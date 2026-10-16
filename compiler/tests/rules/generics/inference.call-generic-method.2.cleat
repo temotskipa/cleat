@@ -1,0 +1,3 @@
+//@ rule: generics.inference.call-generic-method
+//@ accepted
+class A { static <P, Q> P two(P a, Q b) { return a; } String f() { return A.<String, Int>two("a", 1) + two("b", 2); } }

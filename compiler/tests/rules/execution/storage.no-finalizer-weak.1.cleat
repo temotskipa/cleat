@@ -1,0 +1,3 @@
+//@ rule: execution.storage.no-finalizer-weak
+//@ rejected: `finalize` carries `@Override` and overrides nothing
+class A { @Override public void finalize() { } }

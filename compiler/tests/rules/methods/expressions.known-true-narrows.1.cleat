@@ -1,0 +1,3 @@
+//@ rule: methods.expressions.known-true-narrows
+//@ rejected: `Object` has no method named `length`
+class A { Int f(Object o) { return o.length(); } }

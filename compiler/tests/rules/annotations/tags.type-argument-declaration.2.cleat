@@ -1,0 +1,3 @@
+//@ rule: annotations.tags.type-argument-declaration
+//@ accepted
+@Target(Site.TYPE) annotation Frozen; class Snapshot<@Frozen T> { } class Pair<@Frozen U> { void g(Snapshot<U> s) { } }

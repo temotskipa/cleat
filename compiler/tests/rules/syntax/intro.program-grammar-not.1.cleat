@@ -1,0 +1,3 @@
+//@ rule: syntax.intro.program-grammar-not
+//@ rejected: expected `(`, found `x`
+class A { void f(Boolean x) { if x { } } }

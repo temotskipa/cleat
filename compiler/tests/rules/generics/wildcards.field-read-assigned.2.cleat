@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.field-read-assigned
+//@ accepted
+open class Shape { } class Circle extends Shape { } class Cell<T> { public T v; public Cell(T v) { this.v = v; } } class A { Shape f(Cell<? extends Shape> c) { return c.v; } void g(Cell<? super Circle> c) { c.v = new Circle(); } }

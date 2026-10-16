@@ -1,0 +1,3 @@
+//@ rule: visibility.governs.check-uses-type
+//@ accepted
+open class A { public Int x = 1; } class B extends A { } class C { Int f(B b) { return b.x; } }

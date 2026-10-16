@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.type-element-numeric
+//@ rejected: an element is a numeric class, Boolean, Char, String, an enum, Class, an annotation, or an array of one of those
+annotation M(Int[][] l);

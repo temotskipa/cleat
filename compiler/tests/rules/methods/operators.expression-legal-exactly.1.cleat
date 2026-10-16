@@ -1,0 +1,3 @@
+//@ rule: methods.operators.expression-legal-exactly
+//@ rejected: `+` is the method `plus`, and `P` has no method `plus`
+class P { } class A { P f(P a, P b) { return a + b; } }

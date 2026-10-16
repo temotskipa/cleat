@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.qualifier-written-among
+//@ accepted
+class A { @Nullable public String s; @Nullable public String find() { return null; } void f(@Nullable final String p) { @Nullable final String l = p; } }

@@ -1,0 +1,3 @@
+//@ rule: source.tokens.identifiers-identifier-character
+//@ accepted
+class A { Int _a = 1; Int $b = 2; Int é1 = 3; Int 名前 = 4; Int a_$9 = 5; }

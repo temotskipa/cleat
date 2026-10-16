@@ -1,0 +1,3 @@
+//@ rule: objects.extension.named-class-able
+//@ rejected: `B` is permitted and does not extend or implement this type
+sealed class A permits B { } class B { }

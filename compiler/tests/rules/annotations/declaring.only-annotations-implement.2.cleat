@@ -1,0 +1,3 @@
+//@ rule: annotations.declaring.only-annotations-implement
+//@ rejected: only an annotation implements `Annotation`
+interface I extends Annotation { }

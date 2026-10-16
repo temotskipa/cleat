@@ -1,0 +1,3 @@
+//@ rule: source.tokens.written-between-digits
+//@ accepted
+class A { Int a = 1_000_000; Int b = 0xFF_FF; Rational c = 1_0.2_5; }

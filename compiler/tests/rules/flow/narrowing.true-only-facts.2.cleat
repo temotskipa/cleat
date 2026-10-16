@@ -1,0 +1,3 @@
+//@ rule: flow.narrowing.true-only-facts
+//@ accepted
+class A { Int f(@Nullable String s, Boolean b) { if (s == null || b) { return 0; } return s.length(); } }

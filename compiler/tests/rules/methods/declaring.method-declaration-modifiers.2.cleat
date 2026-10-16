@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.method-declaration-modifiers
+//@ rejected: expected a name, found `(`
+class A { f(Int x) { return 1; } }

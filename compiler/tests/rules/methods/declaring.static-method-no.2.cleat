@@ -1,0 +1,3 @@
+//@ rule: methods.declaring.static-method-no
+//@ accepted
+class A { static void g() { } static void f() { g(); A.g(); } }

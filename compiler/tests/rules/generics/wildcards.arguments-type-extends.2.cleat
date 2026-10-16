@@ -1,0 +1,3 @@
+//@ rule: generics.wildcards.arguments-type-extends
+//@ rejected: a wildcard is not written for the arguments of a superclass
+open class Base<T> { } class X extends Base<?> { }

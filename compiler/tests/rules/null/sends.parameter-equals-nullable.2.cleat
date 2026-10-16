@@ -1,0 +1,3 @@
+//@ rule: null.sends.parameter-equals-nullable
+//@ accepted
+class A { Boolean f(String s, Int n, List<Int> xs, A a) { return s.equals(null) || n.equals(null) || xs.equals(null) || a.equals(null); } }

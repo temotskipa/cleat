@@ -1,0 +1,3 @@
+//@ rule: source.imports.type-parameter-scope
+//@ accepted
+class Box { } class A<Box> { Int f(Box b) { return 1; } Int g(A<String> a) { return a.f("s"); } }

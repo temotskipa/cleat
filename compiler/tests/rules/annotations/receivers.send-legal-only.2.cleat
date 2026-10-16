@@ -1,0 +1,3 @@
+//@ rule: annotations.receivers.send-legal-only
+//@ rejected: `id` is sent to a `@Raw Order`
+@Widens annotation Raw; class Order { public Int id() { return 1; } } class C { Int f(@Raw Order o) { return o.id(); } }

@@ -111,6 +111,7 @@ public class Threads {
 
         var cell = new Atomic<String>("a");
         Console.println("" + cell.compareAndSet("a", "b") + cell.compareAndSet("a", "c") + cell.get());
+        //@ rule: concurrency.locks.unlock-thread-not
         try {
             new Lock().unlock();
         } catch (IllegalStateException e) {

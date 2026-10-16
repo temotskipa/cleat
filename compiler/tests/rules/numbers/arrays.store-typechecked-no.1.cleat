@@ -1,0 +1,3 @@
+//@ rule: numbers.arrays.store-typechecked-no
+//@ rejected: `Object` is not assignable to `String`
+class A { void f(String[] xs, Object o) { xs[0] = o; } }

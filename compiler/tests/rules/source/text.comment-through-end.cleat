@@ -1,0 +1,5 @@
+//@ rule: source.text.comment-through-end
+//@ accepted
+class A { // a note }
+ Int x = 1; /* more
+ notes */ Int y = 2; }

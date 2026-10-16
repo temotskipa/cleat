@@ -1,0 +1,3 @@
+//@ rule: execution.objects.constructor-audience-written
+//@ accepted
+class R { public R() { } } class S { } class A { R f() { var s = new S(); return new R(); } }

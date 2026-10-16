@@ -1,0 +1,3 @@
+//@ rule: annotations.qualifiers.parameter-declared-out
+//@ rejected: `List<Int>` is not assignable to `List<? extends @P Int>`
+@Refines annotation P; class A { List<? extends @P Int> h(List<Int> xs) { return xs; } }

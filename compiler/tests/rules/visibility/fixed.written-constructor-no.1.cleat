@@ -1,0 +1,3 @@
+//@ rule: visibility.fixed.written-constructor-no
+//@ rejected: the constructor of `R` is outside its audience here
+class R { R() { } } class A { R f() { return new R(); } }

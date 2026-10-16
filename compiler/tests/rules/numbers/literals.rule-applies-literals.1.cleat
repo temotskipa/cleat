@@ -1,0 +1,3 @@
+//@ rule: numbers.literals.rule-applies-literals
+//@ rejected: `Rational` is not assignable to `Float64`
+class A { void f() { var x = 0.1; Float64 y = x; } }

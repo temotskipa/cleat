@@ -1,0 +1,3 @@
+//@ rule: source.member-names.methods-share-name
+//@ accepted
+class A { Int f(Int n) { return n; } Int f(String s) { return 1; } Int f(Int a, Int b) { return a; } }

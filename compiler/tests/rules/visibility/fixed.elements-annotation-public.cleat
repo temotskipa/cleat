@@ -1,0 +1,6 @@
+//@ rule: visibility.fixed.elements-annotation-public
+//@ accepted
+//@ file: a/Route.cleat
+package a; public annotation Route(String path, Int priority = 0);
+//@ file: b/B.cleat
+package b; class B { String f(a.Route r) { return r.path + r.priority; } }

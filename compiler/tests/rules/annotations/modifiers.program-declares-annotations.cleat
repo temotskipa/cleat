@@ -1,0 +1,3 @@
+//@ rule: annotations.modifiers.program-declares-annotations
+//@ accepted
+@Refines annotation Q; annotation M; @M class A { Int f(@Q Int n) { return n; } }

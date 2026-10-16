@@ -1,0 +1,3 @@
+//@ rule: annotations.reading.not-describe-type
+//@ rejected: `Class` has no method named `newInstance`
+class A { Object f(Class c) { return c.newInstance(); } }

@@ -1,0 +1,6 @@
+//@ rule: source.tokens.content-line-begins
+//@ rejected: every line of a text block begins with its indent
+class A { String s = """
+        ok
+    short
+        """; }

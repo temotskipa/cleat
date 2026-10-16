@@ -1,0 +1,3 @@
+//@ rule: objects.interfaces.sealed-interface-names
+//@ accepted
+sealed interface S permits P, J { } class P implements S { } interface J extends S { }

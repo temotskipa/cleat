@@ -1,0 +1,3 @@
+//@ rule: annotations.tags.declaration-inherit-uses
+//@ rejected: `C` would inherit two uses of `@Team` with different arguments
+@Inherited annotation Team(String name); @Team("a") interface P { } @Team("b") interface Q { } class C implements P, Q { }

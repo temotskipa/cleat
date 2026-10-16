@@ -1,0 +1,21 @@
+# The rules of chapter 2 that no program shows, each with the reason.
+
+objects.population.class-reference-value: It points to section 2.3, whose sentences have their own cases.
+objects.population.how-implementation-stores: It says what no program can observe.
+objects.population.value-held-register: It says what no program can observe.
+objects.built-in.exceptions: It introduces the list after it, whose items have their own cases.
+objects.built-in.implementation-supplies-storage: It gives the reason for the exception.
+objects.built-in.new-rule-default: It points to chapter 6, where `new T[n]` has its cases.
+objects.built-in.roots-object-null: It points to the sections on `Object`, `Null` and `Enum`, whose sentences have their own cases.
+objects.built-in.annotations-prelude-rules: It points to chapter 8, whose sentences have their own cases.
+objects.built-in.syntax-defined-method: It introduces the four sentences after it.
+objects.classes.defines-construction-kinds: It points to chapter 9, whose sentences have their own cases.
+objects.root.says-runs-three: It points to chapter 5, whose sentences have their own cases.
+objects.root.default-tostring-reference: It leaves the text to the implementation.
+objects.root.not-change-during: It limits what a program may assume, and no program can be shown to break it.
+objects.root.override-equals-equivalence: It binds the method a program writes, and no checker decides it.
+objects.root.language-not-check: It says what is left unchecked.
+objects.root.overrides-prelude-meet: It is a claim about the prelude's source, which the programs of tests/behavior exercise and no checker decides.
+objects.enums.enum-methods: It introduces the table after it, whose rows have their own cases.
+objects.lookup.member-selected-steps: It introduces the two steps after it.
+objects.absent.lists-features-java: It introduces the next sentence, whose case has a program for each feature.

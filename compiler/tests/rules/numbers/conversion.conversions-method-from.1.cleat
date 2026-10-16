@@ -1,0 +1,3 @@
+//@ rule: numbers.conversion.conversions-method-from
+//@ rejected: `Int` is not assignable to `Int32`
+class A { void f(Int n) { Int32 a = n; } }
