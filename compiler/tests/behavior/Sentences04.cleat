@@ -1,0 +1,809 @@
+// Chapter 4 at run time. tests/spec_rules/described_04.rs names a line of this
+// program's output for each sentence it shows.
+package t;
+
+class Trace {
+    public static String log = "";
+
+    @Discardable
+    public static Int note(String what) {
+        log = log + what + " ";
+        return 1;
+    }
+
+    public static Boolean is(String what, Boolean value) {
+        log = log + what + " ";
+        return value;
+    }
+
+    public static String take() {
+        var all = log;
+        log = "";
+        return all;
+    }
+}
+
+open class Shape {
+    public open String name() {
+        return "shape";
+    }
+
+    public open Shape copy() {
+        return new Shape();
+    }
+
+    public String viaThis() {
+        return name();
+    }
+
+    public static String kind() {
+        return "a static method";
+    }
+}
+
+class Circle extends Shape {
+    @Override
+    public String name() {
+        return "circle";
+    }
+
+    @Override
+    public Circle copy() {
+        return new Circle();
+    }
+
+    public String above() {
+        return super.name();
+    }
+
+    public String inherited() {
+        return viaThis() + " " + kind();
+    }
+}
+
+class Target {
+    public Int count = 0;
+
+    public Int take(Int a, Int b) {
+        Trace.note("body");
+        return a + b;
+    }
+
+    public static Target made(String label) {
+        Trace.note(label);
+        return new Target();
+    }
+
+    public static String who() {
+        return "static";
+    }
+
+    public String who(Int n) {
+        return "instance";
+    }
+}
+
+open class BaseOver {
+    public String m(Object o) {
+        return "inherited";
+    }
+}
+
+class SubOver extends BaseOver {
+    public String m(String s) {
+        return "own";
+    }
+}
+
+class Over {
+    public static String pick() {
+        return "none";
+    }
+
+    public static String pick(Int n) {
+        return "number";
+    }
+
+    public static String pick(String s) {
+        return "text";
+    }
+
+    public static String pick(Int a, Int b) {
+        return "two";
+    }
+
+    public static String shape(Object o) {
+        return "object";
+    }
+
+    public static String shape(Shape s) {
+        return "shape";
+    }
+
+    public static String shape(Circle c) {
+        return "circle";
+    }
+
+    public static String rest(Int a) {
+        return "fixed";
+    }
+
+    public static String rest(Int... all) {
+        return "varargs-" + all.length();
+    }
+
+    public static String wide(Int n) {
+        return "Int";
+    }
+
+    public static String wide(String s) {
+        return "String";
+    }
+
+    public static String closer(Int16 n) {
+        return "Int16";
+    }
+
+    public static String closer(Int n) {
+        return "Int";
+    }
+
+    public static String call(Function0<Int> f) {
+        return "none";
+    }
+
+    public static String call(Function1<Int, Int> f) {
+        return "an-Int";
+    }
+
+    public static String call(Function1<String, Int> f) {
+        return "a-String";
+    }
+
+    public static Int[] all(Int... values) {
+        return values;
+    }
+}
+
+value class Meters {
+    public Int length;
+
+    @Implicit
+    public static Meters from(Int whole) {
+        Trace.note("from(" + whole + ")");
+        return new Meters(whole);
+    }
+}
+
+// Every operator spelling, on a class of the program.
+class Op {
+    public String plus(Op o) {
+        return "plus";
+    }
+
+    public String minus(Op o) {
+        return "minus";
+    }
+
+    public String times(Op o) {
+        return "times";
+    }
+
+    public String div(Op o) {
+        return "div";
+    }
+
+    public String mod(Op o) {
+        return "mod";
+    }
+
+    public String negate() {
+        return "negate";
+    }
+
+    public String lessThan(Op o) {
+        return "lessThan";
+    }
+
+    public String atMost(Op o) {
+        return "atMost";
+    }
+
+    public String greaterThan(Op o) {
+        return "greaterThan";
+    }
+
+    public String atLeast(Op o) {
+        return "atLeast";
+    }
+
+    public String and(Op o) {
+        return "and";
+    }
+
+    public String or(Op o) {
+        return "or";
+    }
+
+    public String xor(Op o) {
+        return "xor";
+    }
+
+    public String complement() {
+        return "complement";
+    }
+
+    public String shiftLeft(Int n) {
+        return "shiftLeft";
+    }
+
+    public String shiftRight(Int n) {
+        return "shiftRight";
+    }
+
+    public String not() {
+        return "not";
+    }
+
+    public String get(Int i) {
+        return "get";
+    }
+
+    public void set(Int i, String e) {
+        Trace.note("set");
+    }
+}
+
+class Loud {
+    @Override
+    public Boolean equals(@Nullable Object other) {
+        Trace.note("equals");
+        return other instanceof Loud;
+    }
+
+    @Override
+    public Int hashCode() {
+        return 1;
+    }
+
+    @Override
+    public String toString() {
+        return "a detail";
+    }
+}
+
+value class LoudValue {
+    public Int n;
+
+    @Override
+    public Boolean equals(@Nullable Object other) {
+        Trace.note("equals");
+        return other instanceof LoudValue;
+    }
+
+    @Override
+    public Int hashCode() {
+        return n;
+    }
+}
+
+class Grid {
+    public Int last = 0;
+
+    public Int get(Int i) {
+        return last;
+    }
+
+    public void set(Int i, Int e) {
+        Trace.note("set");
+        last = e;
+    }
+
+    public static Grid made() {
+        Trace.note("grid");
+        return new Grid();
+    }
+}
+
+class Made {
+    public final String how;
+
+    public Made() {
+        this.how = "none";
+    }
+
+    public Made(Int n) {
+        this.how = "number";
+    }
+
+    public Made(String s) {
+        this.how = "text";
+    }
+}
+
+class Box {
+    public final Int value;
+
+    public Box(Int value) {
+        this.value = value;
+    }
+
+    public Int get() {
+        return value;
+    }
+
+    public static Box made(Int value) {
+        Trace.note("made");
+        return new Box(value);
+    }
+}
+
+class Counter {
+    public Int count = 0;
+
+    public Function0<Int> bump() {
+        return () -> {
+            this.count = this.count + 1;
+            return count;
+        };
+    }
+
+    public static Function1<Int, Int> adder(Int base) {
+        return (n) -> n + base;
+    }
+}
+
+class Walk implements Iterable<Int>, Iterator<Int> {
+    Int at = 0;
+
+    @Override
+    public Iterator<Int> iterator() {
+        Trace.note("iterator");
+        return this;
+    }
+
+    @Override
+    public Boolean hasNext() {
+        Trace.note("hasNext");
+        return at < 2;
+    }
+
+    @Override
+    public Int next() {
+        Trace.note("next");
+        at = at + 1;
+        return at;
+    }
+}
+
+enum Light { RED, AMBER, GREEN }
+
+sealed interface Expr permits Num, Neg {
+}
+
+value class Num implements Expr {
+    public Int value;
+}
+
+value class Neg implements Expr {
+    public Expr operand;
+}
+
+public class Sentences04 {
+    static Int zero = 0;
+
+    foreign static Int32 abs(Int32 n);
+
+    @Symbol("llabs")
+    foreign static Int magnitude(Int n);
+
+    foreign static UInt64 strlen(UInt8[] text);
+
+    foreign static Pointer memset(UInt8[] target, Int32 value, UInt64 count);
+
+    static Int index() {
+        Trace.note("index");
+        return 1;
+    }
+
+    static void change(Int n) {
+        n = n + 1;
+        Trace.note("parameter-" + n);
+    }
+
+    static String sign(Int n) {
+        if (n > 0) {
+            return "positive";
+        } else {
+            return "other";
+        }
+    }
+
+    static String light(Light l) {
+        return switch (l) {
+            case Light.RED -> "stop";
+            case Light.AMBER, Light.GREEN -> "go";
+        };
+    }
+
+    static Int eval(Expr e) {
+        return switch (e) {
+            case Num n -> n.value;
+            case Neg n -> -eval(n.operand);
+        };
+    }
+
+    static String what(Object o) {
+        switch (o) {
+            case String s -> {
+                return "a String of " + s.length();
+            }
+            case Shape s -> {
+                return "a " + s.name();
+            }
+            default -> {
+                return "something else";
+            }
+        }
+    }
+
+    static String word(Int n) {
+        var out = "";
+        switch (Trace.note("selector") + n) {
+            case 1, 2 -> out = "low";
+            case 3 -> out = "three";
+            default -> out = "high";
+        }
+        return out;
+    }
+
+    static void nothing() {
+        Trace.note("before");
+        if (zero == 0) {
+            return;
+        }
+        Trace.note("after");
+    }
+
+    public static void main() {
+        var circle = new Circle();
+        Shape shape = circle;
+        Object object = circle;
+
+        // ---- 4.1, 4.2, 4.3 ----
+        var target = new Target();
+        Console.println("a shared name: " + Target.who() + " " + target.who(1));
+        Console.println("overriding: " + shape.name() + " " + shape.copy().name() + " " + circle.above() + " " + shape.viaThis());
+        Console.println("no receiver written: " + circle.inherited());
+        var sum = Target.made("receiver").take(Trace.note("first"), Trace.note("second") + 1);
+        Console.println("a call: " + Trace.take() + sum);
+        Console.println("static types: " + Over.shape(object) + " " + Over.shape(shape) + " " + Over.shape(circle));
+
+        // ---- 4.4 ----
+        Int8 small = 5;
+        Console.println("overloads: " + Over.pick() + " " + Over.pick(1) + " " + Over.pick("s") + " " + Over.pick(1, 2));
+        Console.println("inherited overloads: " + new SubOver().m("s") + " " + new SubOver().m(5));
+        Console.println("fixed and varargs: " + Over.rest(1) + " " + Over.rest(1, 2) + " " + Over.rest());
+        Console.println("the second round: " + Over.wide(small) + " " + Over.closer(small));
+
+        // ---- 4.5 ----
+        Meters height = 3;
+        @Nullable Meters maybe = 4;
+        var noted = Trace.take();
+        Console.println("an implicit conversion: " + noted + height + " " + maybe);
+
+        // ---- 4.6 ----
+        var a = new Op();
+        var b = new Op();
+        a[0] = "e";
+        Console.println("every operator: " + (a + b) + " " + (a - b) + " " + (a * b) + " " + (a / b) + " " + (a % b) + " " + -a + " " + (a < b) + " " + (a <= b) + " " + (a > b) + " " + (a >= b) + " " + (a & b) + " " + (a | b) + " " + (a ^ b) + " " + ~a + " " + (a << 1) + " " + (a >> 1) + " " + !a + " " + a[0] + " " + Trace.take());
+        var loud = new Loud();
+        var other = new Loud();
+        var same = loud == other;
+        var values = new LoudValue(1) == new LoudValue(2);
+        Console.println("equality: " + Trace.take() + same + " " + values);
+        var differs = loud != other;
+        Console.println("inequality: " + Trace.take() + differs);
+        @Nullable Loud absent = null;
+        var isNull = absent == null;
+        @Nullable Loud here = loud;
+        var notNull = here != null;
+        Console.println("a null test: [" + Trace.take() + "] " + isNull + " " + notNull);
+        Console.println("identity: " + loud.identical(other) + " " + loud.identical(loud));
+        var cells = new Int[] { 1, 2, 3 };
+        cells[index()] += 5;
+        Target.made("holder").count += 2;
+        Console.println("compound assignment: " + Trace.take() + cells[1]);
+        var n = 12;
+        var steps = "";
+        n -= 2;
+        steps = steps + n + " ";
+        n *= 3;
+        steps = steps + n + " ";
+        n %= 7;
+        steps = steps + n + " ";
+        n &= 3;
+        steps = steps + n + " ";
+        n |= 4;
+        steps = steps + n + " ";
+        n ^= 5;
+        steps = steps + n + " ";
+        n <<= 2;
+        steps = steps + n + " ";
+        n >>= 1;
+        steps = steps + n + " ";
+        Rational ratio = 3;
+        ratio /= 2;
+        Console.println("compound operators: " + steps + ratio);
+        var i = 5;
+        var post = i++;
+        var pre = ++i;
+        var postDown = i--;
+        var preDown = --i;
+        cells[index()]++;
+        Console.println("increment: " + post + " " + pre + " " + postDown + " " + preDown + " " + i + " | " + Trace.take() + cells[1]);
+        Float64 f = 1.5;
+        f++;
+        Rational half = 0.5;
+        half--;
+        small++;
+        Console.println("the literal's class: " + f + " " + half + " " + small);
+        Int8 top = 127;
+        var raised = "returns";
+        try {
+            top++;
+        } catch (ArithmeticException e) {
+            raised = "raises";
+        }
+        Console.println("an increment that raises: " + raised + " " + top);
+
+        // ---- 4.7 ----
+        var and1 = Trace.is("a", false) && Trace.is("b", true);
+        var and2 = Trace.is("a", true) && Trace.is("b", false);
+        var and3 = Trace.is("a", true) && Trace.is("b", true);
+        Console.println("and: " + Trace.take() + "| " + and1 + " " + and2 + " " + and3);
+        var or1 = Trace.is("a", true) || Trace.is("b", false);
+        var or2 = Trace.is("a", false) || Trace.is("b", true);
+        var or3 = Trace.is("a", false) || Trace.is("b", false);
+        Console.println("or: " + Trace.take() + "| " + or1 + " " + or2 + " " + or3);
+        var both1 = Trace.is("a", false) & Trace.is("b", true);
+        var both2 = Trace.is("a", true) | Trace.is("b", false);
+        Console.println("both operands: " + Trace.take() + "| " + both1 + " " + both2);
+        var chosen1 = Trace.is("c", true) ? Trace.note("a") : Trace.note("b") + 1;
+        var chosen2 = Trace.is("c", false) ? Trace.note("a") : Trace.note("b") + 1;
+        Console.println("conditional: " + Trace.take() + "| " + chosen1 + " " + chosen2);
+        @Nullable String missing = null;
+        @Nullable String present = "left";
+        Console.println("??: " + (missing ?? "right") + " " + (present ?? "right"));
+        Object text = "text";
+        var cast = (String) text;
+        var failed = "returns";
+        try {
+            var number = (Int) text;
+        } catch (ClassCastException e) {
+            failed = "raises";
+        }
+        Object ints = new List<Int>();
+        var generic = "accepted";
+        try {
+            var strings = (List<String>) ints;
+        } catch (ClassCastException e) {
+            generic = "refused";
+        }
+        Console.println("casts: " + cast.identical(text) + " " + cast.length() + " " + failed + " " + ((Shape) object).name() + " " + generic);
+        @Nullable Object nothing = null;
+        Console.println("instanceof: " + (text instanceof String) + " " + (text instanceof Shape) + " " + (nothing instanceof String) + " " + (object instanceof Shape) + " " + (ints instanceof List<Int>) + " " + (ints instanceof List<String>));
+        Console.println("constructors: " + new Made().how + " " + new Made(1).how + " " + new Made("s").how);
+        var x = 0;
+        var stored = (x = 5);
+        Int8 narrow = 0;
+        var kept = (narrow = 7);
+        var listOf = new List<Int8>();
+        listOf.add(kept);
+        Target.made("receiver").count = Trace.note("value");
+        Grid.made()[index()] = Trace.note("element");
+        Console.println("assignment: " + x + " " + stored + " " + kept + " " + listOf.getClass().getName() + " | " + Trace.take());
+
+        // ---- 4.8 ----
+        Function1<Int, Int> twice = (k) -> k * 2;
+        Object asObject = twice;
+        Function2<Int, Int, Int> add = (p, q) -> {
+            return p + q;
+        };
+        Function0<String> word = () -> "word";
+        Console.println("a lambda: " + twice.invoke(3) + " " + add.invoke(2, 3) + " " + word.invoke() + " " + (asObject instanceof Function1<Int, Int>));
+        Function1<Int, String> early = (k) -> {
+            if (k > 0) {
+                return "positive";
+            }
+            return "other";
+        };
+        var afterReturn = early.invoke(1) + " " + early.invoke(-1);
+        Console.println("return in a lambda: " + afterReturn + ", and the method goes on");
+        var counter = new Counter();
+        var bump = counter.bump();
+        Console.println("this in a lambda: " + bump.invoke() + " " + bump.invoke() + " " + counter.count);
+        var held = new List<Function0<Int>>();
+        for (var k = 0; k < 3; k++) {
+            var now = k * 10;
+            held.add(() -> now);
+        }
+        Console.println("captured values: " + held[0].invoke() + " " + held[1].invoke() + " " + held[2].invoke());
+        Console.println("the instance: " + Counter.adder(1).equals(Counter.adder(1)) + " " + Counter.adder(1).equals(Counter.adder(2)) + " " + (Counter.adder(1).hashCode() == Counter.adder(1).hashCode()));
+        var seen = new List<Int>();
+        Function1<Int, Unit> keep = (k) -> seen.add(k);
+        Function0<Unit> count = () -> counter.count++;
+        keep.invoke(4);
+        count.invoke();
+        Console.println("a Unit result: " + seen.size() + " " + counter.count);
+        Console.println("lambdas in overloads: " + Over.call(() -> 1) + " " + Over.call((Int k) -> k) + " " + Over.call((String s) -> s.length()));
+        Function1<Int, String> ofStatic = Sentences04::sign;
+        Function1<String, Int> ofInstance = String::length;
+        Function2<String, String, Boolean> withArgument = String::startsWith;
+        Function0<Int> ofValue = Box.made(2)::get;
+        var twiceRead = ofValue.invoke() + ofValue.invoke();
+        var evaluated = Trace.take();
+        Function1<Int, Box> ofNew = Box::new;
+        Function1<Int, String> byInt = Over::pick;
+        Function1<String, String> byString = Over::pick;
+        Console.println("method references: " + ofStatic.invoke(5) + " | " + ofInstance.invoke("abc") + " " + withArgument.invoke("hello", "he") + " | " + evaluated + twiceRead + " | " + ofNew.invoke(7).value + " | " + byInt.invoke(1) + " " + byString.invoke("s"));
+
+        // ---- 4.9 ----
+        Int declared;
+        declared = 2;
+        final Int fixed = 3;
+        var inferred = declared + fixed;
+        Console.println("locals: " + declared + " " + fixed + " " + inferred);
+        var branches = "";
+        if (zero == 0) {
+            branches = branches + "then ";
+        } else {
+            branches = branches + "else ";
+        }
+        if (zero != 0) {
+            branches = branches + "then ";
+        } else {
+            branches = branches + "else ";
+        }
+        if (zero != 0) {
+            branches = branches + "never ";
+        }
+        Console.println("if: " + branches);
+        var w = 0;
+        var turns = "";
+        while (Trace.is("c", w < 2)) {
+            turns = turns + w + " ";
+            w++;
+        }
+        Console.println("while: " + Trace.take() + "| " + turns);
+        for (var k = Trace.note("init"); Trace.is("c", k < 3); k += Trace.note("update")) {
+            Trace.note("s");
+        }
+        Console.println("for: " + Trace.take());
+        var endless = 0;
+        for (;; endless++) {
+            if (endless == 3) {
+                break;
+            }
+        }
+        var updates = 0;
+        for (var k = 0; k < 4; updates += Trace.note("update"), k++) {
+            if (k == 1) {
+                continue;
+            }
+            if (k == 3) {
+                break;
+            }
+        }
+        Console.println("for without a condition: " + endless + ", and after continue: " + Trace.take() + updates);
+        var walked = "";
+        for (Int step : new Walk()) {
+            Trace.note("body");
+            walked = walked + step;
+        }
+        Console.println("for over a collection: " + Trace.take() + "| " + walked);
+        var total = 0;
+        for (var item : new Int[] { 1, 2, 3 }) {
+            total += item;
+        }
+        Console.println("for with var: " + total);
+        Console.println("switch: " + word(0) + " " + word(1) + " " + word(2) + " " + word(9) + " | " + Trace.take());
+        var selectors = "";
+        switch ('b') {
+            case 'a' -> selectors = selectors + "a ";
+            case 'b' -> selectors = selectors + "b ";
+            default -> selectors = selectors + "other ";
+        }
+        switch (zero == 0) {
+            case true -> selectors = selectors + "true ";
+            case false -> selectors = selectors + "false ";
+        }
+        switch ("two") {
+            case "one" -> selectors = selectors + "1 ";
+            case "two" -> selectors = selectors + "2 ";
+            default -> selectors = selectors + "other ";
+        }
+        switch (Light.AMBER) {
+            case Light.RED -> selectors = selectors + "red ";
+            case Light.AMBER -> selectors = selectors + "amber ";
+            case Light.GREEN -> selectors = selectors + "green ";
+        }
+        switch (zero + 7) {
+            case 1 -> selectors = selectors + "one ";
+        }
+        Console.println("selectors: " + selectors + "and no arm matched");
+        Console.println("type arms: " + what("text") + ", " + what(circle) + ", " + what(5));
+        Console.println("switch expressions: " + light(Light.RED) + " " + light(Light.GREEN) + " " + eval(new Neg(new Num(4))) + " " + eval(new Num(3)));
+        var loops = "";
+        for (var k = 0; k < 3; k++) {
+            for (var j = 0; j < 3; j++) {
+                if (j == 1) {
+                    break;
+                }
+                loops = loops + k + j + " ";
+            }
+        }
+        var odd = "";
+        for (var k = 0; k < 5; k++) {
+            if (k % 2 == 0) {
+                continue;
+            }
+            odd = odd + k + " ";
+        }
+        Console.println("break and continue: " + loops + "| " + odd);
+        var labelled = "";
+        outer: for (var k = 0; k < 3; k++) {
+            for (var j = 0; j < 3; j++) {
+                if (j == 2) {
+                    continue outer;
+                }
+                if (k == 2) {
+                    break outer;
+                }
+                labelled = labelled + k + j + " ";
+            }
+        }
+        block: {
+            labelled = labelled + "in ";
+            if (zero == 0) {
+                break block;
+            }
+            labelled = labelled + "never ";
+        }
+        Console.println("labels: " + labelled + "out");
+        nothing();
+        Console.println("return: " + Trace.take() + sign(1) + " " + sign(-1));
+        var thrown = "";
+        try {
+            throw new IllegalStateException("thrown");
+        } catch (IllegalStateException e) {
+            thrown = e.message();
+        }
+        Console.println("throw: " + thrown);
+        var asserted = "";
+        try {
+            assert zero == 0;
+            asserted = asserted + "passes ";
+            assert zero == 1;
+        } catch (AssertionException e) {
+            asserted = asserted + "raises [" + e.message() + "] ";
+        }
+        try {
+            assert zero == 1 : loud;
+        } catch (AssertionException e) {
+            asserted = asserted + "[" + e.message() + "]";
+        }
+        Console.println("assert: " + asserted);
+
+        // ---- 4.10 ----
+        var passed = new Int[] { 4, 5 };
+        var listed = Over.all(Trace.note("one"), Trace.note("two") + 1, Trace.note("three") + 2);
+        Console.println("varargs: " + Trace.take() + listed.length() + " " + listed[2] + " " + Over.all(passed).identical(passed) + " " + Over.all().length());
+
+        // ---- 4.11 ----
+        UInt8[] bytes = new UInt8[] { 104, 105, 0, 33 };
+        UInt8[] buffer = new UInt8[4];
+        Pointer where = memset(buffer, 7, 3);
+        Console.println("foreign: " + abs(-5) + " " + magnitude(-9000000000) + " " + strlen(bytes) + " " + buffer[0] + buffer[2] + buffer[3] + " " + (where == Pointer.zero()) + " " + (Pointer.zero() == Pointer.zero()));
+    }
+}

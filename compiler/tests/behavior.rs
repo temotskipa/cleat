@@ -50,6 +50,7 @@ cases![
     rules => "Rules",
     sentences_01 => "Sentences01",
     sentences_02 => "Sentences02",
+    sentences_04 => "Sentences04",
     sentences_05 => "Sentences05",
     sentences_06 => "Sentences06",
     sentences_07 => "Sentences07",

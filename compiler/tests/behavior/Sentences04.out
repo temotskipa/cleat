@@ -1,0 +1,55 @@
+a shared name: static instance
+overriding: circle circle shape circle
+no receiver written: circle a static method
+a call: receiver first second body 3
+static types: object shape circle
+overloads: none number text two
+inherited overloads: own inherited
+fixed and varargs: fixed varargs-2 varargs-0
+the second round: Int Int16
+an implicit conversion: from(3) from(4) Meters(3) Meters(4)
+every operator: plus minus times div mod negate lessThan atMost greaterThan atLeast and or xor complement shiftLeft shiftRight not get set 
+equality: equals equals true true
+inequality: equals false
+a null test: [] true true
+identity: false true
+compound assignment: index holder 7
+compound operators: 10 30 2 2 6 3 12 6 3/2
+increment: 5 7 7 5 5 | index 8
+the literal's class: 2.5 -1/2 6
+an increment that raises: raises 127
+and: a a b a b | false false true
+or: a a b a b | true true false
+both operands: a b a b | false true
+conditional: c a c b | 1 2
+??: right left
+casts: true 4 raises circle refused
+instanceof: true false false true true false
+constructors: none number text
+assignment: 5 5 7 cleat.List<cleat.Int8> | receiver value grid index element set 
+a lambda: 6 5 word true
+return in a lambda: positive other, and the method goes on
+this in a lambda: 1 2 2
+captured values: 0 10 20
+the instance: true false true
+a Unit result: 1 3
+lambdas in overloads: none an-Int a-String
+method references: positive | 3 true | made 4 | 7 | number text
+locals: 2 3 5
+if: then else 
+while: c c c | 0 1 
+for: init c s update c s update c 
+for without a condition: 3, and after continue: update update update 3
+for over a collection: iterator hasNext next body hasNext next body hasNext | 12
+for with var: 6
+switch: low low three high | selector selector selector selector 
+selectors: b true 2 amber and no arm matched
+type arms: a String of 4, a circle, something else
+switch expressions: stop go -4 3
+break and continue: 00 10 20 | 1 3 
+labels: 00 01 10 11 in out
+return: before positive other
+throw: thrown
+assert: passes raises [] [a detail]
+varargs: one two three 3 3 true 0
+foreign: 5 9000000000 2 770 false true
