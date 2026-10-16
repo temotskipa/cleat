@@ -1,3 +1,3 @@
 //@ rule: flow.narrowing.fact-about-variable
 //@ accepted
-class A { Function0<Int> f(@Nullable String s, Object o) { if (s == null || !(o instanceof String)) { return () -> 0; } return () -> s.length() + o.length(); } }
+class A { Function0<Int> f(String? s, Object o) { if (s == null || !(o instanceof String)) { return () -> 0; } return () -> s.length() + o.length(); } }

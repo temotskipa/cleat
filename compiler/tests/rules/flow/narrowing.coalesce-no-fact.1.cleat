@@ -1,3 +1,3 @@
 //@ rule: flow.narrowing.coalesce-no-fact
-//@ rejected: `length` is sent to a `@Nullable String`
-class A { Int f(@Nullable String s) { var t = s ?? "x"; return s.length(); } }
+//@ rejected: `length` is sent to a `String?`
+class A { Int f(String? s) { var t = s ?? "x"; return s.length(); } }

@@ -1,3 +1,3 @@
 //@ rule: null.casts.checked-way-nullable
 //@ accepted
-class A { String f(@Nullable String s) { return (String) s; } }
+class A { String f(String? s) { return (String) s; } }

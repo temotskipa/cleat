@@ -135,7 +135,7 @@ public value class Float64 implements Divisible<Float64>, Ordered<Float64> {
 
     // A decimal numeral, such as "-1.5", ".5" or "6.02e23", read as the nearest float,
     // or null when the text is not one.
-    public static @Nullable Float64 parse(String text) {
+    public static Float64? parse(String text) {
         return Floats.parse(text, 53, -1074, 971);
     }
 

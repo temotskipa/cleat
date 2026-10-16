@@ -139,7 +139,7 @@ public value class UInt32 implements Numeric<UInt32>, Ordered<UInt32> {
 
     // The text of an integer in decimal, or null when the text is not one or is out of
     // range. A sign may come first.
-    public static @Nullable UInt32 parse(String text) {
+    public static UInt32? parse(String text) {
         var wide = Int.parse(text);
         if (wide == null || wide < 0 || wide > 4294967295) {
             return null;

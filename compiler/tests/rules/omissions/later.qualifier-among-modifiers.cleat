@@ -1,3 +1,3 @@
 //@ rule: omissions.later.qualifier-among-modifiers
 //@ accepted
-@Refines annotation P; annotation Tag; class Box<@Tag T> { } class A { void f(@P Int n) { @P Int m = n; @Nullable String s = null; final @Nullable String t = s; } }
+@Refines annotation P; annotation Tag; class Box<@Tag T> { } class A { void f(@P Int n) { @P Int m = n; String? s = null; final String? t = s; } }

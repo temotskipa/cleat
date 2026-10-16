@@ -1,3 +1,3 @@
 //@ rule: visibility.audiences.method-account-read
 //@ accepted
-class Account { private Int balance = 0; @Override public Boolean equals(@Nullable Object other) { return other instanceof Account && balance == other.balance; } @Override public Int hashCode() { return balance; } }
+class Account { private Int balance = 0; @Override public Boolean equals(Object? other) { return other instanceof Account && balance == other.balance; } @Override public Int hashCode() { return balance; } }

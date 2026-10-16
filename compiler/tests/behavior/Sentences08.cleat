@@ -36,6 +36,9 @@ open class Person implements Shape, Labelled {
     @Column("full_name")
     public String name;
 
+    // A qualifier on the field's type, which no mirror reads as an annotation.
+    public @Positive Int? rank;
+
     @Column(name = "years", width = 3)
     public Int age;
 
@@ -50,7 +53,7 @@ open class Person implements Shape, Labelled {
 
     public Int unmarked = 0;
 
-    public @Nullable String nickname = null;
+    public String? nickname = null;
 
     public Person(String name, Int age) {
         this.name = name;
@@ -156,7 +159,7 @@ public class Sentences08 {
     }
 
     static String table(Class type) {
-        @Nullable Entity entity = type.<Entity>getAnnotation();
+        Entity? entity = type.<Entity>getAnnotation();
         return entity == null ? "none" : entity.table;
     }
 
@@ -199,10 +202,10 @@ public class Sentences08 {
         Console.println("a qualified type argument: " + (qualified instanceof List<@Positive Int>) + " " + (qualified instanceof List<Int>) + " " + (plain instanceof List<@Positive Int>) + ", a cast is " + cast);
 
         // ---- 8.6 ----
-        @Nullable Object nothing = null;
+        Object? nothing = null;
         var nullable = "";
         try {
-            var kept = (@Nullable String) nothing;
+            var kept = (String?) nothing;
             nullable = nullable + "accepts null, ";
             var refused = (String) nothing;
             nullable = nullable + "accepts null";
@@ -257,7 +260,7 @@ public class Sentences08 {
         //@ rule: annotations.reading.getparameters-returns-mirror
         Console.println("parameters: " + parameters.length() + " " + parameters[0].getName() + " " + parameters[1].getName() + " " + named.value + " " + (parameters[1].<Named>getAnnotation() == null));
         //@ rule: annotations.reading.qualifier-belongs-type
-        Console.println("a qualifier: " + c.<Nullable>getAnnotatedFields().length() + " " + (c.<Positive>getAnnotation() == null));
+        Console.println("a qualifier: " + c.<Positive>getAnnotatedFields().length() + " " + (c.<Positive>getAnnotation() == null));
         Config again = (Config) Settings.class.<Config>getAnnotation();
         var fresh = !config.tags.identical(again.tags);
         config.tags[0] = "changed";
@@ -275,7 +278,7 @@ public class Sentences08 {
         //@ rule: annotations.reading.invoke-calls-method
         Console.println("invoke: " + greet.invoke(p, "Bo", 2) + " | " + greet.invoke(new Student("Cy"), "Bo", 2));
         var marked = c.<Marker>getAnnotatedMethods();
-        @Nullable Object unit = marked[0].invoke(p);
+        Object? unit = marked[0].invoke(p);
         //@ rule: annotations.reading.void-method-unit
         Console.println("a void method: " + (unit instanceof Unit) + " " + (unit == new Unit()));
         //@ rule: annotations.reading.target-instance-not

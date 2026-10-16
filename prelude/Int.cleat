@@ -139,7 +139,7 @@ public value class Int implements Numeric<Int>, Ordered<Int> {
 
     // The text of an integer in decimal, or null when the text is not one or is out of
     // range. A sign may come first.
-    public static @Nullable Int parse(String text) {
+    public static Int? parse(String text) {
         var negative = text.startsWith("-");
         var at = negative || text.startsWith("+") ? 1 : 0;
         if (at == text.length()) {

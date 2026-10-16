@@ -1,6 +1,6 @@
 # Cleat
 
-Cleat is a programming language with Java's surface and one object model. Every value is an instance of a class. A class or method is final unless it is opened. A member is private unless a wider audience is written. A type is non-null unless it is marked `@Nullable`.
+Cleat is a programming language with Java's surface and one object model. Every value but `null` is an instance of a class, and `Object` roots them all. A class or method is final unless it is opened. A member is private unless a wider audience is written. A type is non-null unless it is written with `?`, as `String?`.
 
 A program compiles ahead of time to native code through LLVM. The runtime is a library: a collector, the bodies of the prelude's intrinsic methods, and the types of a program at run time. There is no stable ABI between compilations.
 
@@ -54,7 +54,7 @@ Each sentence of a chapter stands on a line of its own and ends with the label o
 | [2. Objects](spec/02-objects.md) | Values, references, classes, interfaces, enums |
 | [3. Visibility](spec/03-visibility.md) | Audiences, `only`, which members have a fixed audience |
 | [4. Methods](spec/04-methods.md) | Methods, operators, lambdas, statements, foreign calls |
-| [5. Null and Unit](spec/05-null-and-unit.md) | `Null`, `@Nullable`, `Unit`, the `void` form |
+| [5. Null and Unit](spec/05-null-and-unit.md) | `null`, nullable types `T?`, `Unit`, the `void` form |
 | [6. Numbers and text](spec/06-numbers.md) | Numeric classes, literals, `Rational`, `String`, arrays |
 | [7. Generics](spec/07-generics.md) | Type parameters, bounds, `in` and `out`, wildcards, inference |
 | [8. Annotations](spec/08-annotations.md) | Qualifiers, narrowing, tags, `@Override`, declaring and reading annotations |

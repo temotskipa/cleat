@@ -64,15 +64,24 @@ pub enum AnnValue {
     List(Vec<AnnValue>),
 }
 
-/// A type as written: annotations, a qualified name with type arguments, and array
-/// brackets. `dims[0]` is the outermost array.
+/// A type as written: annotations, a qualified name with type arguments, a `?`, and
+/// array brackets. `dims[0]` is the outermost array.
 #[derive(Clone, Debug)]
 pub struct TypeRef {
     pub annotations: Vec<AnnotationUse>,
     pub name: Vec<String>,
     pub args: Option<Vec<TypeArg>>,
-    pub dims: Vec<Vec<AnnotationUse>>,
+    /// A `?` after the named type.
+    pub nullable: bool,
+    pub dims: Vec<Dim>,
     pub pos: Pos,
+}
+
+/// A pair of brackets of a type, with the annotations before it and a `?` after it.
+#[derive(Clone, Debug)]
+pub struct Dim {
+    pub annotations: Vec<AnnotationUse>,
+    pub nullable: bool,
 }
 
 #[derive(Clone, Debug)]

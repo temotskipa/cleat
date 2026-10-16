@@ -1,3 +1,0 @@
-//@ rule: null.nullable.nullable-type-use
-//@ rejected: `@Nullable` is a qualifier: it is written before a type
-enum E { @Nullable A }

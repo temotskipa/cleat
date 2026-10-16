@@ -301,8 +301,10 @@ fn a_root_method_has_one_signature_in_every_chapter() {
     for (number, text) in chapters() {
         for block in fences(&text, true) {
             for line in block {
-                if line.contains("equals(@Nullable Object this") {
-                    found.push((number.clone(), line.trim().to_string()));
+                if line.contains("equals(Object? this") {
+                    // A listing may give the body after the signature.
+                    let signature = line.split(" {").next().unwrap();
+                    found.push((number.clone(), signature.trim().to_string()));
                 }
             }
         }
@@ -558,14 +560,13 @@ fn the_record_and_chapter_8_name_the_same_built_in_annotations() {
     .into_iter()
     .map(|t| t.trim_start_matches('@').to_string())
     .collect();
-    let mut chapter8: BTreeSet<String> =
-        table(&chapter("08"), "| Annotation | Written on | Rule |")
-            .iter()
-            .map(|r| ticks(&r[0])[0].trim_start_matches('@').to_string())
-            .collect();
-    // `@Nullable` is the record's second admitted exception, on its own line.
-    assert!(chapter8.remove("Nullable"));
-    assert!(record_line("2. `null` is built in.").contains("`@Nullable`"));
+    let chapter8: BTreeSet<String> = table(&chapter("08"), "| Annotation | Written on | Rule |")
+        .iter()
+        .map(|r| ticks(&r[0])[0].trim_start_matches('@').to_string())
+        .collect();
+    // Nullable types are the record's second admitted exception, and no annotation.
+    assert!(!chapter8.contains("Nullable"));
+    assert!(record_line("2. `null` is built in").contains("`T?`"));
     assert_eq!(record, chapter8);
 }
 
@@ -779,10 +780,10 @@ fn every_decided_row_of_the_record_holds_in_the_language() {
     );
     assert!(m.is_empty(), "{m:?}");
     // 18: `??`, and no `?.`.
-    accepted("static Int f(@Nullable Int n) { return n ?? 0; }");
-    rejected("static Int f(@Nullable String s) { return s?.length() ?? 0; }");
-    // 1: `@Nullable T` is `T` plus `null`, and `Null` is outside `Object`.
-    accepted("static @Nullable Object f(String s) { @Nullable String t = s; return t; }");
+    accepted("static Int f(Int? n) { return n ?? 0; }");
+    rejected("static Int f(String? s) { return s?.length() ?? 0; }");
+    // 1: `T?` is `T` plus `null`, which belongs to no class.
+    accepted("static Object? f(String s) { String? t = s; return t; }");
     rejected("static Object f() { return null; }");
     // 2: the numeric classes are unrelated, and share `Numeric<T>`.
     rejected("static Int f(Object o, Int32 n) { return (Int) n; }");

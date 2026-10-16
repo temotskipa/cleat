@@ -22,13 +22,13 @@ Its classes are declared under the rules of this specification, and a class that
 These are the exceptions: <!-- r[objects.built-in.exceptions] -->
 
 1. **Literals.** A literal is an instance of a prelude class, and a numeric literal takes its class from context ([chapter 6](06-numbers.md)). <!-- r[objects.built-in.literals-literal-instance] -->
-2. **`null`.** `Null` stands outside the class hierarchy, `@Nullable` adds its instance to a type, and the null test is not a method ([chapter 5](05-null-and-unit.md)). <!-- r[objects.built-in.null-stands-outside] -->
+2. **`null`.** `null` belongs to no class, `?` adds it to a type, and the null test is not a method ([chapter 5](05-null-and-unit.md)). <!-- r[objects.built-in.null-stands-outside] -->
 3. **Arrays.** An array is an ordinary object of the prelude class `Array<T>`. <!-- r[objects.built-in.arrays-array-ordinary] -->
    The implementation supplies its storage, because no class can declare a number of slots that is chosen at run time. <!-- r[objects.built-in.implementation-supplies-storage] -->
    `new T[n]` also has a rule for default elements that belongs to arrays alone ([chapter 6](06-numbers.md)). <!-- r[objects.built-in.new-rule-default] -->
 4. **Method bodies.** A prelude method may have a body that the implementation supplies, such as integer addition, an array access, or starting a thread. <!-- r[objects.built-in.method-bodies-prelude] -->
    It is marked `@Intrinsic` ([chapter 8](08-annotations.md#88-the-preludes-declaration-annotations)). <!-- r[objects.built-in.marked-intrinsic] -->
-5. **Roots.** `Object`, `Null` and `Enum` hold fixed places in the hierarchy, given in this chapter and in chapter 5. <!-- r[objects.built-in.roots-object-null] -->
+5. **Roots.** `Object` and `Enum` hold fixed places in the hierarchy, given in this chapter. <!-- r[objects.built-in.roots-object-null] -->
 6. **Annotations.** The prelude's annotations have rules that the compiler applies, and the mirrors that read annotations are supplied by the implementation ([chapter 8](08-annotations.md)). <!-- r[objects.built-in.annotations-prelude-rules] -->
 
 Syntax that is defined by a method or an interface is not an exception, because a program's classes take part on equal terms. <!-- r[objects.built-in.syntax-defined-method] -->
@@ -79,18 +79,18 @@ A class is final unless it says otherwise: no class may extend it. <!-- r[object
 ## 2.5 The root class
 
 `cleat.Object` is an open reference class. <!-- r[objects.root.cleat-object-open] -->
-Every class other than `Null` is a subclass of it. <!-- r[objects.root.class-null-subclass] -->
+Every class is a subclass of it. <!-- r[objects.root.class-null-subclass] -->
 It declares: <!-- r[objects.root.declares] -->
 
 ```java
-public open Boolean equals(@Nullable Object this, @Nullable Object other)
-public open Int hashCode(@Nullable Object this)
-public open String toString(@Nullable Object this)
-public final Boolean identical(@Nullable Object this, @Nullable Object other)
+public open Boolean equals(Object? this, Object? other)
+public open Int hashCode(Object? this)
+public open String toString(Object? this)
+public final Boolean identical(Object? this, Object? other)
 public final Class getClass()
 ```
 
-The first four declare a `@Nullable` receiver, so they may be sent to a receiver that may be `null`. <!-- r[objects.root.first-four-declare] -->
+The first four declare a nullable receiver, so they may be sent to a receiver that may be `null`. <!-- r[objects.root.first-four-declare] -->
 [Chapter 5](05-null-and-unit.md) says what runs for the three open methods when the receiver is `null`. <!-- r[objects.root.says-runs-three] -->
 An override of them declares an ordinary receiver. <!-- r[objects.root.override-declares-ordinary] -->
 

@@ -163,8 +163,6 @@ fn special_kind(p: &Program, id: ClassId) -> u32 {
         23
     } else if id == w.unit {
         24
-    } else if id == w.null {
-        25
     } else if named("Lock") {
         26
     } else if named("Condition") {
@@ -1492,29 +1490,6 @@ pub fn emit(p: &mut Program, entry: ClassId) -> Result<(String, String), Vec<Str
     for id in 0..n as ClassId {
         let c = p.class(id).clone();
         if c.is_interface() || c.is_abstract {
-            continue;
-        }
-        if id == w.null {
-            // `Null` stands outside the hierarchy and answers the three methods of `Object`.
-            for (i, m) in c.methods.iter().enumerate() {
-                let root = p
-                    .class(w.object)
-                    .methods
-                    .iter()
-                    .position(|o| o.name == m.name && o.params.len() == m.params.len());
-                if let Some(r) = root {
-                    vtables[id as usize].push((
-                        MethodRef {
-                            class: w.object,
-                            index: r as u32,
-                        },
-                        MethodRef {
-                            class: id,
-                            index: i as u32,
-                        },
-                    ));
-                }
-            }
             continue;
         }
         let mut classes = vec![id];

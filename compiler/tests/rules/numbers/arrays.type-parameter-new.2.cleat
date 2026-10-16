@@ -1,3 +1,3 @@
 //@ rule: numbers.arrays.type-parameter-new
 //@ accepted
-class A<T> { @Nullable T[] f(Int n) { return new @Nullable T[n]; } }
+class A<T> { T?[] f(Int n) { return new T?[n]; } }

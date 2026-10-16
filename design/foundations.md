@@ -7,8 +7,8 @@ The nine programs in [programs/](programs/) are written in the language these re
 ## Settled in conversation
 
 - **Purpose.** Java as it would be designed today with no legacy.
-- **Consistency.** Every value is an instance of a class. Built-in types follow the same typing, lookup and generics rules as user types. Only their method bodies may be intrinsic.
-- **Annotations as modifiers.** An annotation can change what the compiler checks or produces for the thing it marks, and that meaning is defined in the language, not by an outside tool. `@Nullable` is the first case, so nullability is spelled `@Nullable T`.
+- **Consistency.** Every value is an instance of a class, except `null`, which belongs to none (your ruling of 2026-10-16). Built-in types follow the same typing, lookup and generics rules as user types. Only their method bodies may be intrinsic.
+- **Annotations as modifiers.** An annotation can change what the compiler checks or produces for the thing it marks, and that meaning is defined in the language, not by an outside tool. Nullability was the first case, spelled `@Nullable T`, until your ruling of 2026-10-16 made it the syntax `T?`.
 - **Control flow is syntax.** `if`, `while`, `for`, `try`, `throw`, `new` and casts are statements and expressions, not message sends. Operators remain methods.
 - **v1 compiles ahead of time.** `Loader` comes later.
 
@@ -18,7 +18,7 @@ The nine programs in [programs/](programs/) are written in the language these re
 
 | # | Question | Recommendation | Main alternative | Status |
 | --- | --- | --- | --- | --- |
-| 1 | Null model | `@Nullable T` is `T` plus `null`; `Null` sits outside `Object`; `@Nullable` is an ordinary qualifier declared in the prelude | Keep `@Nullable` as a special case the language owns | Spelling decided; model assumed |
+| 1 | Null model | `T?` is `T` plus `null`; `null` belongs to no class; `Object?` is the top type, and `Object` says what its methods answer for `null` | `@Nullable T` as a qualifier declared in the prelude, with `null` the instance of a class `Null` outside `Object` | Decided 2026-10-16: the spelling `T?`, and no class `Null`. The rest of the model is assumed |
 | 2 | Numeric classes | Unrelated final value classes that share an interface `Numeric<T>`; no `Number` superclass | Keep the tower and add special inheritance rules for it | Assumed |
 | 3 | Everyday integer | `Int`, 64-bit, for literals, lengths and indexes | `Int32`, as in Java | Decided |
 | 4 | Literals | Typed by context; with no context, `Int` and exact `Rational` | Decimal literals default to `Float64` | Decided |
@@ -42,20 +42,22 @@ The name is still open. It can wait.
 
 ## Null (decision 1)
 
-**Recommendation.**
+**Decided on 2026-10-16.** A nullable type is written `T?`, not `@Nullable T`. There is no class `Null`: `null` belongs to no class, `Object?` is the top type, and `Object` itself says what `equals`, `hashCode`, `toString` and `identical` answer for `null`. This replaces the earlier spelling, which you had decided, and the earlier model, in which `null` was the one instance of `Null` and `@Nullable` an ordinary qualifier of the prelude.
 
-- `@Nullable T` contains every value of `T`, and `null`. `T` is a subtype of `@Nullable T`. `@Nullable` on a type that already contains `null` changes nothing.
-- `null` is the one instance of `Null`. `Null` is not a subclass of `Object`. `@Nullable Object` is the top type.
-- A method may be called on a `@Nullable` receiver only when the method declares a `@Nullable` receiver. In the prelude those are `equals`, `hashCode`, `toString` and the final `identical`. `equals` takes `@Nullable Object`, which is what lets `x == null` typecheck.
-- Narrowing works as the spec has it now: `== null`, `!= null` and `instanceof` narrow a local or parameter that is not reassigned in the region. A cast `(T) e` from `@Nullable T` is the checked form and raises on `null`.
-- Nullability is part of a reified type argument. `List<String>` and `List<@Nullable String>` are different classes.
-- `@Nullable` is declared in the prelude with the same facility a user qualifier gets. The next section says what that takes.
+**The rest of the model (assumed).**
 
-**Why.** This removes both contradictions in the current text. Today `Null` extends `Object`, so `Null n = null; Object o = n;` typechecks and puts `null` in a non-null type. And `x == null` passes `null` to `equals(Object)`, whose parameter is non-null.
+- `T?` contains every value of `T`, and `null`. `T` is a subtype of `T?`. A `?` on a type that already contains `null` changes nothing.
+- The literal `null` has the null type, which has no name, so `var x = null;` is rejected, as in Java.
+- A method may be called on a `T?` receiver only when it declares a `T?` receiver. In the prelude those are `equals`, `hashCode`, `toString` and the final `identical` of `Object`. For a `null` receiver the body that `Object` declares runs, and an override runs only for an instance of its class.
+- Narrowing works as before: `== null`, `!= null` and `instanceof` narrow a local or parameter that is not reassigned in the region. A cast `(T) e` from `T?` is the checked form and raises on `null`.
+- Nullability is part of a reified type argument. `List<String>` and `List<String?>` are different classes, and a run-time name writes the second `cleat.List<cleat.String?>`.
+- A qualifier stays on the type that `?` follows: `@Positive Int?` is a `@Positive Int` or `null`.
+- In an array type, a `?` after a pair of brackets makes that array nullable, and the first pair is the outermost array, as for qualifiers: `String?[]` holds nullable strings, `String[]?` may be `null`, and `Int[][]?` is an array whose elements are `Int[]` or `null`.
+- After `instanceof`, a `?` begins `?:`. A type there is never nullable, because `null` is an instance of no type.
 
-**Grammar point.** `@Nullable String[]` is an array of nullable strings, as in Java. The grammar also needs a way to write a nullable array of strings. Java writes `String @Nullable []`.
+**Why the change.** `?` is shorter and is not an annotation, which you had noted that `@Nullable` was not behaving as. With `null` outside every class, `Object` is the one root, and what `null` answers is written once, in `Object`.
 
-**Known limit.** `Map.get` returns `@Nullable V`, so it cannot tell "absent" from "present and null" when `V` is itself nullable. Kotlin and C# accept the same limit.
+**Known limit.** `Map.get` returns `V?`, so it cannot tell "absent" from "present and null" when `V` is itself nullable. Kotlin and C# accept the same limit.
 
 ## Annotations as modifiers (decision 10)
 
@@ -63,7 +65,7 @@ The name is still open. It can wait.
 
 | Kind | Examples | What the compiler does |
 | --- | --- | --- |
-| Type qualifier | `@Nullable`, `@Positive`, `@Tainted` | Checks a declared subtype order; the annotation is data |
+| Type qualifier | `@Positive`, `@Tainted` | Checks a declared subtype order; the annotation is data |
 | Declaration check | `@Override`, `@Deprecated` | Validates a declared constraint; the annotation is data |
 | Generator | `@Data`, `@Builder` | Runs annotation code that adds members |
 | Wrapper | `@Transactional`, `@Cached` | Runs annotation code that wraps a method body |
@@ -75,17 +77,17 @@ The name is still open. It can wait.
 
 Dropping both means the compiler never has to run Cleat code while it compiles, which was the most expensive part of chapter 8 to build.
 
-**The test.** `@Nullable` must be declarable in the prelude using only what a user qualifier may use. For that, a qualifier needs three powers:
+**The test.** `@Nullable` had to be declarable in the prelude using only what a user qualifier may use. Since 2026-10-16 nullability is the syntax `T?` and not a qualifier, but the three powers it asked for stay, for the qualifiers a program declares:
 
-1. **A place in the subtype order.** Every `T` is a subtype of `@Nullable T`.
+1. **A place in the subtype order.** Every `@Q T` is a subtype of `T`, or the reverse for a widening.
 2. **A receiver rule.** A method may be called on a qualified receiver only if the method declares that it accepts one. This replaces the fixed list of seven methods in chapter 5 with a rule every qualifier can use.
-3. **Narrowing by a test.** A method can declare that its result narrows the receiver or an argument. A user's `@Positive` is then narrowed by `isPositive()` the way `@Nullable` is narrowed by a null test.
+3. **Narrowing by a test.** A method can declare that its result narrows the receiver or an argument. A user's `@Positive` is then narrowed by `isPositive()` the way `T?` is narrowed by a null test.
 
 The Checker Framework offers all three for Java, from outside the compiler. This is the workaround the goal replaces.
 
-**What stays special.** `null` the value is built in. Two facts about `@Nullable` therefore go on the list of admitted exceptions: it is the one qualifier that adds a value to a type, and `== null` narrows without a declared test method.
+**What stays special.** `null` the value is built in, and so is `T?`, which adds it to a type. `== null` narrows without a declared test method. Both are on the list of admitted exceptions.
 
-**As written in chapter 8.** The three powers are `@Refines` and `@Widens` for the subtype order, a receiver parameter named `this` for the receiver rule, and `@Narrows` for tests. Every qualifier in a type argument is reified, not only `@Nullable`, so a cast cannot smuggle a plain `List<Int>` into a `List<@Positive Int>`.
+**As written in chapter 8.** The three powers are `@Refines` and `@Widens` for the subtype order, a receiver parameter named `this` for the receiver rule, and `@Narrows` for tests. Every qualifier in a type argument is reified, as nullability is, so a cast cannot smuggle a plain `List<Int>` into a `List<@Positive Int>`.
 
 **Annotations a program declares (decided).** A program or a library declares its own annotations, as in Java: with elements, with `@Target`, and read at run time. An annotation is a final value class whose fields are its elements. Reading needs some reflection, which decision 9 had left out, so chapter 8 adds the smallest API that makes a declared annotation useful. These parts of it are assumed:
 
@@ -193,7 +195,7 @@ An integer literal that does not fit its type is rejected. A decimal literal in 
 
 **Why not sequential consistency.** It needs a fence or locked instruction around most shared stores. A published experiment that made every Java field volatile measured roughly 30% slowdown on x86, as I recall. Guarantee 2 keeps the part of the current rule that matters for safety.
 
-**Multi-word values.** Guarantee 1 has a cost for a value wider than a machine word, such as `Rational`, `@Nullable Int` or a user `Vec3`, when it sits in a mutable field or an array element. The implementation may box it there or copy it atomically. Locals and `final` fields can be flat at no such cost. The present compiler boxes every value class. A later opt-in could let a plain-data value class accept tearing in exchange for flat arrays, which is where Java's Valhalla project ended up.
+**Multi-word values.** Guarantee 1 has a cost for a value wider than a machine word, such as `Rational`, `Int?` or a user `Vec3`, when it sits in a mutable field or an array element. The implementation may box it there or copy it atomically. Locals and `final` fields can be flat at no such cost. The present compiler boxes every value class. A later opt-in could let a plain-data value class accept tearing in exchange for flat arrays, which is where Java's Valhalla project ended up.
 
 **Cancellation.** A cancelled task should raise `CancellationException` only at blocking operations and at explicit checks, not at arbitrary safepoints. An exception that can appear between any two statements breaks invariants in the way `Thread.stop` did.
 
@@ -254,10 +256,10 @@ Three small rules change with this table. `value` becomes a keyword only before 
 The prelude is written as `.cleat` files. [programs/List.cleat](programs/List.cleat) is the first one, and it needs nothing a user class could not have. Where a prelude type needs something special, either the language gains the feature or the case goes on this list. The list so far:
 
 1. Literals construct prelude types, and numeric literals take their type from context.
-2. `null` is built in. `@Nullable` is the one qualifier that adds a value, and `== null` narrows without a declared test.
+2. `null` is built in, and so is `T?`, which adds it to a type. `== null` narrows without a declared test.
 3. Array storage is built in, including the default elements of `new T[n]`.
 4. Prelude method bodies may be intrinsic: arithmetic, array access, threads, I/O.
-5. `Object`, `Null` and `Enum` are fixed roots.
+5. `Object` and `Enum` are fixed roots.
 6. The prelude's annotations have rules built into the compiler: `@Refines`, `@Widens`, `@Target`, `@Narrows`, `@Inherited`, `@Override`, `@Discardable`, `@Implicit`, `@Deprecated`, `@Intrinsic` and `@Symbol`.
 7. The mirrors of chapter 8 have intrinsic bodies, and `Annotation` is implemented by annotations alone.
 
@@ -272,7 +274,7 @@ Syntax that maps to a named method or interface is not on the list, because user
 - Output and input: `Console.println`, `Console.error`, `File.readText`, `Process.exit`.
 - Collections: `List<T>`, `Map<K, V>` with `Entry<K, V>`, `Comparator<T>`.
 - Text: `StringBuilder`; `String` iteration, `split`, `trim`, `toLowerCase`; `Char.isLetter`, `isDigit`, `isWhitespace`; conversion between `String` and UTF-8 bytes.
-- Numbers: `Int.parse` and `Rational.parse` returning a `@Nullable` result; `Rational.round` and `toDecimal`; `Float64.sqrt` and `toFixed`.
+- Numbers: `Int.parse` and `Rational.parse` returning a nullable result; `Rational.round` and `toDecimal`; `Float64.sqrt` and `toFixed`.
 - Exceptions: a message on `Throwable`; `IOException`.
 
 **Language additions.**
@@ -286,7 +288,7 @@ Syntax that maps to a named method or interface is not on the list, because user
 - `"count: " + n` works and `n + " items"` does not, because `+` is a method of the left operand. String interpolation is the obvious later fix.
 - With implicit lossless conversion (decision 17), [Ledger.cleat](programs/Ledger.cleat) multiplies a `Rational` price by an `Int` count directly. Before that decision it needed `Rational.from(quantity)`.
 - `??` (decision 18) replaced a five-line null test in two programs with `(counts[word] ?? 0) + 1`.
-- Generic containers narrow `@Nullable T` to `T` with a cast, `(T) slots[i]`. It is correct even when `T` is nullable, because the type argument exists at run time.
+- Generic containers narrow `T?` to `T` with a cast, `(T) slots[i]`. It is correct even when `T` is nullable, because the type argument exists at run time.
 - Three of the first six programs name a field or local `value`.
 - [Shares.cleat](programs/Shares.cleat) declares a qualifier and a tag. Obtaining a `@Positive Int` always takes a call to its test, even for a literal `5`.
 
@@ -309,7 +311,7 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 - A lambda is an instance of an implicit final value class. It has no identity, and two evaluations that capture equal values are equal.
 - `for (T x : e)` requires `e` to be an `Iterable`. The earlier text accepted any type with an `iterator()` method.
 - `==`, casts and `instanceof` are rejected between types that share no value, such as two unrelated classes.
-- A switch uses constant arms or type arms, not both, and its selector is not `@Nullable`. A switch expression must be exhaustive. A switch statement need not be.
+- A switch uses constant arms or type arms, not both, and its selector is not nullable. A switch expression must be exhaustive. A switch statement need not be.
 - Assignment remains an expression, as in Java, and a local may be declared without an initializer.
 - There is no unary `+`.
 - A `foreign` method is static. An array argument is passed as a pointer to its elements, with no length, so a declaration can match a C signature such as `read(int, void *, size_t)` directly. `@Symbol` names the C function when the method's name cannot.
@@ -342,8 +344,8 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 **Chapter 5, null.**
 
 - `x == null` is a built-in test, not a call of `equals`, so an `equals` override cannot break narrowing.
-- A final method may declare a `@Nullable` receiver. Inside it, `this` may be `null`.
-- A type parameter with no bound accepts a `@Nullable` type argument.
+- A final method may declare a nullable receiver. Inside it, `this` may be `null`.
+- A type parameter with no bound accepts a nullable type argument.
 
 **Chapter 6, numbers.**
 
@@ -365,7 +367,7 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 - `@Implicit` is limited to keep it tame. The method sits in the target class, both classes are value classes, it is not generic, and at most one conversion applies to a value. That it is exact and never raises is a promise by its author, which the language does not check.
 - Integers do not convert implicitly to floats, because the everyday `Int` does not fit a float exactly.
 - With mixed numeric operands, `i == n` compares after conversion while `i.equals(n)` is `false`, as in Java.
-- `@Nullable` is an annotation like any other, so the rule that an annotation is written once in one position holds for it and for every qualifier: `@Nullable @Nullable String` is rejected, among the modifiers and before a type alike. The owner said on 2026-10-10 that `@Nullable` was not being treated as a proper annotation. Decision 1's recommendation had said that writing it twice changes nothing. Its model is assumed, so it now says the same of the type: `@Nullable` on a type that already contains `null` changes nothing.
+- An annotation is written at most once in one position, among the modifiers and before a type alike: `@P @P String` is rejected. The owner said on 2026-10-10 that `@Nullable` was not being treated as a proper annotation; on 2026-10-16 it stopped being an annotation.
 - Only a qualifier stands next to the type of a declaration. A declaration annotation is written before the modifiers, as section 8.2 says, and `public @Route("/x") void f()` is rejected. Section 11.4's grammar lets annotations and modifiers alternate, and the checker now enforces the order.
 
 **Chapter 12, flow.**
@@ -413,20 +415,20 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 **The prelude.** Assumed, all of it: the specification names these classes or leaves them to the prelude's source.
 
 - `Console` has `print`, `println`, `error`, which writes a line to the error stream, and `readLine`. `File` has `readText`, `readLines`, `writeText`, and `open` with `readLine` and `close`. A file holds UTF-8. `Process` has `exit`.
-- `List<T>` is [programs/List.cleat](programs/List.cleat), and `prelude/List.cleat` is the same text. `Map<K, V>` keeps its keys in the order they were first set, `map[key]` is `@Nullable V`, and `entries()`, `keys()` and `values()` return lists. `Entry<K, V>` is a value class with public fields `key` and `value`. `StringBuilder.append` is `@Discardable`.
+- `List<T>` is [programs/List.cleat](programs/List.cleat), and `prelude/List.cleat` is the same text. `Map<K, V>` keeps its keys in the order they were first set, `map[key]` is `V?`, and `entries()`, `keys()` and `values()` return lists. `Entry<K, V>` is a value class with public fields `key` and `value`. `StringBuilder.append` is `@Discardable`.
 - `String` also has `contains`, `trim`, `split`, `toLowerCase`, `toUpperCase` and `fromChars`. `Char` has `isLetter`, `isDigit`, `isWhitespace`, `toLowerCase` and `toUpperCase`. The numeric classes also have `min`, `max`, `abs` and `parse`, and the float classes `isNaN`, `isInfinite` and `toFixed`.
-- `Null` declares `equals`, `hashCode` and `toString` as chapter 5 lists them. `hashCode` of `null` is `0`.
+- For a `null` receiver, `Object`'s `hashCode` is `0`, its `toString` is `"null"`, and its `equals` is `true` only for a `null` argument. The runtime's bodies of the three already answered so.
 - A `Float64` prints its shortest digits that read back as the same value, with `.0` when it has no fraction, and in exponent form from `1e21` up and below `1e-7`. Of two candidates as short, the nearer is taken, and of two as near, the larger, as Rust's library chooses. A `Float32` prints the same way at its own precision. A reference object prints as its class name, `@`, and a number.
 - Printing, `toFixed` and `parse` of the float classes are written in the language, once for both widths, in the package class `Floats`. A float with no fraction from 2^53 up, or 2^24 for a `Float32`, prints its shortest digits padded with zeros, `1152921504606847000.0` for 2^60, as the rule above says; the runtime had printed every digit of the exact value. `toFixed` writes an infinity as `toString` does, `Infinity`, where the runtime wrote `inf`. The runtime prints a float field of a value class, and a float in the message of a failed conversion, by asking the float's `toString`.
 - `Field`, `Method` and `Parameter` are value classes that hold a class object and a position. Their work is done by `@Intrinsic` methods of `Class` with package audience.
 - `Thread`, `Lock` and `Condition` each hold a `Pointer` to an object of the host, which the collector frees with them. A wait that is a cancellation point wakes every 20 milliseconds to look for the request, so `Condition.await` returns within that time whether or not it was signalled, which section 13.3 allows.
-- `Task<out T>` keeps its result in an `Atomic<@Nullable Object>`, because a field of type `T` that is assigned would break `out`.
+- `Task<out T>` keeps its result in an `Atomic<Object?>`, because a field of type `T` that is assigned would break `out`.
 - A method of the prelude is `@Intrinsic` only when it is one machine operation, an operation on an object's identity, class or storage, a table of Unicode, a mirror's reading of a class, or a call of the host. Everything that can be written over those is source. `compiler/tests/prelude_intrinsics.rs` lists each intrinsic method with its reason: 159, where there were 498. No method of `Rational` is intrinsic, nor any `toString`, `toFixed` or `parse` of a numeric class, and the runtime exports a body only for an intrinsic method or for a call the compiler writes.
 - `BigInt` is an integer of any size, the numerator and denominator of a `Rational`. The specification does not name it, so it has package audience and is not in `spec/`. A value an `Int` holds is kept as that `Int`. A larger one keeps its sign and the digits of its magnitude in base 2^30, as a chain of value objects rather than an array, so that two equal values are `identical`, which section 2.5 asks of a value whose storage is not observable. Its arithmetic copies the digits into `Natural`, a package class that works in place on an `Int[]`, where each step of a product or of Knuth's long division fits an `Int`.
 - `Rational` is a numerator and a denominator of `BigInt` in lowest terms, written in the language, and its results and exceptions are the ones the runtime gave. `parse` reads a decimal numeral, or a fraction of two integers whose digits `_` may separate, as the runtime's reading did. A literal of it is made by `Rational.literal` from the text the compiler writes.
 - The integer classes narrower than 64 bits have no arithmetic of their own. Each computes in `Int` and converts back, and the conversion raises when the result does not fit.
 - `parse` of an integer class accepts one sign, and reads `-0` as zero for the unsigned classes too.
-- `text + x` is the text joined with `x.toString()`. `Boolean` and `Null` are written in the language with no intrinsic method.
+- `text + x` is the text joined with `x.toString()`. `Boolean` is written in the language with no intrinsic method.
 
 **The checker.** Assumed.
 
@@ -434,7 +436,7 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 - `x != null` does not narrow a variable whose type is a bare type parameter: `T` minus `null` has no spelling.
 - `var` gives a local the type of its initializer without the unknown type of a wildcard, as a member's result is written in section 7.4.
 - When an argument is itself a call, it is checked on its own first. If that fails, it is checked again against the parameter's type, so a generic call can take its type arguments from where it stands.
-- When `?:`, `??` or a switch expression has no expected type and one arm is `null`, the type is the other arm's with `@Nullable`.
+- When `?:`, `??` or a switch expression has no expected type and one arm is `null`, the type is the other arm's, nullable.
 - `x instanceof T` keeps the type `x` already has when that says more than `T`.
 - A method reference adds nothing to inference. A lambda does.
 - A use of a wildcard's unknown type as part of a larger explicit type argument is reported as not supported. Standing alone, as in `swap(items, 0, 1)`, it is the type argument of the object passed.
@@ -472,7 +474,7 @@ Every item in this section is Assumed: I chose it without a ruling from you, it 
 - Sections 3.1 and 3.3: the example fields have initializers, because a field with no default must be assigned.
 - Section 8.9: the example is two examples, a declaration and a method.
 - Section 4.4 names the one case where an ambiguous call is not rejected: section 6.3 chooses the method of a numeric literal's default class.
-- Section 5.3 counts four methods of `Object` that take a `@Nullable` receiver, with `identical`, as section 2.5 declares them.
+- Section 5.3 counts four methods of `Object` that take a nullable receiver, with `identical`, as section 2.5 declares them.
 - Section 10.2 defers declaration annotations on locals and type parameters. A qualifier on a local and a tag required by a type parameter are in the language.
 - Section 11.6: the grammar derives `name(args)`, a call with no receiver.
 - Section 11.6: in the head of a switch arm a `(` does not begin a lambda. Section 12.1 makes a parenthesized constant a constant, and the lambda rule read `case (1) -> x` as a lambda.

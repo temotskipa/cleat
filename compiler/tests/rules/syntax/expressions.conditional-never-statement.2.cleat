@@ -1,0 +1,3 @@
+//@ rule: syntax.expressions.conditional-never-statement
+//@ accepted
+class A { Int f(Boolean b, Int x, Int y) { Int z = b ? x : y; return z; } }

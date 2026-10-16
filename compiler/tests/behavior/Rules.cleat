@@ -59,7 +59,7 @@ class Plain implements Marked {
 
 class Agreeable {
     @Override
-    public Boolean equals(@Nullable Object other) {
+    public Boolean equals(Object? other) {
         return true;
     }
 
@@ -115,11 +115,11 @@ public class Rules {
         return value;
     }
 
-    static Boolean isNull(@Nullable Agreeable a) {
+    static Boolean isNull(Agreeable? a) {
         return a == null;
     }
 
-    static @Nullable Object widen(Null nothing) {
+    static Object? widen(String? nothing) {
         return nothing;
     }
 
@@ -208,7 +208,7 @@ public class Rules {
         //@ rule: null.tests.result-depends-only
         Console.println("null test: " + isNull(new Agreeable()) + " " + isNull(null) + " " + new Agreeable().equals(null));
 
-        // 5.2: `Null` is a subtype of `@Nullable T`.
+        // 5.2: the null type is a subtype of `T?`.
         Console.println("Null: " + (widen(null) == null) + " " + widen(null));
 
         // 6.4: integer arithmetic raises when the result is not a value of the class.
@@ -333,7 +333,7 @@ public class Rules {
         plain.join();
 
         // 13.5: only the thread running the scope's `call` forks, and only during it.
-        var kept = new @Nullable Scope[1];
+        var kept = new Scope?[1];
         var done = Scope.call((scope) -> {
             kept[0] = scope;
             var other = Thread.start(() -> {

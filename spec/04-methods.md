@@ -29,7 +29,7 @@ A call is static when its receiver is a type name, and is an instance call when 
 Its type is the declaring class or interface, with qualifiers: <!-- r[methods.declaring.type-declaring-class] -->
 
 ```java
-public open Boolean equals(@Nullable Object this, @Nullable Object other)
+public open Boolean equals(Object? this, Object? other)
 ```
 
 The receiver parameter is not an argument position, and a call supplies no argument for it. <!-- r[methods.declaring.receiver-parameter-not] -->
@@ -70,7 +70,7 @@ Assigning a parameter does not change a variable of the caller. <!-- r[methods.c
 When the chosen method is `open`, `abstract` or an interface method, the receiver's class at run time selects the body, as [chapter 2](02-objects.md) describes. <!-- r[methods.calls.chosen-method-open] -->
 
 The static type of the receiver must be a subtype of the method's receiver type. <!-- r[methods.calls.static-type-receiver] -->
-A receiver whose type is `@Nullable` therefore accepts only the methods that declare a `@Nullable` receiver, until it is narrowed. <!-- r[methods.calls.receiver-type-nullable] -->
+A receiver whose type is nullable therefore accepts only the methods that declare a nullable receiver, until it is narrowed. <!-- r[methods.calls.receiver-type-nullable] -->
 
 A call is an expression, and its type is the method's result type. <!-- r[methods.calls.call-expression-type] -->
 A call whose result is `Unit` may stand alone as a statement. <!-- r[methods.calls.call-result-unit] -->
@@ -101,14 +101,14 @@ In that second round, a class counts as more specific than a class it converts t
 ## 4.5 Assignability
 
 A value of static type `S` is assignable to a location of type `T` when `S` is a subtype of `T`. <!-- r[methods.assignability.value-static-type] -->
-Subtyping is the reflexive, transitive closure of `extends` and `implements`, together with the rules for generic types in [chapter 7](07-generics.md) and for qualifiers in [chapter 8](08-annotations.md), of which `@Nullable` in [chapter 5](05-null-and-unit.md) is one. <!-- r[methods.assignability.subtyping-reflexive-transitive] -->
+Subtyping is the reflexive, transitive closure of `extends` and `implements`, together with the rules for generic types in [chapter 7](07-generics.md), for nullable types in [chapter 5](05-null-and-unit.md) and for qualifiers in [chapter 8](08-annotations.md). <!-- r[methods.assignability.subtyping-reflexive-transitive] -->
 
-**Implicit conversion.** A value of class `S` is also assignable to a location of type `T` or `@Nullable T` when `T` declares an implicit conversion from `S`. <!-- r[methods.assignability.implicit-conversion-value] -->
+**Implicit conversion.** A value of class `S` is also assignable to a location of type `T` or `T?` when `T` declares an implicit conversion from `S`. <!-- r[methods.assignability.implicit-conversion-value] -->
 That is a static method marked `@Implicit`, as [chapter 8](08-annotations.md) defines, and the compiler inserts a call of it. <!-- r[methods.assignability.static-method-marked] -->
 The numeric classes declare the implicit conversions that [chapter 6](06-numbers.md#67-conversion) lists, and a program's value classes may declare their own. <!-- r[methods.assignability.numeric-classes-declare] -->
 
 At most one conversion is applied to a value. <!-- r[methods.assignability.most-conversion-applied] -->
-Nothing else is converted: not the receiver of a call, not a `@Nullable` value, and not a type argument, so an `Int32[]` is never an `Int[]`. <!-- r[methods.assignability.nothing-else-converted] -->
+Nothing else is converted: not the receiver of a call, not a nullable value, and not a type argument, so an `Int32[]` is never an `Int[]`. <!-- r[methods.assignability.nothing-else-converted] -->
 
 No other method is ever inserted to make a value fit: not to produce a `String`, not to narrow or round a number, not to copy into a superclass. <!-- r[methods.assignability.no-method-ever] -->
 A numeric literal takes its class from where it stands, as chapter 6 defines. <!-- r[methods.assignability.numeric-literal-takes] -->
@@ -118,11 +118,11 @@ The expected type passes through parentheses, through both arms of `?:`, and thr
 Numeric literals, lambdas, and the inference of chapter 7 use it. <!-- r[methods.assignability.numeric-literals-lambdas] -->
 
 **Disjoint types.** Two types are disjoint when no value can belong to both. <!-- r[methods.assignability.disjoint-types-no] -->
-Leaving aside every qualifier but `@Nullable`: <!-- r[methods.assignability.leaving-aside-qualifier] -->
+Leaving aside every qualifier: <!-- r[methods.assignability.leaving-aside-qualifier] -->
 
 - two class types are disjoint unless one is a subtype of the other; <!-- r[methods.assignability.class-types-disjoint] -->
 - a class type and an interface type are disjoint when the class is final and is not a subtype of the interface; <!-- r[methods.assignability.class-type-interface] -->
-- two `@Nullable` types are never disjoint, because both contain `null`; <!-- r[methods.assignability.nullable-types-never] -->
+- two nullable types are never disjoint, because both contain `null`; <!-- r[methods.assignability.nullable-types-never] -->
 - two interface types are never disjoint, and a type parameter is disjoint from nothing. <!-- r[methods.assignability.interface-types-never] -->
 
 `==`, casts and `instanceof` are rejected between disjoint types, as the following sections say. <!-- r[methods.assignability.equals-casts-instanceof] -->
@@ -281,7 +281,7 @@ The parameter types of the interface's method choose among overloads. <!-- r[met
 **Local declarations.** `T name = e;` declares a local of type `T` and initializes it. <!-- r[methods.statements.local-declarations-name] -->
 `T name;` declares a local with no value, and [chapter 12](12-flow.md) requires an assignment before any use. <!-- r[methods.statements.name-declares-local] -->
 `var name = e;` gives the local the static type of `e`, with its qualifiers. <!-- r[methods.statements.var-name-gives] -->
-`var` needs an initializer, and `var name = null;` is rejected, because the type would be `Null`. <!-- r[methods.statements.var-needs-initializer] -->
+`var` needs an initializer, and `var name = null;` is rejected, because the type of `null` has no name. <!-- r[methods.statements.var-needs-initializer] -->
 A local is assignable unless it is declared `final`. <!-- r[methods.statements.local-assignable-unless] -->
 [Chapter 1](01-source.md) gives its scope. <!-- r[methods.statements.gives-scope] -->
 
@@ -327,7 +327,7 @@ An arm is one of three kinds: <!-- r[methods.statements.arm-three-kinds] -->
   A switch has at most one, written last. <!-- r[methods.statements.switch-most-written] -->
 
 One switch uses constant arms or type arms, not both. <!-- r[methods.statements.switch-uses-constant] -->
-The selector's type is not `@Nullable`. <!-- r[methods.statements.selector-type-not] -->
+The selector's type is not nullable. <!-- r[methods.statements.selector-type-not] -->
 
 In a switch statement, each body is a statement. <!-- r[methods.statements.switch-statement-body] -->
 If no arm matches, the switch completes normally. <!-- r[methods.statements.no-arm-matches] -->
@@ -403,7 +403,7 @@ The arrays are constructed in the order of their parameters, each in index order
 An element takes its place in its array once it is constructed, so when one raises, it and every element after it in that order keep the values they had before the call. <!-- r[methods.foreign.element-takes-place] -->
 
 Every other type is rejected on a foreign method. <!-- r[methods.foreign.type-rejected-foreign] -->
-That includes `String`, `Rational`, a reference class, an interface, a type parameter, and a `@Nullable` type. <!-- r[methods.foreign.includes-string-rational] -->
+That includes `String`, `Rational`, a reference class, an interface, a type parameter, and a nullable type. <!-- r[methods.foreign.includes-string-rational] -->
 A lambda cannot be passed, so a C function cannot call back into Cleat. <!-- r[methods.foreign.lambda-passed-function] -->
 
 `Pointer` is a final value class that holds an address. <!-- r[methods.foreign.pointer-final-value] -->

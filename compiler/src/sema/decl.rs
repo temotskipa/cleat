@@ -42,7 +42,6 @@ impl TypeCx {
 
 const WELL_KNOWN: &[&str] = &[
     "Object",
-    "Null",
     "Unit",
     "Boolean",
     "Char",
@@ -66,7 +65,6 @@ const WELL_KNOWN: &[&str] = &[
     "Class",
     "Annotation",
     "Site",
-    "Nullable",
     "Refines",
     "Widens",
     "Target",
@@ -314,7 +312,6 @@ fn well_known(p: &mut Program) -> bool {
     let g = |n: &str| ids[n];
     p.wk = WellKnown {
         object: g("Object"),
-        null: g("Null"),
         unit: g("Unit"),
         boolean: g("Boolean"),
         char_: g("Char"),
@@ -338,7 +335,6 @@ fn well_known(p: &mut Program) -> bool {
         class: g("Class"),
         annotation: g("Annotation"),
         site: g("Site"),
-        nullable: g("Nullable"),
         refines: g("Refines"),
         widens: g("Widens"),
         target: g("Target"),
@@ -923,11 +919,7 @@ pub fn apply_annotations(
         // Among the modifiers of a declaration the type may have the qualifier
         // already, where a type parameter stands for a type that has it, so only a
         // second writing here is counted.
-        let on_type = if id == p.wk.nullable {
-            ty.nullable
-        } else {
-            ty.quals.contains(&id)
-        };
+        let on_type = ty.quals.contains(&id);
         if written.contains(&id) || on_type && !decl {
             p.error(
                 cx.unit,
@@ -936,11 +928,7 @@ pub fn apply_annotations(
             );
         }
         written.push(id);
-        if id == p.wk.nullable {
-            ty.nullable = true;
-        } else {
-            ty.add_qual(id);
-        }
+        ty.add_qual(id);
     }
     rest
 }
@@ -962,10 +950,12 @@ pub fn resolve_type_anns(
     let mut ty = resolve_named(p, cx, t);
     let mut rest = apply_annotations(p, cx, &mut ty, &t.annotations, false);
     rest.extend(apply_annotations(p, cx, &mut ty, mods_anns, decl));
+    ty.nullable |= t.nullable;
     // Brackets: the last pair is the innermost array.
     for dim in t.dims.iter().rev() {
         let mut arr = p.array_of(ty);
-        apply_annotations(p, cx, &mut arr, dim, false);
+        apply_annotations(p, cx, &mut arr, &dim.annotations, false);
+        arr.nullable |= dim.nullable;
         ty = arr;
     }
     if p.headers_done {
@@ -1267,9 +1257,7 @@ fn headers(p: &mut Program) {
                 if let Some(tr) = d.extends.first() {
                     p.error(unit, tr.pos, "a value class extends no class");
                 }
-                if id != wk.null {
-                    superclass = Some(Type::simple(wk.object));
-                }
+                superclass = Some(Type::simple(wk.object));
             }
             TypeKind::Enum => superclass = Some(Type::simple(wk.enum_)),
             TypeKind::Annotation => superclass = Some(Type::simple(wk.object)),
@@ -1886,7 +1874,11 @@ fn members(p: &mut Program) {
                         );
                     }
                     if recv_nullable && (mods.is_open || is_abstract) && id != p.wk.object {
-                        p.error(unit, md.pos, "an `open` or `abstract` method does not declare a `@Nullable` receiver");
+                        p.error(
+                            unit,
+                            md.pos,
+                            "an `open` or `abstract` method does not declare a nullable receiver",
+                        );
                     }
                     let m = &mut p.classes[id as usize].methods[index as usize];
                     m.params = params;
@@ -2300,7 +2292,7 @@ fn hierarchy(p: &mut Program) {
                     {
                         p.error(unit, mm.pos, "an override has the same receiver qualifiers as the method it overrides");
                     }
-                    // Section 2.5: the three open methods of `Object` take a `@Nullable`
+                    // Section 2.5: the three open methods of `Object` take a nullable
                     // receiver, and an override of them does not.
                     if special.contains(&mm.name.as_str())
                         && (mm.recv_nullable || !mm.recv_quals.is_empty())

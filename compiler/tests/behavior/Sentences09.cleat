@@ -154,7 +154,7 @@ class ByAssign {
 }
 
 class Noted {
-    public @Nullable String note;
+    public String? note;
     public Int n;
 
     public Noted(Int n) {
@@ -535,7 +535,7 @@ public class Sentences09 {
         try {
             var broken = Broken.value;
         } catch (ClassInitializationException e) {
-            @Nullable Throwable cause = e.cause();
+            Throwable? cause = e.cause();
             //@ rule: execution.initialization.later-use-failed
             Console.println("a failed class: " + (cause == null ? "no cause" : cause.message()));
         }

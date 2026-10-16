@@ -218,7 +218,7 @@ public value class Rational implements Divisible<Rational>, Ordered<Rational> {
     // digits `_` may separate. Whitespace may stand around the text and around each
     // integer of a fraction. Null when the text is neither, or the denominator is not
     // above zero.
-    public static @Nullable Rational parse(String text) {
+    public static Rational? parse(String text) {
         var trimmed = text.trim();
         var slash = trimmed.indexOf('/');
         if (slash >= 0) {

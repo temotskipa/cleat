@@ -11,7 +11,7 @@ package cleat;
 // into a Natural, works there, and builds a new chain.
 package value class BigInt implements Numeric<BigInt>, Ordered<BigInt> {
     Int small;
-    @Nullable Digit digits;
+    Digit? digits;
 
     private BigInt {
     }
@@ -39,7 +39,7 @@ package value class BigInt implements Numeric<BigInt>, Ordered<BigInt> {
         if (sign < 0 && magnitude.isLeastMagnitude()) {
             return new BigInt(LEAST, null);
         }
-        @Nullable Digit chain = null;
+        Digit? chain = null;
         for (var i = magnitude.length - 1; i >= 0; i--) {
             chain = new Digit(magnitude.digits[i], chain);
         }
@@ -332,7 +332,7 @@ package value class BigInt implements Numeric<BigInt>, Ordered<BigInt> {
 
     // An integer in decimal: a sign, then a digit, then digits or `_`, which separates
     // nothing and is skipped. Null when the text is not one.
-    package static @Nullable BigInt parse(String text) {
+    package static BigInt? parse(String text) {
         var at = 0;
         var negative = false;
         if (text.startsWith("-") || text.startsWith("+")) {
@@ -365,7 +365,7 @@ package value class BigInt implements Numeric<BigInt>, Ordered<BigInt> {
 // One digit of a BigInt's chain, and the digits above it.
 value class Digit {
     package Int value;
-    package @Nullable Digit next;
+    package Digit? next;
 }
 
 // A natural number that changes in place: the working form of BigInt's arithmetic, and

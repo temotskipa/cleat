@@ -116,7 +116,7 @@ value class Sq implements Shape {
 }
 
 class Text {
-    public static Boolean blank(@Nullable String s) {
+    public static Boolean blank(String? s) {
         return s == null || s.trim().isEmpty();
     }
 }
@@ -129,7 +129,7 @@ class Label {
     }
 
     // A final method may take a receiver that is null.
-    public String shown(@Nullable Label this) {
+    public String shown(Label? this) {
         if (this == null) {
             return "(no label)";
         }
@@ -137,7 +137,7 @@ class Label {
     }
 
     @Override
-    public Boolean equals(@Nullable Object other) {
+    public Boolean equals(Object? other) {
         return other instanceof Label && text == other.text;
     }
 
@@ -200,7 +200,7 @@ public class Members {
         Console.println(Shape.unit().describe());
         Console.println(curried().invoke(4).invoke(2));
 
-        @Nullable Label none = null;
+        Label? none = null;
         Console.println(none.shown());
         Console.println(new Label("x").shown());
         var names = new Map<Label, Int>();

@@ -49,13 +49,13 @@ fn null_is_not_a_string() {
         "",
         "`null` is not a value of `String`",
     );
-    accepted("static void f() { @Nullable String s = null; }", "");
+    accepted("static void f() { String? s = null; }", "");
 }
 
 #[test]
 fn a_nullable_value_is_not_assignable_to_its_type() {
     rejected(
-        "static String f(@Nullable String s) { return s; }",
+        "static String f(String? s) { return s; }",
         "",
         "is not assignable",
     );
@@ -64,18 +64,15 @@ fn a_nullable_value_is_not_assignable_to_its_type() {
 #[test]
 fn a_send_on_a_nullable_receiver_is_rejected_until_narrowed() {
     rejected(
-        "static Int f(@Nullable String s) { return s.length(); }",
+        "static Int f(String? s) { return s.length(); }",
         "",
         "may be `null`",
     );
     accepted(
-        "static Int f(@Nullable String s) { if (s == null) { return 0; } return s.length(); }",
+        "static Int f(String? s) { if (s == null) { return 0; } return s.length(); }",
         "",
     );
-    accepted(
-        "static String f(@Nullable String s) { return s.toString(); }",
-        "",
-    );
+    accepted("static String f(String? s) { return s.toString(); }", "");
 }
 
 #[test]

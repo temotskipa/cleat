@@ -88,7 +88,7 @@ value class Steps implements Numeric<Steps>, Ordered<Steps> {
 
 class Loud {
     @Override
-    public Boolean equals(@Nullable Object other) {
+    public Boolean equals(Object? other) {
         Trace.note("equals");
         return other instanceof Loud;
     }
@@ -464,7 +464,7 @@ public class Sentences06 {
         Console.println("get: " + hello.get(1) + " " + hello[1] + " " + hello.get(0) + " " + hello[4]);
         //@ rule: numbers.text.substring-int-begin
         Console.println("substring: " + hello.substring(1, 3) + " [" + hello.substring(2, 2) + "] " + hello.substring(0, 5));
-        @Nullable Object absent = null;
+        Object? absent = null;
         //@ rule: numbers.text.plus-nullable-object
         Console.println("plus: " + hello.plus(" there") + " " + hello.plus(5) + " " + hello.plus(absent) + " " + hello.plus(loud) + " " + Trace.take());
         //@ rule: numbers.text.indexof-char-string
@@ -539,7 +539,7 @@ public class Sentences06 {
         }) + " " + new Int[zero].length());
         //@ rule: numbers.arrays.new-creates-elements
         //@ rule: numbers.arrays.default-null-nullable
-        Console.println("the defaults: " + new @Nullable String[2][1] + " " + new Int[2][1] + " " + new Float64[2][1] + " " + new Rational[2][1] + " " + new UInt8[2][1] + " " + new Char[2][1].code() + " " + new Boolean[2][1] + " " + new Pair[2][1] + " " + new Int[3].length());
+        Console.println("the defaults: " + new String?[2][1] + " " + new Int[2][1] + " " + new Float64[2][1] + " " + new Rational[2][1] + " " + new UInt8[2][1] + " " + new Char[2][1].code() + " " + new Boolean[2][1] + " " + new Pair[2][1] + " " + new Int[3].length());
         var logged = new Logged[3];
         var once = Trace.take();
         var emptied = new Logged[zero];

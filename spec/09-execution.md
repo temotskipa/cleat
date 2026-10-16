@@ -19,7 +19,7 @@ public open class Throwable {
     public Throwable(String message)
     public Throwable(String message, Throwable cause)
     public final String message()
-    public final @Nullable Throwable cause()
+    public final Throwable? cause()
     public final Throwable[] suppressed()
 }
 ```
@@ -99,7 +99,7 @@ using (File input = File.open(path)) {
 ```
 
 `using (T name = e) block` evaluates `e`, binds `name` to its value, runs the block, and then calls `name.close()`, however the block completed. <!-- r[execution.using.using-name-block] -->
-The static type of `e` must have a method `close()` with no parameters and the result `Unit`, and must not be `@Nullable`. <!-- r[execution.using.static-type-method] -->
+The static type of `e` must have a method `close()` with no parameters and the result `Unit`, and must not be nullable. <!-- r[execution.using.static-type-method] -->
 `name` is not assignable. <!-- r[execution.using.name-not-assignable] -->
 `var` may be written for `T`. <!-- r[execution.using.var-written] -->
 
@@ -137,7 +137,7 @@ Field initializers run first, in source order, on entry to a constructor that do
 An initializer is under the same restriction. <!-- r[execution.objects.initializer-under-restriction] -->
 
 At the `super(...)` call, every field declared in the class must be assigned, under the rules of [chapter 12](12-flow.md). <!-- r[execution.objects.super-call-field] -->
-A `@Nullable` field is the exception: it starts as `null`. <!-- r[execution.objects.nullable-field-exception] -->
+A nullable field is the exception: it starts as `null`. <!-- r[execution.objects.nullable-field-exception] -->
 
 **After the call.** When `super(...)` or `this(...)` returns, the object is complete: every field of the class, of its superclasses and of its subclasses is assigned. <!-- r[execution.objects.after-call-super] -->
 From there `this` may be used without restriction. <!-- r[execution.objects.this-used-without] -->

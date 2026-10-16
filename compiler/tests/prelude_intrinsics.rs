@@ -271,12 +271,16 @@ fn declared() -> BTreeMap<String, Vec<String>> {
             let name = decl[..open].rsplit(' ').next().unwrap();
             let params: Vec<String> = decl[open + 1..decl.rfind(')').unwrap()]
                 .split(',')
-                .map(|p| p.trim().replace("@Nullable ", ""))
+                .map(|p| p.trim().to_string())
                 .filter(|p| !p.is_empty())
                 .map(|p| {
+                    // A type is listed without its `?`.
                     p.rsplit_once(' ')
                         .map(|(ty, _)| ty.to_string())
                         .unwrap_or(p)
+                        .replace("?[", "[")
+                        .trim_end_matches('?')
+                        .to_string()
                 })
                 .collect();
             found.push(format!("{name}({})", params.join(", ")));
@@ -330,7 +334,6 @@ fn the_classes_written_in_the_language_declare_no_intrinsic() {
     let declared = declared();
     for class in [
         "Boolean",
-        "Null",
         "List",
         "Map",
         "StringBuilder",

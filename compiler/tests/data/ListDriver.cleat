@@ -27,7 +27,7 @@ public class ListDriver {
         Console.println(o.getClass().getName());
 
         // A list of a nullable type holds null, and the cast in `get` lets it through.
-        var gaps = new List<@Nullable Int>();
+        var gaps = new List<Int?>();
         gaps.add(1);
         gaps.add(null);
         Console.println("gap: " + gaps[1]);

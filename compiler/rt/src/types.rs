@@ -11,7 +11,7 @@ pub struct TypeDesc {
     pub class: *const ClassInfo,
     pub args: Vec<*const TypeDesc>,
     pub nullable: bool,
-    /// The qualifiers other than `@Nullable`, sorted by address.
+    /// The qualifiers, sorted by address. A `?` is `nullable`, and no qualifier.
     pub quals: Vec<*const ClassInfo>,
     /// 0 for a type, 1 for `?` and `? extends`, 2 for `? super`.
     pub wild: u8,
@@ -185,13 +185,9 @@ impl TypeDesc {
         if self.class == class {
             return Some(self);
         }
-        // Every class but `Null` is a subclass of `Object`, an interface included.
+        // Every class is a subclass of `Object`, an interface included.
         if unsafe { (*class).kind } == K_OBJECT {
-            return if self.class().kind == K_NULL {
-                None
-            } else {
-                Some(unsafe { &*wk_type(K_OBJECT) })
-            };
+            return Some(unsafe { &*wk_type(K_OBJECT) });
         }
         if self.class().is(F_ANNOTATION)
             && (self.class().is(F_REFINES) || self.class().is(F_WIDENS))
@@ -221,9 +217,6 @@ impl TypeDesc {
                 return s;
             }
             let mut quals: Vec<&str> = self.quals.iter().map(|q| (**q).name()).collect();
-            if self.nullable {
-                quals.push("cleat.Nullable");
-            }
             quals.sort();
             for q in quals {
                 s.push('@');
@@ -240,6 +233,9 @@ impl TypeDesc {
                     s.push_str((**a).name());
                 }
                 s.push('>');
+            }
+            if self.nullable {
+                s.push('?');
             }
             s
         })
@@ -446,12 +442,13 @@ pub unsafe fn find(entries: *const MethodEntry, n: u32, selector: u32) -> *const
     }
 }
 
-/// The body a virtual call runs for a receiver. A null receiver has the class `Null`.
+/// The body a virtual call runs for a receiver. For a null receiver it is the body that
+/// `Object` declares, which section 5.3 says answers for `null`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn cl_lookup(o: Obj, selector: u32) -> *const u8 {
     unsafe {
         let c = if o.is_null() {
-            &*wk(K_NULL)
+            &*wk(K_OBJECT)
         } else {
             (*(*o).td).class()
         };

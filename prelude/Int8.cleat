@@ -139,7 +139,7 @@ public value class Int8 implements Numeric<Int8>, Ordered<Int8> {
 
     // The text of an integer in decimal, or null when the text is not one or is out of
     // range. A sign may come first.
-    public static @Nullable Int8 parse(String text) {
+    public static Int8? parse(String text) {
         var wide = Int.parse(text);
         if (wide == null || wide < -128 || wide > 127) {
             return null;

@@ -1,0 +1,3 @@
+//@ rule: null.null-value.not-instance-object
+//@ rejected: `null` is not a value of `Object`
+class A { Object f() { return null; } }

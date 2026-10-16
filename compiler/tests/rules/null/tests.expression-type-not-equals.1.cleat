@@ -1,3 +1,3 @@
 //@ rule: null.tests.expression-type-not-equals
-//@ rejected: `@Nullable String` is not assignable to `String`
-class A { String h(@Nullable String s, @Nullable String t) { return s ?? t; } }
+//@ rejected: `String?` is not assignable to `String`
+class A { String h(String? s, String? t) { return s ?? t; } }

@@ -453,7 +453,7 @@ impl<'p> Checker<'p> {
                     return;
                 }
                 let mut a = at.clone();
-                // `@Nullable P` takes the nullability on itself.
+                // `P?` takes the nullability on itself.
                 if pt.nullable && dir == Dir::Co {
                     a.nullable = false;
                 }
@@ -1028,7 +1028,7 @@ impl<'p> Checker<'p> {
             cands.retain(|(m, _)| self.p.method(*m).recv_nullable);
             if cands.is_empty() {
                 let s = self.show(&recv_ty);
-                self.err(pos, format!("`{name}` is sent to a `{s}`, which may be `null`; only a method that declares a `@Nullable` receiver is sent to it until it is narrowed"));
+                self.err(pos, format!("`{name}` is sent to a `{s}`, which may be `null`; only a method that declares a nullable receiver is sent to it until it is narrowed"));
                 return self.fail(site);
             }
         }
@@ -1240,11 +1240,11 @@ impl<'p> Checker<'p> {
         if this.ty.is_error() {
             return this;
         }
-        // Section 5.3: in a method with a `@Nullable` receiver, `this` may be `null`
+        // Section 5.3: in a method with a nullable receiver, `this` may be `null`
         // until it is narrowed, and a call with no receiver is a send to `this`.
         if self.p.may_be_null(&this.ty) && !self.p.method(c.callee).recv_nullable {
             let s = self.show(&this.ty);
-            self.err(pos, format!("`{name}` is sent to a `{s}`, which may be `null`; only a method that declares a `@Nullable` receiver is sent to it until it is narrowed"));
+            self.err(pos, format!("`{name}` is sent to a `{s}`, which may be `null`; only a method that declares a nullable receiver is sent to it until it is narrowed"));
         }
         self.finish_method(Some(this), c, app, site, pre, false)
     }

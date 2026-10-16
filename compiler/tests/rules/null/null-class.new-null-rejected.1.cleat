@@ -1,3 +1,0 @@
-//@ rule: null.null-class.new-null-rejected
-//@ rejected: `new Null` is rejected: `null` is the one instance
-class A { @Nullable Object f() { return new Null(); } }

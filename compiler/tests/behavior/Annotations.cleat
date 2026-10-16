@@ -66,9 +66,9 @@ public class Annotations {
         var p = new Person("Ada", 36);
         Class c = p.getClass();
         Console.println(c.getName());
-        @Nullable Entity e = c.<Entity>getAnnotation();
+        Entity? e = c.<Entity>getAnnotation();
         Console.println(e == null ? "none" : e.table);
-        @Nullable Entity inherited = new Student("Bo").getClass().<Entity>getAnnotation();
+        Entity? inherited = new Student("Bo").getClass().<Entity>getAnnotation();
         Console.println(inherited == null ? "none" : inherited.table);
         Console.println(c.<Marker>getAnnotation() == null);
         for (Field f : c.<Column>getAnnotatedFields()) {

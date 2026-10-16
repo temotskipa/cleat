@@ -59,7 +59,8 @@ The longest token is read, except that `>` is read alone where it closes a type 
 ## 11.2 Types and annotations
 
 ```
-type            = {annotation} named-type {{annotation} "[" "]"}
+type            = {annotation} named-type ["?"] {{annotation} "[" "]" ["?"]}
+test-type       = {annotation} named-type {{annotation} "[" "]"}
 named-type      = qualified-name [type-args]
 qualified-name  = identifier {"." identifier}
 type-args       = "<" type-arg {"," type-arg} ">"
@@ -80,7 +81,8 @@ annotation-value = expr | annotation
 
 An annotation before the named type qualifies it. <!-- r[syntax.types.annotation-before-named] -->
 An annotation before a pair of brackets qualifies that array. <!-- r[syntax.types.annotation-before-pair] -->
-With several pairs, the first pair is the outermost array: `Int[] @Nullable []` is an array whose elements are arrays of `Int` or `null`. <!-- r[syntax.types.several-pairs-first] -->
+A `?` after the named type makes it nullable, and a `?` after a pair of brackets makes that array nullable. <!-- r[syntax.types.question-after-named] -->
+With several pairs, the first pair is the outermost array: `Int[][]?` is an array whose elements are arrays of `Int` or `null`. <!-- r[syntax.types.several-pairs-first] -->
 
 ## 11.3 Compilation units
 
@@ -196,7 +198,7 @@ bit-or          = bit-xor {"|" bit-xor}
 bit-xor         = bit-and {"^" bit-and}
 bit-and         = equality {"&" equality}
 equality        = relational {("==" | "!=") relational}
-relational      = shift {("<" | ">" | "<=" | ">=") shift | "instanceof" type}
+relational      = shift {("<" | ">" | "<=" | ">=") shift | "instanceof" test-type}
 shift           = additive {("<<" | ">>") additive}
 additive        = multiplicative {("+" | "-") multiplicative}
 multiplicative  = unary {("*" | "/" | "%") unary}
@@ -239,6 +241,8 @@ The grammar derives more than is legal, and these rules settle what it leaves op
 - **Type arguments in an expression.** A `<` after a name begins type arguments when the tokens up to the matching `>` are type arguments and the next token is `::`, or `.` followed by `class`. <!-- r[syntax.expressions.type-arguments-expression] -->
   Everywhere else it is the comparison operator. <!-- r[syntax.expressions.everywhere-else-comparison] -->
   The type after `new` and after `instanceof`, and the type arguments of a call, which follow its `.`, are never mistaken for one. <!-- r[syntax.expressions.type-after-new] -->
+- **Nullable types.** A statement that begins with a type, `?` and an identifier declares a local: `String? s = null;`. <!-- r[syntax.expressions.nullable-types-statement] -->
+  A conditional is never a statement, so the reading takes nothing away. <!-- r[syntax.expressions.conditional-never-statement] -->
 - **Names.** `a.b.c` is derived as an identifier and two selectors. <!-- r[syntax.expressions.names-derived-identifier] -->
   [Chapter 1](01-source.md#18-scope) says which parts name a package, a type, a field or a variable. <!-- r[syntax.expressions.says-parts-name] -->
 - **Assignment.** The left side of an assignment, and the operand of `++` and `--`, is a variable, a field or an indexed element. <!-- r[syntax.expressions.assignment-left-side] -->

@@ -3,7 +3,7 @@
 package t;
 
 class Holder {
-    public @Nullable String text;
+    public String? text;
 }
 
 value class Point {
@@ -11,13 +11,13 @@ value class Point {
 }
 
 class Caster<T> {
-    public T cast(@Nullable Object o) {
+    public T cast(Object? o) {
         return (T) o;
     }
 }
 
 public class Sentences05 {
-    static @Nullable String loud(String what) {
+    static String? loud(String what) {
         Console.println("  evaluated " + what);
         return what;
     }
@@ -30,9 +30,9 @@ public class Sentences05 {
     }
 
     public static void main() {
-        @Nullable Object none = null;
-        @Nullable String some = "some";
-        @Nullable String missing = null;
+        Object? none = null;
+        String? some = "some";
+        String? missing = null;
         Int n = 5;
 
         //@ rule: null.nullable.nullable-field-no
@@ -52,7 +52,7 @@ public class Sentences05 {
         //@ rule: null.tests.otherwise-result-value
         Console.println("coalesce: " + kept + " " + taken);
 
-        @Nullable Boolean no = false;
+        Boolean? no = false;
         //@ rule: null.tests.coalesce-binds-more
         Console.println("precedence: " + (missing ?? missing ?? "c") + " " + (no ?? true || true) + " " + ((true ? missing : some ?? "z") == null));
 
@@ -73,15 +73,15 @@ public class Sentences05 {
             Console.println("cast of null: raises");
         }
         //@ rule: null.casts.nullable-accepts-null
-        Console.println("nullable cast: " + ((@Nullable String) none == null));
+        Console.println("nullable cast: " + ((String?) none == null));
         //@ rule: null.casts.null-instanceof-false
         Console.println("instanceof null: " + (none instanceof String) + " " + (none instanceof Object));
 
         Object plain = new List<String>();
-        Object nullable = new List<@Nullable String>();
+        Object nullable = new List<String?>();
         //@ rule: null.type-arguments.nullability-type-argument
         //@ rule: null.type-arguments.list-string-nullable
-        Console.println("type arguments: " + (plain instanceof List<String>) + " " + (plain instanceof List<@Nullable String>) + " " + (nullable instanceof List<@Nullable String>) + " " + (plain.getClass() == nullable.getClass()) + " " + nullable.getClass().getName());
+        Console.println("type arguments: " + (plain instanceof List<String>) + " " + (plain instanceof List<String?>) + " " + (nullable instanceof List<String?>) + " " + (plain.getClass() == nullable.getClass()) + " " + nullable.getClass().getName());
 
         //@ rule: null.type-arguments.inside-generic-code
         //@ rule: null.type-arguments.argument-string-null
@@ -92,7 +92,7 @@ public class Sentences05 {
             Console.println("generic cast to String: raises");
         }
         //@ rule: null.type-arguments.argument-nullable-string
-        Console.println("generic cast to @Nullable String: " + (new Caster<@Nullable String>().cast(null) == null));
+        Console.println("generic cast to String?: " + (new Caster<String?>().cast(null) == null));
 
         Unit a = nothing();
         Unit b = alsoNothing();

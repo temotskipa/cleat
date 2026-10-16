@@ -298,7 +298,7 @@ package class Floats {
     // exponent after `e` or `E`, as in "-1.5", ".5", "2." and "6.02e23". The float
     // nearest to its value, rounded as `nearest` rounds, and with its sign when it is
     // zero; null when the text is not one.
-    package static @Nullable Float64 parse(String text, Int precision, Int emin, Int emax) {
+    package static Float64? parse(String text, Int precision, Int emin, Int emax) {
         var length = text.length();
         var at = 0;
         var negative = false;

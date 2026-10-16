@@ -119,10 +119,6 @@ F["Widens"] = """
 @Target(Site.ANNOTATION)
 public annotation Widens;
 """
-F["Nullable"] = """
-@Widens
-public annotation Nullable;
-"""
 F["Narrows"] = """
 @Target(Site.METHOD)
 public annotation Narrows(Class qualifier);

@@ -6,7 +6,7 @@ objects.population.value-held-register: It says what no program can observe.
 objects.built-in.exceptions: It introduces the list after it, whose items have their own cases.
 objects.built-in.implementation-supplies-storage: It gives the reason for the exception.
 objects.built-in.new-rule-default: It points to chapter 6, where `new T[n]` has its cases.
-objects.built-in.roots-object-null: It points to the sections on `Object`, `Null` and `Enum`, whose sentences have their own cases.
+objects.built-in.roots-object-null: It points to the sections on `Object` and `Enum`, whose sentences have their own cases.
 objects.built-in.annotations-prelude-rules: It points to chapter 8, whose sentences have their own cases.
 objects.built-in.syntax-defined-method: It introduces the four sentences after it.
 objects.classes.defines-construction-kinds: It points to chapter 9, whose sentences have their own cases.

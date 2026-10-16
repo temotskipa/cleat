@@ -1,3 +1,3 @@
 //@ rule: syntax.types.several-pairs-first
 //@ rejected: `null` is not a value of
-class A { Int[] @Nullable [] g() { return null; } }
+class A { Int[][]? g() { return null; } }

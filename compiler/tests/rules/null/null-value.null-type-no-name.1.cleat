@@ -1,0 +1,3 @@
+//@ rule: null.null-value.null-type-no-name
+//@ rejected: there is no type named `Null`
+class A { Null f() { return null; } }

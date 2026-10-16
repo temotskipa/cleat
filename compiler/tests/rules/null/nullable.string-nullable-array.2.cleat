@@ -1,3 +1,3 @@
 //@ rule: null.nullable.string-nullable-array
 //@ accepted
-class A { String @Nullable [] g() { return null; } Int h(String @Nullable [] a) { return a == null ? 0 : a.length(); } }
+class A { String[]? g() { return null; } Int h(String[]? a) { return a == null ? 0 : a.length(); } }

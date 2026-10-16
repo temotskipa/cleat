@@ -178,10 +178,10 @@ fn methods_and_members_follow_their_modifier_rules() {
     rejected("class A { static void f() { var t = this; } }", "static");
     rejected("class A { @Intrinsic void f(); }", "@Intrinsic");
     rejected("class A { foreign void f(); }", "static");
-    accepted("class A { Int f(@Nullable A this) { return 1; } }");
+    accepted("class A { Int f(A? this) { return 1; } }");
     rejected(
-        "open class A { open Int f(@Nullable A this) { return 1; } }",
-        "@Nullable",
+        "open class A { open Int f(A? this) { return 1; } }",
+        "nullable receiver",
     );
     done();
 }
@@ -328,19 +328,19 @@ fn statements_follow_their_rules() {
         "last",
     );
     rejected(
-        "class A { void f(@Nullable Int n) { switch (n) { default -> { } } } }",
-        "@Nullable",
+        "class A { void f(Int? n) { switch (n) { default -> { } } } }",
+        "not nullable",
     );
     rejected(
         "class A { void f(String s) { using (String t = s) { } } }",
         "close",
     );
     rejected(
-        "class A { void f(Object o) { Boolean b = o instanceof @Nullable String; } }",
-        "@Nullable",
+        "class A { void f(Object o) { Boolean b = o instanceof String?; } }",
+        "has no `?`",
     );
     rejected(
-        "class A { @Nullable String s; Int f() { if (s != null) { return s.length(); } return 0; } }",
+        "class A { String? s; Int f() { if (s != null) { return s.length(); } return 0; } }",
         "may be `null`",
     );
     rejected("class A { A() { return; } }", "return");
@@ -392,7 +392,7 @@ fn generics_follow_chapter_7() {
         "is not assignable",
     );
     accepted(
-        "class A<T> { @Nullable T[] make(Int n) { return new @Nullable T[n]; } <R extends Ordered<R>> R pick(R a, R b) { return a < b ? a : b; } }",
+        "class A<T> { T?[] make(Int n) { return new T?[n]; } <R extends Ordered<R>> R pick(R a, R b) { return a < b ? a : b; } }",
     );
     done();
 }

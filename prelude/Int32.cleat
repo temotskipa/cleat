@@ -139,7 +139,7 @@ public value class Int32 implements Numeric<Int32>, Ordered<Int32> {
 
     // The text of an integer in decimal, or null when the text is not one or is out of
     // range. A sign may come first.
-    public static @Nullable Int32 parse(String text) {
+    public static Int32? parse(String text) {
         var wide = Int.parse(text);
         if (wide == null || wide < -2147483648 || wide > 2147483647) {
             return null;

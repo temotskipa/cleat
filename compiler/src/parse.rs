@@ -415,6 +415,11 @@ impl<'a> Parser<'a> {
     // ---- types ----
 
     fn type_ref(&mut self) -> R<TypeRef> {
+        self.type_with(true)
+    }
+
+    /// A type, with or without the `?` that makes it or one of its arrays nullable.
+    fn type_with(&mut self, nullable: bool) -> R<TypeRef> {
         let pos = self.pos();
         let mut annotations = Vec::new();
         while self.is_punct("@") {
@@ -423,8 +428,19 @@ impl<'a> Parser<'a> {
         let mut t = self.named_type()?;
         t.annotations = annotations;
         t.pos = pos;
-        self.dims(&mut t)?;
+        if nullable {
+            t.nullable = self.question()?;
+        }
+        self.dims_with(&mut t, nullable)?;
         Ok(t)
+    }
+
+    /// The `?` after a type, if there is one.
+    fn question(&mut self) -> R<bool> {
+        if self.is_punct("??") {
+            return self.err("`?` is written once after a type");
+        }
+        Ok(self.eat_punct("?"))
     }
 
     fn named_type(&mut self) -> R<TypeRef> {
@@ -439,22 +455,31 @@ impl<'a> Parser<'a> {
             annotations: Vec::new(),
             name,
             args,
+            nullable: false,
             dims: Vec::new(),
             pos,
         })
     }
 
-    /// Reads `{ {annotation} "[" "]" }` onto a type.
+    /// Reads `{ {annotation} "[" "]" ["?"] }` onto a type.
     fn dims(&mut self, t: &mut TypeRef) -> R<()> {
+        self.dims_with(t, true)
+    }
+
+    fn dims_with(&mut self, t: &mut TypeRef, nullable: bool) -> R<()> {
         loop {
             let save = self.i;
-            let mut anns = Vec::new();
+            let mut annotations = Vec::new();
             while self.is_punct("@") {
-                anns.push(self.annotation()?);
+                annotations.push(self.annotation()?);
             }
             if self.is_punct("[") && self.is_punct_at(1, "]") {
                 self.i += 2;
-                t.dims.push(anns);
+                let nullable = nullable && self.question()?;
+                t.dims.push(Dim {
+                    annotations,
+                    nullable,
+                });
             } else {
                 self.i = save;
                 return Ok(());
@@ -1289,7 +1314,17 @@ impl<'a> Parser<'a> {
         loop {
             if level == 4 && self.is_word("instanceof") {
                 self.i += 1;
-                let ty = self.type_ref()?;
+                let ty = self.type_with(false)?;
+                // A `?` here begins `?:`, unless nothing can follow it.
+                if self.is_punct("?")
+                    && matches!(
+                        self.tok_at(1),
+                        Tok::Punct(")" | ";" | "," | "]" | "}" | "&&" | "||" | ":" | "==" | "!=")
+                            | Tok::Eof
+                    )
+                {
+                    return self.err("the type after `instanceof` has no `?`");
+                }
                 l = Expr {
                     kind: ExprKind::InstanceOf(Box::new(l), ty),
                     pos,
@@ -1491,6 +1526,7 @@ impl<'a> Parser<'a> {
             annotations: Vec::new(),
             name,
             args: None,
+            nullable: false,
             dims: Vec::new(),
             pos: e.pos,
         })
@@ -1691,6 +1727,10 @@ impl<'a> Parser<'a> {
         }
         let mut ty = self.named_type()?;
         ty.annotations = annotations;
+        if self.is_punct("?") && self.is_punct_at(1, "[") {
+            self.i += 1;
+            ty.nullable = true;
+        }
         if self.eat_punct("(") {
             if !ty.annotations.is_empty() {
                 return self.err_at(pos, "a qualifier is not written on the class in `new`");

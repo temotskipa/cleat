@@ -1,3 +1,3 @@
 //@ rule: null.sends.final-method-class
 //@ accepted
-class C { public Int size(@Nullable C this) { return 1; } } open class D { public final Int size(@Nullable D this) { return 2; } } class A { Int f(@Nullable C c, @Nullable D d) { return c.size() + d.size(); } }
+class C { public Int size(C? this) { return 1; } } open class D { public final Int size(D? this) { return 2; } } class A { Int f(C? c, D? d) { return c.size() + d.size(); } }

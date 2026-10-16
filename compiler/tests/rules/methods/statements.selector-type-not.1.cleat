@@ -1,3 +1,3 @@
 //@ rule: methods.statements.selector-type-not
-//@ rejected: the selector of a switch is not `@Nullable`, and this is a `@Nullable String`
-class A { Int f(@Nullable String s) { switch (s) { case "a" -> { return 1; } default -> { return 0; } } } }
+//@ rejected: the selector of a switch is not nullable, and this is a `String?`
+class A { Int f(String? s) { switch (s) { case "a" -> { return 1; } default -> { return 0; } } } }

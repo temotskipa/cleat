@@ -135,7 +135,7 @@ use(count);             // rejected: the body may not have run
 The rules for a local apply to each of those fields in that part of the body: <!-- r[flow.assignment.rules-local-apply] -->
 
 - At the `super(...)` call, written or implicit, every field declared in the class is definitely assigned, by its initializer or by the body. <!-- r[flow.assignment.super-call-written] -->
-  A `@Nullable` field is exempt and starts as `null`. <!-- r[flow.assignment.nullable-field-exempt] -->
+  A nullable field is exempt and starts as `null`. <!-- r[flow.assignment.nullable-field-exempt] -->
 - A field is read there only where it is definitely assigned. <!-- r[flow.assignment.field-read-only] -->
 - A final field is assigned at most once, by its initializer or by the body before the `super(...)` call, and nowhere else. <!-- r[flow.assignment.final-field-assigned] -->
 
@@ -145,7 +145,7 @@ A constructor that calls `this(...)` assigns no field of its own: the constructo
 public class Span {
     final Int start;
     final Int length;
-    @Nullable String label;
+    String? label;
 
     public Span(Int start, Int end) {
         this.start = start;
@@ -155,7 +155,7 @@ public class Span {
 ```
 
 **Static fields.** At the end of a class's static initializers, in source order, every static field of the class is definitely assigned, by its initializer or by a static initializer block. <!-- r[flow.assignment.static-fields-end] -->
-A `@Nullable` static field is exempt. <!-- r[flow.assignment.nullable-static-field] -->
+A nullable static field is exempt. <!-- r[flow.assignment.nullable-static-field] -->
 A static final field is assigned at most once, and only there. <!-- r[flow.assignment.static-final-field] -->
 A static field that is read while initialization is still running is checked at run time, as [chapter 9](09-execution.md#97-class-initialization) defines. <!-- r[flow.assignment.static-field-read] -->
 
@@ -203,7 +203,7 @@ An assignment to `x` ends every fact about `x`. <!-- r[flow.narrowing.assignment
 A fact that holds before a loop holds in the loop only when no statement of the loop assigns `x`. <!-- r[flow.narrowing.fact-holds-before-loop] -->
 
 ```java
-static Int length(@Nullable String text) {
+static Int length(String? text) {
     if (text == null || text.isEmpty()) {     // the right side runs only when text is not null
         return 0;
     }

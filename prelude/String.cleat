@@ -19,7 +19,7 @@ public value class String implements Ordered<String>, Iterable<Char> {
     private String join(String other);
 
     // `text + x`: the text and then the `toString` of `x`, whatever `x` is.
-    public String plus(@Nullable Object other) {
+    public String plus(Object? other) {
         return join(other.toString());
     }
 

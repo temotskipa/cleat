@@ -5,11 +5,11 @@ public class Console {
     private Console() {
     }
 
-    public static void print(@Nullable Object value) {
+    public static void print(Object? value) {
         write(1, value.toString());
     }
 
-    public static void println(@Nullable Object value) {
+    public static void println(Object? value) {
         write(1, value.toString() + "\n");
     }
 
@@ -18,13 +18,13 @@ public class Console {
     }
 
     // Writes a line to the error stream.
-    public static void error(@Nullable Object value) {
+    public static void error(Object? value) {
         write(2, value.toString() + "\n");
     }
 
     // The next line of input without its line end, or null at the end of input.
     @Intrinsic
-    public static @Nullable String readLine();
+    public static String? readLine();
 
     @Intrinsic
     static void write(Int stream, String text);

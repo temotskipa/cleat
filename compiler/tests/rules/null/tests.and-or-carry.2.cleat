@@ -1,3 +1,3 @@
 //@ rule: null.tests.and-or-carry
 //@ accepted
-class A { Boolean f(@Nullable String x) { return x != null && x.isEmpty(); } Boolean g(@Nullable String x) { return x == null || x.isEmpty(); } }
+class A { Boolean f(String? x) { return x != null && x.isEmpty(); } Boolean g(String? x) { return x == null || x.isEmpty(); } }

@@ -16,15 +16,15 @@ public value class Field {
         return owner.fieldIsStatic(index);
     }
 
-    public <A extends Annotation> @Nullable A getAnnotation() {
+    public <A extends Annotation> A? getAnnotation() {
         return owner.<A>fieldAnnotation(index);
     }
 
-    public @Nullable Object get(@Nullable Object target) {
+    public Object? get(Object? target) {
         return owner.fieldGet(index, target);
     }
 
-    public void set(@Nullable Object target, @Nullable Object value) {
+    public void set(Object? target, Object? value) {
         owner.fieldSet(index, target, value);
     }
 }

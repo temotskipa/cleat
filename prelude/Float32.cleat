@@ -135,7 +135,7 @@ public value class Float32 implements Divisible<Float32>, Ordered<Float32> {
 
     // A decimal numeral, such as "-1.5", ".5" or "6.02e23", read as the nearest float,
     // or null when the text is not one.
-    public static @Nullable Float32 parse(String text) {
+    public static Float32? parse(String text) {
         var wide = Floats.parse(text, 24, -149, 104);
         return wide == null ? null : from(wide);
     }

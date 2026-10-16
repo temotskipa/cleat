@@ -1,3 +1,3 @@
 //@ rule: annotations.declaring.int-positive-qualifies
-//@ rejected: `length` is sent to a `Int @Nullable []`
-class A { Int f(Int @Nullable [] xs) { return xs.length(); } }
+//@ rejected: `length` is sent to a `Int[]?`
+class A { Int f(Int[]? xs) { return xs.length(); } }

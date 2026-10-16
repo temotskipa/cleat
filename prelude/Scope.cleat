@@ -16,8 +16,8 @@ public final class Scope {
 
     public static <T> T call(Function1<Scope, T> body) {
         Scope scope = new Scope();
-        @Nullable Throwable failure = null;
-        @Nullable Object result = null;
+        Throwable? failure = null;
+        Object? result = null;
         try {
             result = body.invoke(scope);
         } catch (Throwable e) {
@@ -30,7 +30,7 @@ public final class Scope {
         }
         // The exception of the first failed task, when the body raised none.
         for (Task<?> task : scope.tasks) {
-            @Nullable Throwable raised = task.failure();
+            Throwable? raised = task.failure();
             if (raised == null || raised instanceof CancellationException) {
                 continue;
             }

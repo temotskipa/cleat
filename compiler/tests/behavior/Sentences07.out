@@ -16,14 +16,14 @@ lower bounds: t.Shape t.Shape
 no greatest lower bound: cleat.Object
 upper bounds: t.Shape t.Circle
 written: t.Shape cleat.Object
-with its qualifiers: @cleat.Nullable cleat.String
+with its qualifiers: cleat.String?
 a static requirement: 3/2 6 Money(0) Weight(-1)
 classes: false true true
 tests: a cast fails, true true true true false
-a type parameter: true false accepted refused cleat.Array<@cleat.Nullable cleat.String>
+a type parameter: true false accepted refused cleat.Array<cleat.String?>
 arrays: cleat.Array<cleat.String> false true false true
 a wildcard argument: false cleat.List<cleat.List<cleat.String>>
-names: cleat.Map<cleat.String, cleat.Int> cleat.List<@cleat.Nullable cleat.String> cleat.List<@cleat.Nullable @t.Positive cleat.Int>
+names: cleat.Map<cleat.String, cleat.Int> cleat.List<cleat.String?> cleat.List<@t.Positive cleat.Int?>
 wildcard names: cleat.List<cleat.List<?>> cleat.List<cleat.List<? extends t.Shape>> cleat.List<cleat.List<? super t.Circle>>
 one name: cleat.List<cleat.Iterable<t.Shape>> cleat.List<cleat.List<?>> true true
 signatures: strings ints

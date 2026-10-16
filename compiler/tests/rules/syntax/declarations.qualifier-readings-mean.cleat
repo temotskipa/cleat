@@ -1,3 +1,3 @@
 //@ rule: syntax.declarations.qualifier-readings-mean
 //@ accepted
-class A { @Nullable public String f() { return null; } public @Nullable String g() { return null; } @Nullable String h = null; }
+@Refines annotation P; class A { @P public String? f() { return null; } public @P String? g() { return null; } @P String? h = null; }

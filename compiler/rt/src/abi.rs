@@ -132,7 +132,6 @@ pub const K_STRING: u32 = 20;
 pub const K_ARRAY: u32 = 21;
 pub const K_CLASS: u32 = 23;
 pub const K_UNIT: u32 = 24;
-pub const K_NULL: u32 = 25;
 pub const K_LOCK: u32 = 26;
 pub const K_CONDITION: u32 = 27;
 pub const K_THREAD: u32 = 28;

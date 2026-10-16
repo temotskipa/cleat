@@ -22,7 +22,7 @@ class Account {
 class Channel {
     final Lock lock = new Lock();
     final Condition ready = lock.newCondition();
-    @Nullable String message;
+    String? message;
 
     public Channel() {
     }
@@ -106,7 +106,7 @@ public class Threads {
             throw new IllegalStateException("thread failed");
         });
         failed.join();
-        @Nullable Throwable why = failed.uncaught();
+        Throwable? why = failed.uncaught();
         Console.println(why == null ? "none" : why.message());
 
         var cell = new Atomic<String>("a");

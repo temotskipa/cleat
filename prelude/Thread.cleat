@@ -4,12 +4,12 @@ package cleat;
 public final class Thread {
     // The thread of the host. The implementation creates it and frees it with the object.
     final Pointer host;
-    final @Nullable Function0<Unit> body;
+    final Function0<Unit>? body;
     // The scope whose cancellation reaches this thread, for a task.
-    final @Nullable Scope scope;
-    @Nullable Throwable failure;
+    final Scope? scope;
+    Throwable? failure;
 
-    package Thread(@Nullable Function0<Unit> body, @Nullable Scope scope) {
+    package Thread(Function0<Unit>? body, Scope? scope) {
         this.host = create();
         this.body = body;
         this.scope = scope;
@@ -24,7 +24,7 @@ public final class Thread {
     }
 
     public static Thread current() {
-        @Nullable Thread thread = running();
+        Thread? thread = running();
         if (thread == null) {
             // The thread that runs `main`.
             Thread adopted = new Thread(null, null);
@@ -50,7 +50,7 @@ public final class Thread {
 
     // Raises CancellationException on a task whose scope is cancelled.
     public static void checkCancelled() {
-        @Nullable Scope scope = current().scope;
+        Scope? scope = current().scope;
         if (scope != null && scope.isCancelled()) {
             throw new CancellationException();
         }
@@ -75,7 +75,7 @@ public final class Thread {
     @Intrinsic
     public Boolean isAlive();
 
-    public @Nullable Throwable uncaught() {
+    public Throwable? uncaught() {
         if (isAlive()) {
             return null;
         }
@@ -84,7 +84,7 @@ public final class Thread {
 
     // The whole life of a started thread. The implementation calls it on the new thread.
     void run() {
-        @Nullable Function0<Unit> body = this.body;
+        Function0<Unit>? body = this.body;
         if (body == null) {
             return;
         }
@@ -108,7 +108,7 @@ public final class Thread {
     package Boolean finished(Int milliseconds);
 
     @Intrinsic
-    static @Nullable Thread running();
+    static Thread? running();
 
     @Intrinsic
     static void adopt(Thread thread);

@@ -51,7 +51,7 @@ public class Text {
         }
         String[][] grid = new String[][] { new String[] { "a", "b" }, new String[] { "c" } };
         Console.println(grid[1][0] + grid.length());
-        @Nullable String[] holes = new @Nullable String[2];
+        String?[] holes = new String?[2];
         Console.println(holes[0] ?? "empty");
         Rational[] rs = new Rational[2];
         Console.println(rs[1] + 1);

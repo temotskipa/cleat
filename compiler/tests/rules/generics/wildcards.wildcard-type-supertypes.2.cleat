@@ -1,3 +1,3 @@
 //@ rule: generics.wildcards.wildcard-type-supertypes
 //@ accepted
-open class Shape { } class Circle extends Shape { } class A { Iterable<Shape> f(List<? extends Shape> xs) { return xs; } Iterable<@Nullable Object> g(List<?> xs) { return xs; } }
+open class Shape { } class Circle extends Shape { } class A { Iterable<Shape> f(List<? extends Shape> xs) { return xs; } Iterable<Object?> g(List<?> xs) { return xs; } }

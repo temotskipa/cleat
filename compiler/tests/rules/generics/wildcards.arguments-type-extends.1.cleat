@@ -1,3 +1,3 @@
 //@ rule: generics.wildcards.arguments-type-extends
 //@ rejected: a wildcard is not written for the arguments of a supertype
-class X implements Iterable<?> { @Override public Iterator<@Nullable Object> iterator() { return new List<@Nullable Object>().iterator(); } }
+class X implements Iterable<?> { @Override public Iterator<Object?> iterator() { return new List<Object?>().iterator(); } }

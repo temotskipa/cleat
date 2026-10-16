@@ -254,7 +254,6 @@ impl Class {
 #[derive(Clone, Debug, Default)]
 pub struct WellKnown {
     pub object: ClassId,
-    pub null: ClassId,
     pub unit: ClassId,
     pub boolean: ClassId,
     pub char_: ClassId,
@@ -278,7 +277,6 @@ pub struct WellKnown {
     pub class: ClassId,
     pub annotation: ClassId,
     pub site: ClassId,
-    pub nullable: ClassId,
     pub refines: ClassId,
     pub widens: ClassId,
     pub target: ClassId,
@@ -383,7 +381,7 @@ impl Program {
         })
     }
 
-    /// The numeric class of a type, when the type is one without `@Nullable`.
+    /// The numeric class of a type, when the type is not nullable.
     pub fn numeric_class(&self, t: &Type) -> Option<ClassId> {
         let id = t.class_id()?;
         self.num_kind(id).map(|_| id)
@@ -412,7 +410,7 @@ impl Program {
         }
     }
 
-    /// The upper bounds of a type variable. With none written it is `@Nullable Object`.
+    /// The upper bounds of a type variable. With none written it is `Object?`.
     pub fn bounds_of(&self, tv: Tv) -> Vec<Type> {
         let written: Vec<Type> = match tv.owner {
             TvOwner::Capture(n) => self.captures[n as usize].upper.clone(),
@@ -436,8 +434,6 @@ impl Program {
         }
         match &t.ty {
             Ty::Null => true,
-            // Section 5.1: the one instance of `Null` is `null`.
-            Ty::Class(id, _) if *id == self.wk.null => true,
             Ty::Var(tv) => self.bounds_of(*tv).iter().all(|b| self.may_be_null(b)),
             _ => false,
         }
@@ -574,17 +570,13 @@ impl Program {
         if s.is_error() || t.is_error() {
             return true;
         }
+        // Section 5.2: the null type is a subtype of `T?` for every `T`, and of no type
+        // written without `?`.
         if s.is_null_literal() {
-            // Section 5.1: the literal `null` is the one instance of `Null`.
-            return t.nullable || t.class_id() == Some(self.wk.null);
+            return t.nullable;
         }
         if t.is_null_literal() {
             return false;
-        }
-        // Section 5.2: `Null` is a subtype of `@Nullable T` for every `T`, and of no
-        // other type except itself.
-        if s.class_id() == Some(self.wk.null) {
-            return t.nullable || t.class_id() == Some(self.wk.null);
         }
         if !t.nullable {
             // T does not contain null, so S must not either.
@@ -734,31 +726,45 @@ impl Program {
     // ---- display ----
 
     pub fn show(&self, t: &Type) -> String {
-        let mut s = String::new();
-        if t.nullable && !t.is_null_literal() {
-            s.push_str("@Nullable ");
+        // An array is written as its element type and then its brackets, the outermost
+        // first, as section 11.2 reads them.
+        let mut levels = Vec::new();
+        let mut base = t;
+        while let Ty::Class(id, args) = &base.ty
+            && *id == self.wk.array
+            && args.len() == 1
+            && let Arg::Ty(e) = &args[0]
+        {
+            levels.push(base);
+            base = e;
         }
-        for q in &t.quals {
+        let mut s = String::new();
+        for q in &base.quals {
             s.push('@');
             s.push_str(&self.class(*q).name);
             s.push(' ');
         }
+        self.show_base(base, &mut s);
+        if base.nullable && !base.is_null_literal() {
+            s.push('?');
+        }
+        for l in levels {
+            for q in &l.quals {
+                s.push_str(" @");
+                s.push_str(&self.class(*q).name);
+                s.push(' ');
+            }
+            s.push_str("[]");
+            if l.nullable {
+                s.push('?');
+            }
+        }
+        s
+    }
+
+    fn show_base(&self, t: &Type, s: &mut String) {
         match &t.ty {
             Ty::Class(id, args) => {
-                if *id == self.wk.array
-                    && args.len() == 1
-                    && let Arg::Ty(e) = &args[0]
-                {
-                    // Qualifiers written here belong to the element; the array's own
-                    // were written above.
-                    let prefix = std::mem::take(&mut s);
-                    let inner = self.show(e);
-                    return if prefix.is_empty() {
-                        format!("{inner}[]")
-                    } else {
-                        format!("{inner} {}[]", prefix)
-                    };
-                }
                 s.push_str(&self.class(*id).name);
                 if !args.is_empty() {
                     s.push('<');
@@ -779,7 +785,6 @@ impl Program {
             Ty::Null => s.push_str("null"),
             Ty::Error => s.push_str("<error>"),
         }
-        s
     }
 
     pub fn show_arg(&self, a: &Arg) -> String {

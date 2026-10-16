@@ -143,7 +143,7 @@ fn an_exception_that_leaves_a_thread_is_written_to_the_error_stream() {
 /// allocations takes too long.
 #[test]
 fn a_long_chain_of_values_compares_without_filling_the_stack() {
-    let text = "value class Link {\n    Int value;\n    @Nullable Link next;\n}\npublic class Chain {\n    static Link chain(Int length, Int last) {\n        var head = new Link(last, null);\n        for (var i = 1; i < length; i++) {\n            head = new Link(i, head);\n        }\n        return head;\n    }\n    public static void main() {\n        var a = chain(1000000, 0);\n        var b = chain(1000000, 0);\n        var c = chain(1000000, 1);\n        Console.println(\"\" + a.equals(b) + \" \" + a.identical(b) + \" \" + (a.hashCode() == b.hashCode()) + \" \" + a.equals(c) + \" \" + a.identical(c));\n    }\n}\n";
+    let text = "value class Link {\n    Int value;\n    Link? next;\n}\npublic class Chain {\n    static Link chain(Int length, Int last) {\n        var head = new Link(last, null);\n        for (var i = 1; i < length; i++) {\n            head = new Link(i, head);\n        }\n        return head;\n    }\n    public static void main() {\n        var a = chain(1000000, 0);\n        var b = chain(1000000, 0);\n        var c = chain(1000000, 1);\n        Console.println(\"\" + a.equals(b) + \" \" + a.identical(b) + \" \" + (a.hashCode() == b.hashCode()) + \" \" + a.equals(c) + \" \" + a.identical(c));\n    }\n}\n";
     let (_, exe) = build_text("behavior_value_chain", "Chain", text);
     let r = run(&exe, &[], false);
     assert_eq!(

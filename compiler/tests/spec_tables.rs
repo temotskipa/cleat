@@ -280,7 +280,7 @@ fn the_machine_types_of_section_4_11_are_accepted_on_a_foreign_method() {
         "value class V { public Float64 x; public Int32 n; } class C { foreign static V same(V v); }",
     );
     assert!(m.is_empty(), "{m:?}");
-    for other in ["String", "Rational", "Object", "@Nullable Int"] {
+    for other in ["String", "Rational", "Object", "Int?"] {
         assert!(
             !messages(&format!(
                 "class C {{ foreign static void take({other} x); }}"
@@ -426,7 +426,7 @@ fn the_sites_of_section_8_2_are_the_constants_of_site() {
 fn the_prelude_declares_the_annotations_of_section_8_10() {
     let rows = table(&chapter("08"), "| Annotation | Written on | Rule |", 0);
     let units = prelude_units();
-    assert_eq!(rows.len(), 12);
+    assert_eq!(rows.len(), 11);
     for row in rows {
         let name = ticks(&row[0])[0].trim_start_matches('@').to_string();
         let t = prelude_type(&units, &name)
@@ -603,7 +603,7 @@ fn every_program_the_grammar_must_derive_is_parsed() {
         value class V { public Int a; public V { assert a >= 0 : \"negative\"; } } \
         class C implements I<Int> { \
             static Int count = 0; static { count = 1; } \
-            package only(D) @Nullable String[] names = new @Nullable String[2]; \
+            package only(D) String?[] names = new String?[2]; \
             public C() { super(); } \
             @Override public Int get() { return count; } \
             @Override public static Int zero() { return 0; } \
@@ -613,14 +613,14 @@ fn every_program_the_grammar_must_derive_is_parsed() {
                 return best; } \
             Int all(List<? extends Object> xs, List<? super Int> ys, List<?> zs) { \
                 Int[] sizes = new Int[] { xs.size(), ys.size(), zs.size() }; \
-                Int[] @Nullable [] grid = new Int[2] @Nullable []; \
+                Int[][]? grid = new Int[2][]?; \
                 var total = 0; var i = 0; \
                 while (i < sizes.length()) { total += sizes[i]; i++; } \
                 total = total > 9 ? total % 10 : -total; total <<= 1; total >>= 1; \
                 Function1<Int, Int> twice = (n) -> n * 2; Function2<Int, Int, Int> add = (Int x, Int y) -> { return x + y; }; \
                 Function1<String, Int> length = String::length; Function0<List<Int>> make = List<Int>::new; \
                 Object o = (Object) total; Class k = List<String>.class; \
-                @Nullable String first = names[0]; String shown = first ?? \"none\"; \
+                String? first = names[0]; String shown = first ?? \"none\"; \
                 switch (total) { case 1, 2 -> { total = 3; } default -> { } } \
                 String word = switch (o) { case Int n -> \"int\"; case String s -> s; default -> throw new IllegalStateException(shown); }; \
                 try { using (var d = new D(), D e = new D()) { d.close(); } } catch (IllegalStateException x) { throw x; } finally { count++; } \

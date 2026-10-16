@@ -941,7 +941,7 @@ impl<'a, 'p> Func<'a, 'p> {
         self.label(&fast);
     }
 
-    /// The default value `new T[n]` gives an element whose class is not `@Nullable`
+    /// The default value `new T[n]` gives an element whose type is not nullable
     /// and is held as a pointer: `Rational` zero, or a value class built from defaults.
     /// When `made` is true, each value is constructed as section 9.6 says, a field's
     /// value first. A foreign call builds its result without that and constructs it from

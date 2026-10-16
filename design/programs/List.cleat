@@ -1,16 +1,16 @@
 // The prelude's growable list, written in ordinary Cleat with no intrinsic bodies.
 // This is the "no privileged library" test: if this file needs a rule that user
 // code cannot use, the design has a special case.
-// Exercises: reified generics, @Nullable storage, a cast on a type parameter,
+// Exercises: reified generics, nullable storage, a cast on a type parameter,
 // interfaces, the [] and []= operator methods, a file-private helper class.
 package cleat;
 
 public class List<T> implements Iterable<T> {
-    @Nullable T[] slots;
+    T?[] slots;
     Int count;
 
     public List() {
-        this.slots = new @Nullable T[8];
+        this.slots = new T?[8];
         this.count = 0;
     }
 
@@ -24,7 +24,7 @@ public class List<T> implements Iterable<T> {
 
     public void add(T item) {
         if (count == slots.length()) {
-            @Nullable T[] larger = new @Nullable T[count * 2];
+            T?[] larger = new T?[count * 2];
             for (var i = 0; i < count; i++) {
                 larger[i] = slots[i];
             }
@@ -38,7 +38,7 @@ public class List<T> implements Iterable<T> {
     public T get(Int index) {
         check(index);
         // A slot below `count` always holds a T. The cast is the checked step from
-        // @Nullable T to T. It also does the right thing when T is itself nullable,
+        // T? to T. It also does the right thing when T is itself nullable,
         // because the type argument is known at run time.
         return (T) slots[index];
     }

@@ -12,7 +12,7 @@ use program::Program;
 /// Checks a whole program. The diagnostics are in the result.
 pub fn analyze(units: Vec<ast::Unit>) -> Program {
     let mut p = decl::build(units);
-    if p.diags.is_empty() || p.wk.object != p.wk.null {
+    if p.diags.is_empty() || p.wk.object != p.wk.unit {
         check::check_bodies(&mut p);
     }
     p

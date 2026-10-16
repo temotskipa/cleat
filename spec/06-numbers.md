@@ -76,10 +76,10 @@ The literals of a literal expression take their class from the first of these ru
 
 1. **Expected type.** The expression stands where a value of a numeric class `C` is expected: the initializer of a declaration whose written type is `C`, the right side of an assignment to a `C` location, an argument for a parameter of type `C`, the operand of `return` in a method whose result is `C`, or an element of an array creation whose element type is `C`. <!-- r[numbers.literals.expected-type-expression] -->
    Every literal in it has class `C`. <!-- r[numbers.literals.literal-class] -->
-   `@Nullable C` gives the same expected type as `C`. <!-- r[numbers.literals.nullable-gives-expected] -->
+   `C?` gives the same expected type as `C`. <!-- r[numbers.literals.nullable-gives-expected] -->
 2. **Other operand.** The expression is one operand of a binary operator, of a compound assignment or of `??`, or one arm of `?:`, and the other operand or arm is not a literal expression and has a numeric static type `C`. <!-- r[numbers.literals.operand-expression-binary] -->
    Every literal in it has class `C`. <!-- r[numbers.literals.literal-class-2] -->
-   For `??`, a left operand of type `@Nullable C` counts as `C`. <!-- r[numbers.literals.coalesce-left-operand] -->
+   For `??`, a left operand of type `C?` counts as `C`. <!-- r[numbers.literals.coalesce-left-operand] -->
 3. **Default.** Every literal in the expression has class `Rational` if any of them is a decimal literal, and class `Int` otherwise. <!-- r[numbers.literals.default-literal-expression] -->
 
 An expected type passes through parentheses, through both arms of `?:`, and through the arms of a switch expression. <!-- r[numbers.literals.expected-type-passes] -->
@@ -275,7 +275,7 @@ A value is a sequence of `Char`. <!-- r[numbers.text.value-sequence-char] -->
 | `length()` | The number of scalars, as an `Int` <!-- r[numbers.text.length-number-scalars] --> |
 | `get(Int index)` | The scalar at that zero-based index. `s[i]` is `s.get(i)` <!-- r[numbers.text.get-int-index] --> |
 | `substring(Int begin, Int end)` | The scalars from `begin` inclusive to `end` exclusive <!-- r[numbers.text.substring-int-begin] --> |
-| `plus(@Nullable Object other)` | The receiver followed by `other.toString()` <!-- r[numbers.text.plus-nullable-object] --> |
+| `plus(Object? other)` | The receiver followed by `other.toString()` <!-- r[numbers.text.plus-nullable-object] --> |
 | `indexOf(Char c)`, `indexOf(String s)` | The first index of the argument, or `-1`. The empty string is found at `0` <!-- r[numbers.text.indexof-char-string] --> |
 | `startsWith(String s)`, `endsWith(String s)` | Whether the receiver begins or ends with `s` <!-- r[numbers.text.startswith-string-endswith] --> |
 | `isEmpty()` | Whether the length is zero <!-- r[numbers.text.isempty-whether-length] --> |
@@ -310,16 +310,16 @@ An array implements `Iterable<T>`. <!-- r[numbers.arrays.array-implements-iterab
 Arrays are invariant. <!-- r[numbers.arrays.arrays-invariant] -->
 `String[]` is not a subtype of `Object[]`. <!-- r[numbers.arrays.string-not-subtype] -->
 A store is typechecked on `T`, so no store fails at run time for its type. <!-- r[numbers.arrays.store-typechecked-no] -->
-`T[]` does not contain `null` unless `T` is `@Nullable`. <!-- r[numbers.arrays.not-contain-null] -->
+`T[]` does not contain `null` unless `T` is nullable. <!-- r[numbers.arrays.not-contain-null] -->
 
 There are three ways to create an array: <!-- r[numbers.arrays.three-ways-create] -->
 
 - `new T[n]` creates `n` elements, each the default of `T`. <!-- r[numbers.arrays.new-creates-elements] -->
   `n` is an `Int`, and a negative `n` raises `ArithmeticException`. <!-- r[numbers.arrays.int-negative-raises] -->
-  The default is `null` when `T` is `@Nullable`, `zero()` when `T` is a numeric class, the scalar 0 when `T` is `Char`, `false` when `T` is `Boolean`, and the value built from those defaults when `T` is a value class whose fields all have one. <!-- r[numbers.arrays.default-null-nullable] -->
+  The default is `null` when `T` is nullable, `zero()` when `T` is a numeric class, the scalar 0 when `T` is `Char`, `false` when `T` is `Boolean`, and the value built from those defaults when `T` is a value class whose fields all have one. <!-- r[numbers.arrays.default-null-nullable] -->
   That value is constructed once each time `new T[n]` creates an array, as [section 9.6](09-execution.md#96-constructing-a-value) says, and an exception that its constructor raises comes out of `new T[n]`. <!-- r[numbers.arrays.value-constructed-once] -->
   Every other `new T[n]` is rejected, because `T` has no default. <!-- r[numbers.arrays.new-rejected-because] -->
-  When `T` is a type parameter, `new T[n]` is rejected and `new @Nullable T[n]` is accepted. <!-- r[numbers.arrays.type-parameter-new] -->
+  When `T` is a type parameter, `new T[n]` is rejected and `new T?[n]` is accepted. <!-- r[numbers.arrays.type-parameter-new] -->
 - `new T[] { e1, e2 }` evaluates the elements from left to right. <!-- r[numbers.arrays.new-e1-e2] -->
   It is legal for every `T`. <!-- r[numbers.arrays.legal] -->
 - `Array.build(n, element)` creates `n` elements by calling `element` with each index from zero upward. <!-- r[numbers.arrays.array-build-element] -->

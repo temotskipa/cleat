@@ -4,15 +4,15 @@ package cleat;
 public final class Task<out T> {
     final Scope scope;
     final Function0<T> body;
-    final Atomic<@Nullable Object> value;
-    final Atomic<@Nullable Throwable> raised;
-    @Nullable Thread thread;
+    final Atomic<Object?> value;
+    final Atomic<Throwable?> raised;
+    Thread? thread;
 
     package Task(Scope scope, Function0<T> body) {
         this.scope = scope;
         this.body = body;
-        this.value = new Atomic<@Nullable Object>(null);
-        this.raised = new Atomic<@Nullable Throwable>(null);
+        this.value = new Atomic<Object?>(null);
+        this.raised = new Atomic<Throwable?>(null);
         this.thread = null;
         super();
         this.thread = new Thread(() -> run(), scope);
@@ -24,7 +24,7 @@ public final class Task<out T> {
         while (!thread.finished(20)) {
             Thread.checkCancelled();
         }
-        @Nullable Throwable failure = raised.get();
+        Throwable? failure = raised.get();
         if (failure != null) {
             throw failure;
         }
@@ -32,7 +32,7 @@ public final class Task<out T> {
     }
 
     public Boolean isDone() {
-        @Nullable Thread thread = this.thread;
+        Thread? thread = this.thread;
         return thread != null && !thread.isAlive();
     }
 
@@ -45,7 +45,7 @@ public final class Task<out T> {
         ((Thread) thread).await();
     }
 
-    package @Nullable Throwable failure() {
+    package Throwable? failure() {
         return raised.get();
     }
 

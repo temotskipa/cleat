@@ -264,7 +264,7 @@ WIDE = """    @Override
 
     // The text of an integer in decimal, or null when the text is not one or is out of
     // range. A sign may come first.
-    public static @Nullable {n} parse(String text) {{
+    public static {n}? parse(String text) {{
         var negative = text.startsWith("-");
         var at = negative || text.startsWith("+") ? 1 : 0;
         if (at == text.length()) {{
@@ -384,7 +384,7 @@ NARROW_BODY = """    // The value of this class with the low {bits} bits of an I
 
     // The text of an integer in decimal, or null when the text is not one or is out of
     // range. A sign may come first.
-    public static @Nullable {n} parse(String text) {{
+    public static {n}? parse(String text) {{
         var wide = Int.parse(text);
         if (wide == null || wide < {low} || wide > {high}) {{
             return null;
@@ -513,7 +513,7 @@ FLOAT = """    @Override
 
     // A decimal numeral, such as "-1.5", ".5" or "6.02e23", read as the nearest float,
     // or null when the text is not one.
-    public static @Nullable {n} parse(String text) {{
+    public static {n}? parse(String text) {{
         {parse}
     }}
 """
@@ -700,7 +700,7 @@ RATIONAL = """    // The value in lowest terms: the denominator is above zero, a
     // digits `_` may separate. Whitespace may stand around the text and around each
     // integer of a fraction. Null when the text is neither, or the denominator is not
     // above zero.
-    public static @Nullable Rational parse(String text) {
+    public static Rational? parse(String text) {
         var trimmed = text.trim();
         var slash = trimmed.indexOf('/');
         if (slash >= 0) {

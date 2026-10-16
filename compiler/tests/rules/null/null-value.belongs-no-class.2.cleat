@@ -1,0 +1,3 @@
+//@ rule: null.null-value.belongs-no-class
+//@ rejected: there is no type named `Null`
+class B extends Null { }

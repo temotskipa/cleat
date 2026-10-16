@@ -43,11 +43,11 @@ A type argument must be a subtype of each bound, after the argument is substitut
 At most one bound is a class. <!-- r[generics.bounds.most-bound-class] -->
 The others are interfaces. <!-- r[generics.bounds.others-interfaces] -->
 
-A type parameter with no bound has the bound `@Nullable Object`, so every type is an argument for it. <!-- r[generics.bounds.type-parameter-no] -->
-A bound written without `@Nullable` excludes `@Nullable` arguments: `T extends Object` admits exactly the types that do not contain `null`. <!-- r[generics.bounds.bound-written-without] -->
+A type parameter with no bound has the bound `Object?`, so every type is an argument for it. <!-- r[generics.bounds.type-parameter-no] -->
+A bound written without `?` excludes nullable arguments: `T extends Object` admits exactly the types that do not contain `null`. <!-- r[generics.bounds.bound-written-without] -->
 
 Inside the declaration, a value of type `T` has the members of the bounds of `T`. <!-- r[generics.bounds.inside-declaration-value] -->
-With no bound, those are the methods of `Object` that take a `@Nullable` receiver. <!-- r[generics.bounds.no-bound-methods] -->
+With no bound, those are the methods of `Object` that take a nullable receiver. <!-- r[generics.bounds.no-bound-methods] -->
 
 A tag written before the name of a type parameter is a further requirement, as [chapter 8](08-annotations.md) defines. <!-- r[generics.bounds.tag-written-before] -->
 `class Snapshot<@Frozen T>` accepts only a type argument whose declaration carries `Frozen`, or a type parameter that makes the same requirement. <!-- r[generics.bounds.class-snapshot-frozen] -->
@@ -118,7 +118,7 @@ A wildcard inside one of those arguments is legal: `new List<List<?>>()` creates
 - For an `in` parameter, `G<? super L>` is the same type as `G<L>`, and `? extends` is rejected. <!-- r[generics.wildcards.in-parameter-super] -->
 
 `?` may be written for any parameter. <!-- r[generics.wildcards.written-parameter] -->
-For an invariant or an `out` parameter with the bound `B`, `?` is the same argument as `? extends B`, so `Iterable<?>` is `Iterable<@Nullable Object>`. <!-- r[generics.wildcards.invariant-out-parameter] -->
+For an invariant or an `out` parameter with the bound `B`, `?` is the same argument as `? extends B`, so `Iterable<?>` is `Iterable<Object?>`. <!-- r[generics.wildcards.invariant-out-parameter] -->
 For an `in` parameter, `Ordered<?>` is the type of every `Ordered`, which no other spelling gives. <!-- r[generics.wildcards.in-parameter-ordered] -->
 
 **Subtyping.** [Section 7.3](#73-variance) compares the arguments of an invariant parameter for sameness. <!-- r[generics.wildcards.subtyping-compares-arguments] -->
@@ -138,7 +138,7 @@ It is a subtype of `List<? extends List<?>>`. <!-- r[generics.wildcards.subtype-
 A wildcard type has the supertypes that its declaration names, read as the result type of a member is read below. <!-- r[generics.wildcards.wildcard-type-supertypes] -->
 `List<? extends Shape>` is a subtype of `Iterable<Shape>`, so a `for` statement visits its elements as shapes. <!-- r[generics.wildcards.list-extends-shape-subtype] -->
 
-`List<? extends Object>` accepts no list of a `@Nullable` type, by the rule of [section 7.2](#72-bounds). <!-- r[generics.wildcards.list-extends-object] -->
+`List<? extends Object>` accepts no list of a nullable type, by the rule of [section 7.2](#72-bounds). <!-- r[generics.wildcards.list-extends-object] -->
 `List<?>` accepts every list. <!-- r[generics.wildcards.list-accepts] -->
 
 **Members.** When a member is used through a wildcard type, each wildcard stands for one unknown type, called `X` here. <!-- r[generics.wildcards.members-member-used] -->
@@ -163,7 +163,7 @@ shapes.add(new Circle(1));            // rejected: a Circle is not known to be a
 
 List<? super Circle> sink = shapes2;
 sink.add(new Circle(1));              // a Circle is an X, whatever X is
-@Nullable Object item = sink[0];      // X is known only to be within the bound of List's parameter
+Object? item = sink[0];      // X is known only to be within the bound of List's parameter
 ```
 
 **Naming the unknown.** Each evaluation of an expression has an unknown of its own. <!-- r[generics.wildcards.naming-unknown-evaluation] -->
@@ -282,7 +282,7 @@ Type arguments exist at run time. <!-- r[generics.run-time.type-arguments-exist]
   `o instanceof Iterable<Object>` is `true` for a `List<String>`. <!-- r[generics.run-time.instanceof-iterable-object] -->
   `o instanceof List<?>` is `true` for every list, and `o instanceof List<? extends Shape>` is `true` for a `List<Circle>`. <!-- r[generics.run-time.instanceof-list-true] -->
 - Inside a generic class or method, a type parameter stands for its argument. <!-- r[generics.run-time.inside-generic-class] -->
-  `(T) e` and `e instanceof T` test against that argument, and `new @Nullable T[n]` creates an array of it. <!-- r[generics.run-time.instanceof-test-against] -->
+  `(T) e` and `e instanceof T` test against that argument, and `new T?[n]` creates an array of it. <!-- r[generics.run-time.instanceof-test-against] -->
 - `T[]` is `Array<T>`, an invariant generic class like any other. <!-- r[generics.run-time.array-invariant-generic] -->
   `o instanceof String[]` is `false` for an `Object[]`. <!-- r[generics.run-time.instanceof-string-false] -->
   An array of some subtype of `Shape` is written `Array<? extends Shape>`. <!-- r[generics.run-time.array-subtype-shape] -->

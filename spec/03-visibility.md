@@ -61,7 +61,7 @@ A public method does not take a parameter of a type that is private to the file.
 ```java
 public sealed class ArrayList<T> permits SubList {
     Int size = 0;
-    package only(ArrayListItr, SubList) @Nullable T[] elements = new @Nullable T[8];
+    package only(ArrayListItr, SubList) T?[] elements = new T?[8];
 
     protected only(SubList) T elementAt(Int index) {
         return (T) elements[index];

@@ -1,0 +1,3 @@
+//@ rule: syntax.types.question-after-named
+//@ accepted
+class A { String? a; String?[]? b; Int[]?[] c; List<String?>? d; Map<String, List<Int?>?>? e; void f(Int[][]? m) { m[0] = null; Int[][]? n = new Int[2][]?; } }

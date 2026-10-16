@@ -1,3 +1,0 @@
-//@ rule: null.null-class.null-final-value
-//@ accepted
-class A { Null f() { return null; } }

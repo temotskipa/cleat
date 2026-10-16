@@ -96,7 +96,7 @@ class Parser {
                 && (source[position].isDigit() || source[position] == '.')) {
             position++;
         }
-        @Nullable Rational value = Rational.parse(source.substring(start, position));
+        Rational? value = Rational.parse(source.substring(start, position));
         if (value == null) {
             throw new ParseException("expected a number at " + start);
         }

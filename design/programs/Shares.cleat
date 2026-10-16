@@ -52,8 +52,8 @@ public class Shares {
             Console.error("usage: shares <total> <people>");
             Process.exit(2);
         }
-        @Nullable Rational total = Rational.parse(args[0]);
-        @Nullable Int people = Int.parse(args[1]);
+        Rational? total = Rational.parse(args[0]);
+        Int? people = Int.parse(args[1]);
         if (total == null || people == null || !Counts.isPositive(people)) {
             Console.error("shares: the total must be a number and the people a positive integer");
             Process.exit(2);

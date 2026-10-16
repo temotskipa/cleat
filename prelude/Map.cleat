@@ -2,15 +2,15 @@ package cleat;
 
 // A hash map. It visits its keys in the order they were first set.
 public class Map<K, V> {
-    @Nullable K[] keyAt;
-    @Nullable V[] valueAt;
+    K?[] keyAt;
+    V?[] valueAt;
     // For each slot, one more than the position of its entry, or zero.
     Int[] slots;
     Int count;
 
     public Map() {
-        this.keyAt = new @Nullable K[8];
-        this.valueAt = new @Nullable V[8];
+        this.keyAt = new K?[8];
+        this.valueAt = new V?[8];
         this.slots = new Int[16];
         this.count = 0;
     }
@@ -24,7 +24,7 @@ public class Map<K, V> {
     }
 
     // map[key]: the value set for the key, or null when there is none.
-    public @Nullable V get(K key) {
+    public V? get(K key) {
         Int at = find(key);
         if (at < 0) {
             return null;
@@ -102,8 +102,8 @@ public class Map<K, V> {
     }
 
     void grow() {
-        @Nullable K[] keys = new @Nullable K[count * 2];
-        @Nullable V[] values = new @Nullable V[count * 2];
+        K?[] keys = new K?[count * 2];
+        V?[] values = new V?[count * 2];
         for (var i = 0; i < count; i++) {
             keys[i] = keyAt[i];
             values[i] = valueAt[i];

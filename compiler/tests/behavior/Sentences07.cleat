@@ -116,7 +116,7 @@ class Infer {
         return Infer.<P>of();
     }
 
-    public static <P> String nullable(@Nullable P a) {
+    public static <P> String nullable(P? a) {
         return Infer.<P>of();
     }
 
@@ -189,11 +189,11 @@ class Infer {
 }
 
 class Kinds {
-    public static <T> Boolean isA(@Nullable Object o) {
+    public static <T> Boolean isA(Object? o) {
         return o instanceof T;
     }
 
-    public static <T> String cast(@Nullable Object o) {
+    public static <T> String cast(Object? o) {
         try {
             T value = (T) o;
             return "accepted";
@@ -203,7 +203,7 @@ class Kinds {
     }
 
     public static <T> String array() {
-        return new @Nullable T[2].getClass().getName();
+        return new T?[2].getClass().getName();
     }
 
     public static <T> String sameKind(List<T> items) {
@@ -262,7 +262,7 @@ public class Sentences07 {
 
         // ---- 7.5 ----
         Int8 small = 5;
-        @Nullable String maybe = "text";
+        String? maybe = "text";
         List<? extends Shape> someShapes = circles;
         List<? super Circle> someSink = shapes;
         //@ rule: generics.inference.call-writes-none
@@ -357,11 +357,11 @@ public class Sentences07 {
         //@ rule: generics.run-time.list-nullable-strings
         //@ rule: generics.run-time.getname-instantiation-name
         //@ rule: generics.run-time.name-type-argument
-        Console.println("names: " + new Map<String, Int>().getClass().getName() + " " + new List<@Nullable String>().getClass().getName() + " " + new List<@Positive @Nullable Int>().getClass().getName());
+        Console.println("names: " + new Map<String, Int>().getClass().getName() + " " + new List<String?>().getClass().getName() + " " + new List<@Positive Int?>().getClass().getName());
         //@ rule: generics.run-time.wildcard-inside-type
         Console.println("wildcard names: " + new List<List<?>>().getClass().getName() + " " + new List<List<? extends Shape>>().getClass().getName() + " " + new List<List<? super Circle>>().getClass().getName());
         //@ rule: generics.run-time.spellings-type-name
-        Console.println("one name: " + new List<Iterable<? extends Shape>>().getClass().getName() + " " + new List<List<? extends @Nullable Object>>().getClass().getName() + " " + (new List<Iterable<? extends Shape>>().getClass() == new List<Iterable<Shape>>().getClass()) + " " + (new List<List<? extends @Nullable Object>>().getClass() == new List<List<?>>().getClass()));
+        Console.println("one name: " + new List<Iterable<? extends Shape>>().getClass().getName() + " " + new List<List<? extends Object?>>().getClass().getName() + " " + (new List<Iterable<? extends Shape>>().getClass() == new List<Iterable<Shape>>().getClass()) + " " + (new List<List<? extends Object?>>().getClass() == new List<List<?>>().getClass()));
 
         // ---- 7.8 ----
         var accepts = new Accepts();

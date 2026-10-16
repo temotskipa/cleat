@@ -15,7 +15,7 @@ public final class Thread {
     public static void checkCancelled()
     public void join()
     public Boolean isAlive()
-    public @Nullable Throwable uncaught()
+    public Throwable? uncaught()
 }
 ```
 
@@ -129,7 +129,7 @@ Each of its three methods raises `IllegalStateException` unless the running thre
 class Mailbox<T extends Object> {
     final Lock lock = new Lock();
     final Condition filled = lock.newCondition();
-    @Nullable T item;
+    T? item;
 
     public void put(T value) {
         lock.exclusive(() -> {

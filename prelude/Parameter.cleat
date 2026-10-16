@@ -13,7 +13,7 @@ public value class Parameter {
         return owner.parameterName(method, index);
     }
 
-    public <A extends Annotation> @Nullable A getAnnotation() {
+    public <A extends Annotation> A? getAnnotation() {
         return owner.<A>parameterAnnotation(method, index);
     }
 }

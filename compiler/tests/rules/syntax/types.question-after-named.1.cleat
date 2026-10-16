@@ -1,0 +1,3 @@
+//@ rule: syntax.types.question-after-named
+//@ rejected: `?` is written once after a type
+class A { String?? s; }

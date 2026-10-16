@@ -1,3 +1,0 @@
-//@ rule: null.null-class.null-final-value
-//@ rejected: `null` is the one instance
-class A { Null f() { return new Null(); } }

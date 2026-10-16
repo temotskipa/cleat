@@ -1,3 +1,3 @@
 //@ rule: null.casts.writing-nullable-type
-//@ rejected: `@Nullable` is rejected after `instanceof`
-class A { Boolean f(Object o) { return o instanceof @Nullable String; } }
+//@ rejected: the type after `instanceof` has no `?`
+class A { Boolean f(Object o) { return o instanceof String?; } }

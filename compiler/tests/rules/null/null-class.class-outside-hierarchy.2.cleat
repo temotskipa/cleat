@@ -1,3 +1,0 @@
-//@ rule: null.null-class.class-outside-hierarchy
-//@ accepted
-class A { Object f(String s, Int n, Unit u) { Object o = s; o = n; return u; } }

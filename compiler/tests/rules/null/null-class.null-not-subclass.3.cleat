@@ -1,3 +1,0 @@
-//@ rule: null.null-class.null-not-subclass
-//@ accepted
-class A { @Nullable Object f(Null n) { return n; } Null g() { return null; } @Nullable String h(Null n) { return n; } }

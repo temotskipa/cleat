@@ -1,0 +1,3 @@
+//@ rule: null.nullable.qualifier-stays-type
+//@ accepted
+@Refines annotation P; class A { @P Int? f(@P Int p) { @P Int? q = p; q = null; return q; } @P Int g(@P Int? q, @P Int d) { if (q != null) { return q; } return q ?? d; } }

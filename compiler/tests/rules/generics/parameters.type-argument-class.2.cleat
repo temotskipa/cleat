@@ -1,3 +1,3 @@
 //@ rule: generics.parameters.type-argument-class
 //@ accepted
-class A<T> { void f(List<String> a, List<Iterable<Int>> b, List<Int[]> c, List<T> d, List<@Nullable String> e) { } }
+class A<T> { void f(List<String> a, List<Iterable<Int>> b, List<Int[]> c, List<T> d, List<String?> e) { } }

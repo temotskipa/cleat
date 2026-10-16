@@ -110,7 +110,7 @@ public class Sentences02 {
 
     public static void main() {
         Int n = 5;
-        @Nullable Object none = null;
+        Object? none = null;
         //@ rule: objects.population.value-instance-exactly
         //@ rule: objects.population.number-character-truth
         Console.println("classes: " + n.getClass().getName() + " " + 'c'.getClass().getName() + " " + true.getClass().getName() + " " + "s".getClass().getName() + " " + new Int[1].getClass().getName() + " " + none.toString());
@@ -137,7 +137,7 @@ public class Sentences02 {
         //@ rule: objects.root.value-class-point
         Console.println("toString: " + p);
 
-        @Nullable Object alsoNone = null;
+        Object? alsoNone = null;
         Float64 nan = f(0.0) / f(0.0);
         //@ rule: objects.root.identical-asks-whether
         //@ rule: objects.root.identical-defined-pair

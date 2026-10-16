@@ -19,9 +19,9 @@ writes itself, and nothing else.
 ## Values
 
 - A value whose static type is a prelude number class other than `Rational`, or
-  `Boolean`, `Char` or `Pointer`, and is not `@Nullable`, is a machine value.
+  `Boolean`, `Char` or `Pointer`, and is not nullable, is a machine value.
 - Every other value is a pointer to an object: any reference class, a value class the
-  program declares, `String`, `Rational`, an array, any `@Nullable` type, and any type
+  program declares, `String`, `Rational`, an array, any nullable type, and any type
   parameter. A machine value is boxed where it meets such a type (`TKind::Coerce`, and
   at call and field boundaries by the declared type of the member).
 - `Unit` is no value at all in a result; where one is needed as an object it is the

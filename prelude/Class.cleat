@@ -9,13 +9,13 @@ public final class Class {
     public String getName();
 
     @Intrinsic
-    public @Nullable Class getSuperclass();
+    public Class? getSuperclass();
 
     @Intrinsic
     public Class[] getInterfaces();
 
     @Intrinsic
-    public <A extends Annotation> @Nullable A getAnnotation();
+    public <A extends Annotation> A? getAnnotation();
 
     public <A extends Annotation> Field[] getAnnotatedFields() {
         Int[] found = this.<A>annotatedFields();
@@ -47,13 +47,13 @@ public final class Class {
     package Boolean fieldIsStatic(Int field);
 
     @Intrinsic
-    package <A extends Annotation> @Nullable A fieldAnnotation(Int field);
+    package <A extends Annotation> A? fieldAnnotation(Int field);
 
     @Intrinsic
-    package @Nullable Object fieldGet(Int field, @Nullable Object target);
+    package Object? fieldGet(Int field, Object? target);
 
     @Intrinsic
-    package void fieldSet(Int field, @Nullable Object target, @Nullable Object value);
+    package void fieldSet(Int field, Object? target, Object? value);
 
     @Intrinsic
     package String methodName(Int method);
@@ -68,11 +68,11 @@ public final class Class {
     package String parameterName(Int method, Int parameter);
 
     @Intrinsic
-    package <A extends Annotation> @Nullable A methodAnnotation(Int method);
+    package <A extends Annotation> A? methodAnnotation(Int method);
 
     @Intrinsic
-    package <A extends Annotation> @Nullable A parameterAnnotation(Int method, Int parameter);
+    package <A extends Annotation> A? parameterAnnotation(Int method, Int parameter);
 
     @Intrinsic
-    package @Nullable Object methodInvoke(Int method, @Nullable Object target, @Nullable Object[] arguments);
+    package Object? methodInvoke(Int method, Object? target, Object?[] arguments);
 }

@@ -1,3 +1,3 @@
 //@ rule: annotations.declaring.means-mean-directly
-//@ rejected: `length` is sent to a `@Nullable String`
-class A { @Nullable public String find() { return null; } Int g() { return find().length(); } }
+//@ rejected: `Int` is not assignable to `@P Int`
+@Refines annotation P; class A { @P public Int count() { return 1; } }

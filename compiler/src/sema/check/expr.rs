@@ -321,7 +321,7 @@ impl<'p> Checker<'p> {
         }
         let (a, b) = (self.show(&e.ty), self.show(to));
         if e.ty.is_null_literal() {
-            self.error_expr(pos, format!("`null` is not a value of `{b}`; a type that contains `null` is written `@Nullable`"))
+            self.error_expr(pos, format!("`null` is not a value of `{b}`; a type that contains `null` is written with `?`"))
         } else {
             self.error_expr(pos, format!("`{a}` is not assignable to `{b}`"))
         }
@@ -528,7 +528,7 @@ impl<'p> Checker<'p> {
                 let n = self.coerce(n, &self.int(), len.pos);
                 if !et.is_error() && !self.has_default(&et, 0) {
                     let s = self.show(&et);
-                    self.err(pos, format!("this array creation is rejected because its element type `{s}` has no default value; make the element type `@Nullable`, list the elements, or use `Array.build`"));
+                    self.err(pos, format!("this array creation is rejected because its element type `{s}` has no default value; make the element type nullable, list the elements, or use `Array.build`"));
                 }
                 let ty = self.p.array_of(et.clone());
                 TExpr { kind: TKind::NewArray { elem: et, len: Box::new(n) }, ty }
@@ -708,7 +708,10 @@ impl<'p> Checker<'p> {
                     };
                 }
                 if ty.nullable {
-                    self.err(t.pos, "`@Nullable` is rejected after `instanceof`: `null` is an instance of no type");
+                    self.err(
+                        t.pos,
+                        "the type after `instanceof` has no `?`: `null` is an instance of no type",
+                    );
                 }
                 if !ty.quals.is_empty() {
                     self.err(t.pos, "a value does not carry its qualifiers at run time, so `instanceof` does not test one");
@@ -792,9 +795,7 @@ impl<'p> Checker<'p> {
             let fi = self.frames.len() - 1;
             self.local_type(fi, id)
         };
-        if q == self.p.wk.nullable {
-            ty.nullable = false;
-        } else if self.p.class(q).qualifier == Qualifier::Refines {
+        if self.p.class(q).qualifier == Qualifier::Refines {
             let below = ty.quals.iter().any(|have| self.p.refines(*have, q));
             if !below {
                 ty.add_qual(q);
@@ -1180,9 +1181,7 @@ impl<'p> Checker<'p> {
         };
         let c = self.p.class(cid);
         let name = c.name.clone();
-        let problem = if cid == self.p.wk.null {
-            Some("`null` is the one instance")
-        } else if c.is_interface() {
+        let problem = if c.is_interface() {
             Some("an interface has no instances of its own")
         } else if c.is_abstract {
             Some("an abstract class has no instances of its own")

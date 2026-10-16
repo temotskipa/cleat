@@ -1,3 +1,3 @@
 //@ rule: flow.narrowing.parentheses-change-nothing
 //@ accepted
-class A { Int f(@Nullable String s) { if (((s != null))) { return (s).length(); } return 0; } Boolean g(@Nullable String s) { return (s == null) || (s.isEmpty()); } }
+class A { Int f(String? s) { if (((s != null))) { return (s).length(); } return 0; } Boolean g(String? s) { return (s == null) || (s.isEmpty()); } }

@@ -128,7 +128,7 @@ fn plan(chapter: &str, index: usize) -> Plan {
         ("05", 0) => p(Sigs("value class String")),
         ("05", 1) => p(Prelude(None)),
         ("05", 2) => p(Stmts("void", "Map<String, Int> counts, String word")),
-        ("05", 3) => pm(Stmts("Num", "@Nullable Rational value"), "", CALC),
+        ("05", 3) => pm(Stmts("Num", "Rational? value"), "", CALC),
         ("05", 4) => p(Stmts("void", "Map<String, Int> counts, String word")),
         ("05", 5) => p(Members("class Fence")),
         ("05", 6) => pm(Stmts("void", ""), "static void log(String message) { }", ""),
@@ -164,18 +164,17 @@ fn plan(chapter: &str, index: usize) -> Plan {
             "static Rational share(Rational total, @Positive Int people) { return total / people; }",
             POSITIVE,
         ),
-        ("08", 5) => p(Prelude(None)),
-        ("08", 6) => p(Unit),
-        ("08", 7) => pm(Unit, "", "@Target(Site.TYPE) annotation Frozen;"),
-        ("08", 8) => p(Unit),
-        ("08", 9) => pm(
+        ("08", 5) => p(Unit),
+        ("08", 6) => pm(Unit, "", "@Target(Site.TYPE) annotation Frozen;"),
+        ("08", 7) => p(Unit),
+        ("08", 8) => pm(
             Stmts("void", ""),
             "",
             "value class Meters { public Rational length; @Implicit public static Meters from(Int whole) { return new Meters(whole); } }",
         ),
-        ("08", 10) => p(Prelude(None)),
-        ("08", 11) => p(Unit),
-        ("08", 12) => pm(
+        ("08", 9) => p(Prelude(None)),
+        ("08", 10) => p(Unit),
+        ("08", 11) => pm(
             Members("class Fence"),
             "",
             "@Target(Site.METHOD) annotation Check(String name);",
@@ -497,8 +496,14 @@ fn show_type(t: &ast::TypeRef) -> String {
             .collect();
         s.push_str(&format!("<{}>", parts.join(", ")));
     }
+    if t.nullable {
+        s.push('?');
+    }
     for d in &t.dims {
-        s.push_str(&format!(" {}[]", show_anns(d)));
+        s.push_str(&format!(" {}[]", show_anns(&d.annotations)));
+        if d.nullable {
+            s.push('?');
+        }
     }
     s
 }
@@ -782,15 +787,13 @@ examples![
     (annotations_narrows, "08", 2),
     (annotations_qualified_parameter, "08", 3),
     (annotations_narrowing, "08", 4),
-    //@ rule: null.nullable.qualifier-declared-prelude
-    (annotations_nullable, "08", 5),
-    (annotations_tag, "08", 6),
-    (annotations_required_tag, "08", 7),
-    (annotations_implicit, "08", 8),
-    (annotations_implicit_use, "08", 9),
-    (annotations_mirrors, "08", 10),
-    (annotations_check, "08", 11),
-    (annotations_reading, "08", 12),
+    (annotations_tag, "08", 5),
+    (annotations_required_tag, "08", 6),
+    (annotations_implicit, "08", 7),
+    (annotations_implicit_use, "08", 8),
+    (annotations_mirrors, "08", 9),
+    (annotations_check, "08", 10),
+    (annotations_reading, "08", 11),
     (execution_throwable, "09", 0),
     (execution_try, "09", 1),
     (execution_using, "09", 2),

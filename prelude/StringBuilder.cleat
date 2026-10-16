@@ -30,7 +30,7 @@ public class StringBuilder {
 
     // Appends `value.toString()`.
     @Discardable
-    public StringBuilder append(@Nullable Object value) {
+    public StringBuilder append(Object? value) {
         String text = value.toString();
         Int length = text.length();
         if (count + length > chars.length()) {

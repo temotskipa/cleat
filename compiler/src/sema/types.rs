@@ -50,7 +50,7 @@ pub enum Ty {
 pub struct Type {
     pub ty: Ty,
     pub nullable: bool,
-    /// The qualifiers other than `@Nullable`, sorted.
+    /// The qualifiers, sorted. A `?` is `nullable`, and no qualifier.
     pub quals: Vec<ClassId>,
 }
 

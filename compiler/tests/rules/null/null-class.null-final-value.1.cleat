@@ -1,3 +1,0 @@
-//@ rule: null.null-class.null-final-value
-//@ rejected: `Null` is not a class that can be extended
-class B extends Null { }

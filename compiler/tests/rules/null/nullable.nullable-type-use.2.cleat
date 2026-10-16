@@ -1,3 +1,0 @@
-//@ rule: null.nullable.nullable-type-use
-//@ rejected: a qualifier is written before a type, and a constructor has none
-class A { @Nullable public A() { } }

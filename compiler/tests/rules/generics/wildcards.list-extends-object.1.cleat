@@ -1,3 +1,3 @@
 //@ rule: generics.wildcards.list-extends-object
-//@ rejected: `List<@Nullable String>` is not assignable to `List<? extends Object>`
-class A { void f(List<? extends Object> xs) { } void g(List<@Nullable String> ys) { f(ys); } }
+//@ rejected: `List<String?>` is not assignable to `List<? extends Object>`
+class A { void f(List<? extends Object> xs) { } void g(List<String?> ys) { f(ys); } }

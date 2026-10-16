@@ -20,7 +20,7 @@ public class Sentences11 {
         var a = 0;
         var b = 0;
         a = b = 5;
-        @Nullable String missing = null;
+        String? missing = null;
         //@ rule: syntax.expressions.assignment-conditional-coalesce
         Console.println("right: " + a + " " + b + " " + (false ? 1 : true ? 2 : 3) + " " + (missing ?? missing ?? "c"));
         //@ rule: syntax.expressions.binary-operators-group

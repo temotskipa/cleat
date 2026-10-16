@@ -832,7 +832,7 @@ impl<'p> Checker<'p> {
             let s = self.show(&sty);
             self.err(
                 selector.pos,
-                format!("the selector of a switch is not `@Nullable`, and this is a `{s}`"),
+                format!("the selector of a switch is not nullable, and this is a `{s}`"),
             );
         }
         let tmp = self.temp(sty.clone());
@@ -1254,7 +1254,7 @@ impl<'p> Checker<'p> {
                 let s = self.show(&ty);
                 self.err(
                     r.pos,
-                    format!("a `using` binding is not `@Nullable`, and this is a `{s}`"),
+                    format!("a `using` binding is not nullable, and this is a `{s}`"),
                 );
             } else {
                 let read = TExpr {

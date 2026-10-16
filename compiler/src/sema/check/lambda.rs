@@ -394,6 +394,7 @@ impl<'p> Checker<'p> {
                         annotations: Vec::new(),
                         name: parts,
                         args: None,
+                        nullable: false,
                         dims: Vec::new(),
                         pos,
                     };

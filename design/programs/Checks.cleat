@@ -60,13 +60,13 @@ public class Checks {
 
     // Reports each @Max field that is above its limit. The items may be of any class.
     static void validate(List<?> items) {
-        for (@Nullable Object item : items) {
+        for (Object? item : items) {
             if (item == null) {
                 continue;
             }
             for (Field field : item.getClass().<Max>getAnnotatedFields()) {
                 Max max = (Max) field.<Max>getAnnotation();
-                @Nullable Object value = field.get(item);
+                Object? value = field.get(item);
                 if (value instanceof Int) {
                     if (value > max.limit) {
                         Console.println(field.getName() + " is " + value + ", above the limit " + max.limit);

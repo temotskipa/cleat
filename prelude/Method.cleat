@@ -20,12 +20,12 @@ public value class Method {
         return Array.<Parameter>build(owner.parameterCount(index), (i) -> new Parameter(owner, index, i));
     }
 
-    public <A extends Annotation> @Nullable A getAnnotation() {
+    public <A extends Annotation> A? getAnnotation() {
         return owner.<A>methodAnnotation(index);
     }
 
     @Discardable
-    public @Nullable Object invoke(@Nullable Object target, @Nullable Object... arguments) {
+    public Object? invoke(Object? target, Object?... arguments) {
         return owner.methodInvoke(index, target, arguments);
     }
 }

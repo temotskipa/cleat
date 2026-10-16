@@ -1,3 +1,3 @@
 //@ rule: generics.wildcards.in-parameter-ordered
 //@ accepted
-open class Shape { } interface Snk<in T> { void put(T x); } class A { void f(Snk<?> s) { } void g(Snk<Shape> a, Snk<String> b, Snk<@Nullable Object> c) { f(a); f(b); f(c); } }
+open class Shape { } interface Snk<in T> { void put(T x); } class A { void f(Snk<?> s) { } void g(Snk<Shape> a, Snk<String> b, Snk<Object?> c) { f(a); f(b); f(c); } }

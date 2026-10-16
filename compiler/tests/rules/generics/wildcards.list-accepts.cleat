@@ -1,3 +1,3 @@
 //@ rule: generics.wildcards.list-accepts
 //@ accepted
-class A { void f(List<?> xs) { } void g(List<@Nullable String> a, List<String> b, List<List<?>> c) { f(a); f(b); f(c); } }
+class A { void f(List<?> xs) { } void g(List<String?> a, List<String> b, List<List<?>> c) { f(a); f(b); f(c); } }

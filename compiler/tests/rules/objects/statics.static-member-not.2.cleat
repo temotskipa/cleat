@@ -1,3 +1,3 @@
 //@ rule: objects.statics.static-member-not
 //@ rejected: there is no type named `T` here
-class A<T> { static @Nullable T held = null; }
+class A<T> { static T? held = null; }

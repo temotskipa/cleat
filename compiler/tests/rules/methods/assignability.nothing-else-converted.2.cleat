@@ -1,3 +1,3 @@
 //@ rule: methods.assignability.nothing-else-converted
 //@ rejected: is not assignable to `Int`
-class A { Int f(@Nullable Int32 n) { Int m = n; return m; } }
+class A { Int f(Int32? n) { Int m = n; return m; } }

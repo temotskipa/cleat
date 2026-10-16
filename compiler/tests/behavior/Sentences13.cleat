@@ -31,7 +31,7 @@ class Gate {
 class Slot {
     final Lock lock = new Lock();
     final Condition filled = lock.newCondition();
-    @Nullable String value;
+    String? value;
     public final AtomicInt waiting = new AtomicInt(0);
 
     public void put(String text) {
@@ -62,7 +62,7 @@ class Late {
 
 class Same {
     @Override
-    public Boolean equals(@Nullable Object other) {
+    public Boolean equals(Object? other) {
         return true;
     }
 
@@ -111,7 +111,7 @@ public class Sentences13 {
 
         // ---- 13.1 ----
         var box = new AtomicInt(0);
-        var seen = new Atomic<@Nullable Thread>(null);
+        var seen = new Atomic<Thread?>(null);
         var worker = Thread.start(() -> {
             seen.set(Thread.current());
             box.set(7);
@@ -157,7 +157,7 @@ public class Sentences13 {
             }
         });
         failed.join();
-        @Nullable Throwable why = failed.uncaught();
+        Throwable? why = failed.uncaught();
         //@ rule: concurrency.threads.exception-leaves-body
         Console.println("uncaught: " + (why == null ? "none" : why.message()) + ", and main goes on");
 
@@ -342,7 +342,7 @@ public class Sentences13 {
         Console.println("scope: " + sum + " " + done);
 
         var door = new Gate();
-        var where = new Atomic<@Nullable Thread>(null);
+        var where = new Atomic<Thread?>(null);
         var order = Scope.call((scope) -> {
             var task = scope.fork(() -> {
                 where.set(Thread.current());

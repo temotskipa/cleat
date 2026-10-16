@@ -24,8 +24,8 @@ class Box<T> {
         return o instanceof T;
     }
 
-    public @Nullable T[] spare(Int n) {
-        return new @Nullable T[n];
+    public T?[] spare(Int n) {
+        return new T?[n];
     }
 }
 
@@ -73,7 +73,7 @@ public class Generics {
 
     static Int count(Iterable<?> items) {
         var n = 0;
-        for (@Nullable Object item : items) {
+        for (Object? item : items) {
             n++;
         }
         return n;
@@ -128,7 +128,7 @@ public class Generics {
         List<? extends Object> view = numbers;
         Console.println(view[0]);
         // The name of a class says its type arguments, qualifiers and wildcards included.
-        Console.println(new List<@Nullable String>().getClass().getName());
+        Console.println(new List<String?>().getClass().getName());
         Console.println(new List<List<?>>().getClass().getName());
         Console.println(new Map<String, List<? extends Source<Int>>>().getClass().getName());
     }

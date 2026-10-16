@@ -45,7 +45,7 @@ public class WordCount {
     }
 
     static void bump(Map<String, Int> counts, String word) {
-        // Map.get returns @Nullable Int; ?? supplies the count for a word not yet seen.
+        // Map.get returns Int?; ?? supplies the count for a word not yet seen.
         counts[word] = (counts[word] ?? 0) + 1;
     }
 }

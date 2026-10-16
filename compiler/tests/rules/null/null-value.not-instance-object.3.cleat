@@ -1,0 +1,3 @@
+//@ rule: null.null-value.not-instance-object
+//@ accepted
+class A { Object f(String s) { return s; } Object? g(String? s) { return s; } }

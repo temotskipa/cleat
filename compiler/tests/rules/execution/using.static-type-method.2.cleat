@@ -1,3 +1,3 @@
 //@ rule: execution.using.static-type-method
-//@ rejected: a `using` binding is not `@Nullable`
-class R { public R() { } public void close() { } } class A { void f(@Nullable R r) { using (@Nullable R x = r) { } } }
+//@ rejected: a `using` binding is not nullable
+class R { public R() { } public void close() { } } class A { void f(R? r) { using (R? x = r) { } } }

@@ -256,7 +256,7 @@ class Op {
 
 class Loud {
     @Override
-    public Boolean equals(@Nullable Object other) {
+    public Boolean equals(Object? other) {
         Trace.note("equals");
         return other instanceof Loud;
     }
@@ -276,7 +276,7 @@ value class LoudValue {
     public Int n;
 
     @Override
-    public Boolean equals(@Nullable Object other) {
+    public Boolean equals(Object? other) {
         Trace.note("equals");
         return other instanceof LoudValue;
     }
@@ -539,7 +539,7 @@ public class Sentences04 {
 
         // ---- 4.5 ----
         Meters height = 3;
-        @Nullable Meters maybe = 4;
+        Meters? maybe = 4;
         var noted = Trace.take();
         //@ rule: methods.assignability.implicit-conversion-value
         //@ rule: methods.assignability.static-method-marked
@@ -560,9 +560,9 @@ public class Sentences04 {
         var differs = loud != other;
         //@ rule: methods.operators.not-equals-equals
         Console.println("inequality: " + Trace.take() + differs);
-        @Nullable Loud absent = null;
+        Loud? absent = null;
         var isNull = absent == null;
-        @Nullable Loud here = loud;
+        Loud? here = loud;
         var notNull = here != null;
         //@ rule: methods.operators.operand-literal-null
         Console.println("a null test: [" + Trace.take() + "] " + isNull + " " + notNull);
@@ -645,8 +645,8 @@ public class Sentences04 {
         //@ rule: methods.expressions.conditional-type-boolean
         //@ rule: methods.expressions.exactly-evaluated-value
         Console.println("conditional: " + Trace.take() + "| " + chosen1 + " " + chosen2);
-        @Nullable String missing = null;
-        @Nullable String present = "left";
+        String? missing = null;
+        String? present = "left";
         //@ rule: methods.expressions.coalesce-value-unless
         Console.println("??: " + (missing ?? "right") + " " + (present ?? "right"));
         Object text = "text";
@@ -669,7 +669,7 @@ public class Sentences04 {
         //@ rule: methods.expressions.test-succeeds-class
         //@ rule: methods.expressions.successful-cast-yields
         Console.println("casts: " + cast.identical(text) + " " + cast.length() + " " + failed + " " + ((Shape) object).name() + " " + generic);
-        @Nullable Object nothing = null;
+        Object? nothing = null;
         //@ rule: methods.expressions.instanceof-true-value
         Console.println("instanceof: " + (text instanceof String) + " " + (text instanceof Shape) + " " + (nothing instanceof String) + " " + (object instanceof Shape) + " " + (ints instanceof List<Int>) + " " + (ints instanceof List<String>));
         //@ rule: methods.expressions.new-args-creates

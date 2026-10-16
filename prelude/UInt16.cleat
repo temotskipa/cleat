@@ -139,7 +139,7 @@ public value class UInt16 implements Numeric<UInt16>, Ordered<UInt16> {
 
     // The text of an integer in decimal, or null when the text is not one or is out of
     // range. A sign may come first.
-    public static @Nullable UInt16 parse(String text) {
+    public static UInt16? parse(String text) {
         var wide = Int.parse(text);
         if (wide == null || wide < 0 || wide > 65535) {
             return null;

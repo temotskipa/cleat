@@ -1,0 +1,3 @@
+//@ rule: null.null-value.not-instance-object
+//@ rejected: `String?` is not assignable to `Object`
+class A { Object f(String? s) { return s; } }

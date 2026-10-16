@@ -57,7 +57,7 @@ A use with no arguments writes no parentheses. <!-- r[annotations.declaring.use-
 
 A qualifier may also be written among the modifiers of a field, a method, a parameter or a local. <!-- r[annotations.declaring.qualifier-written-among] -->
 It then means what it would mean directly before that declaration's type, which for a method is its result type. <!-- r[annotations.declaring.means-mean-directly] -->
-`@Nullable public String find(String key)` and `public @Nullable String find(String key)` are the same declaration. <!-- r[annotations.declaring.nullable-public-string] -->
+`@Positive public Int count()` and `public @Positive Int count()` are the same declaration. <!-- r[annotations.declaring.nullable-public-string] -->
 
 An annotation is written at most once in one position. <!-- r[annotations.declaring.annotation-written-most] -->
 A declaration's modifiers and the annotations directly before its type are one position, and so are the annotations directly before any other type or before one pair of brackets. <!-- r[annotations.declaring.declaration-modifiers-annotations] -->
@@ -113,7 +113,7 @@ The qualifiers of a type argument are part of the reified argument: `List<Int>` 
 
 **Values.** A value does not carry its own qualifiers at run time. <!-- r[annotations.qualifiers.values-value-not] -->
 A cast or an `instanceof` whose type has a qualifier outside every type argument is therefore rejected: `(@Positive Int) n` is rejected, and `(List<@Positive Int>) o` is legal. <!-- r[annotations.qualifiers.cast-instanceof-type] -->
-[Section 8.6](#86-nullable) gives the one exception. <!-- r[annotations.qualifiers.gives-exception] -->
+[Section 8.6](#86-nullable-types) gives the one exception. <!-- r[annotations.qualifiers.gives-exception] -->
 
 ## 8.4 Receivers
 
@@ -185,23 +185,17 @@ The language does not check this. <!-- r[annotations.narrowing.language-not-chec
 The author of a `@Narrows` method is responsible for it, as the author of `equals` is responsible for the obligations of [chapter 2](02-objects.md). <!-- r[annotations.narrowing.author-narrows-method] -->
 A fact about a number, a `String`, or an instance of a value class cannot change, so a qualifier on those types meets the obligation. <!-- r[annotations.narrowing.fact-about-number] -->
 
-## 8.6 `@Nullable`
+## 8.6 Nullable types
 
-`@Nullable` is declared in the prelude as a widening: <!-- r[annotations.nullable.nullable-declared-prelude] -->
+The `?` of [chapter 5](05-null-and-unit.md) is not an annotation, and no annotation adds `null` to a type. <!-- r[annotations.nullable.nullable-declared-prelude] -->
+Its subtype rules are those of a widening in [section 8.3](#83-qualifiers), and its rule for sends on a nullable receiver is the receiver rule of [section 8.4](#84-receivers). <!-- r[annotations.nullable.subtype-rules-rule] -->
 
-```java
-@Widens
-public annotation Nullable;
-```
-
-The subtype rules of [chapter 5](05-null-and-unit.md) are those of [section 8.3](#83-qualifiers), and its rule for sends on a nullable receiver is the receiver rule of [section 8.4](#84-receivers). <!-- r[annotations.nullable.subtype-rules-rule] -->
-
-`@Nullable` differs from a qualifier a program declares in two ways. <!-- r[annotations.nullable.nullable-differs-qualifier] -->
+A nullable type differs from a qualified one in two ways. <!-- r[annotations.nullable.nullable-differs-qualifier] -->
 Both follow from `null` being built into the language. <!-- r[annotations.nullable.follow-null-built] -->
 
-- **It adds a value.** `@Nullable T` contains `null`. <!-- r[annotations.nullable.adds-value-nullable] -->
-  No other qualifier adds a value to a type. <!-- r[annotations.nullable.no-qualifier-adds] -->
-  For that reason a cast may name `@Nullable` outside a type argument: `(@Nullable String) e` accepts `null`, and `(String) e` rejects it. <!-- r[annotations.nullable.reason-cast-name] -->
+- **It adds a value.** `T?` contains `null`. <!-- r[annotations.nullable.adds-value-nullable] -->
+  No qualifier adds a value to a type. <!-- r[annotations.nullable.no-qualifier-adds] -->
+  For that reason a cast may write `?` outside a type argument: `(String?) e` accepts `null`, and `(String) e` rejects it. <!-- r[annotations.nullable.reason-cast-name] -->
 - **Its test is built in.** `e == null` and `e != null` narrow without a `@Narrows` method, and they narrow on both outcomes. <!-- r[annotations.nullable.test-built-equals] -->
 
 ## 8.7 Tags
@@ -286,9 +280,9 @@ It starts from the class object of a type, which [chapter 2](02-objects.md#27-st
 ```java
 public final class Class {
     public String getName()
-    public @Nullable Class getSuperclass()
+    public Class? getSuperclass()
     public Class[] getInterfaces()
-    public <A extends Annotation> @Nullable A getAnnotation()
+    public <A extends Annotation> A? getAnnotation()
     public <A extends Annotation> Field[] getAnnotatedFields()
     public <A extends Annotation> Method[] getAnnotatedMethods()
 }
@@ -296,23 +290,23 @@ public final class Class {
 public value class Field {
     public String getName()
     public Boolean isStatic()
-    public <A extends Annotation> @Nullable A getAnnotation()
-    public @Nullable Object get(@Nullable Object target)
-    public void set(@Nullable Object target, @Nullable Object value)
+    public <A extends Annotation> A? getAnnotation()
+    public Object? get(Object? target)
+    public void set(Object? target, Object? value)
 }
 
 public value class Method {
     public String getName()
     public Boolean isStatic()
     public Parameter[] getParameters()
-    public <A extends Annotation> @Nullable A getAnnotation()
+    public <A extends Annotation> A? getAnnotation()
     @Discardable
-    public @Nullable Object invoke(@Nullable Object target, @Nullable Object... arguments)
+    public Object? invoke(Object? target, Object?... arguments)
 }
 
 public value class Parameter {
     public String getName()
-    public <A extends Annotation> @Nullable A getAnnotation()
+    public <A extends Annotation> A? getAnnotation()
 }
 ```
 
@@ -385,7 +379,6 @@ They do not describe the type of a field or a parameter, list a member that has 
 | `@Target` | An annotation declaration | [Section 8.2](#82-declaring-and-writing-an-annotation) |
 | `@Inherited` | An annotation declaration | [Section 8.7](#87-tags) |
 | `@Narrows` | A method | [Section 8.5](#85-narrowing) |
-| `@Nullable` | A type use | [Section 8.6](#86-nullable) and [chapter 5](05-null-and-unit.md) |
 | `@Override` | A method | [Section 8.8](#88-the-preludes-declaration-annotations) |
 | `@Discardable` | A method | [Section 8.8](#88-the-preludes-declaration-annotations) |
 | `@Implicit` | A static method of a value class | [Section 8.8](#88-the-preludes-declaration-annotations) |

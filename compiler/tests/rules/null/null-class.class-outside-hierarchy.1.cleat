@@ -1,3 +1,0 @@
-//@ rule: null.null-class.class-outside-hierarchy
-//@ rejected: `Null` is not assignable to `Object`
-class A { Object f(Null n) { return n; } }

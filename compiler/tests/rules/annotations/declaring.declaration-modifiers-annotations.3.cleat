@@ -1,3 +1,3 @@
 //@ rule: annotations.declaring.declaration-modifiers-annotations
 //@ rejected: an annotation is written at most once in one position
-class A { void f() { @Nullable @Nullable String s = null; } }
+@Refines annotation P; class A { void f() { @P @P String? s = null; } }

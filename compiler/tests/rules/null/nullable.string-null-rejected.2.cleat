@@ -1,3 +1,3 @@
 //@ rule: null.nullable.string-null-rejected
 //@ accepted
-class A { void f() { @Nullable String s = null; String t = "x"; s = t; } }
+class A { void f() { String? s = null; String t = "x"; s = t; } }

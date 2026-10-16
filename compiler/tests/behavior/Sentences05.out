@@ -10,7 +10,7 @@ casts: a String is not an Int
 cast of null: raises
 nullable cast: true
 instanceof null: false false
-type arguments: true false true false cleat.List<@cleat.Nullable cleat.String>
+type arguments: true false true false cleat.List<cleat.String?>
 generic cast to String: raises
-generic cast to @Nullable String: true
+generic cast to String?: true
 Unit: true cleat.Unit

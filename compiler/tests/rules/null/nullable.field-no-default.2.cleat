@@ -1,3 +1,3 @@
 //@ rule: null.nullable.field-no-default
 //@ accepted
-class A { @Nullable String s; String t = "t"; public A() { } }
+class A { String? s; String t = "t"; public A() { } }

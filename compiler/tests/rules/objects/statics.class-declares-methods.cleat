@@ -1,3 +1,3 @@
 //@ rule: objects.statics.class-declares-methods
 //@ accepted
-annotation M; class A { @Nullable M f(Class c) { return c.<M>getAnnotation(); } Field[] g(Class c) { return c.<M>getAnnotatedFields(); } Method[] h(Class c) { return c.<M>getAnnotatedMethods(); } }
+annotation M; class A { M? f(Class c) { return c.<M>getAnnotation(); } Field[] g(Class c) { return c.<M>getAnnotatedFields(); } Method[] h(Class c) { return c.<M>getAnnotatedMethods(); } }
